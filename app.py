@@ -16,14 +16,18 @@ DATA_FILE = "crysis_data.json"
 def cargar_datos():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {"empleados": [], "historial_sesiones": []}
+            datos = json.load(f)
+            # Aseguramos que la clave exista por si el archivo es antiguo
+            if "escenarios_custom" not in datos: datos["escenarios_custom"] = {}
+            return datos
+    return {"empleados": [], "historial_sesiones": [], "escenarios_custom": {}}
 
 def guardar_datos():
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump({
             "empleados": st.session_state.empleados,
-            "historial_sesiones": st.session_state.historial_sesiones
+            "historial_sesiones": st.session_state.historial_sesiones,
+            "escenarios_custom": st.session_state.escenarios_custom
         }, f, ensure_ascii=False, indent=4)
 # ─────────────────────────────────────────
 # 1. CONFIGURACIÓN
@@ -332,13 +336,15 @@ AXIS_STYLE = dict(gridcolor='#1A2035', zeroline=False, color='#4A5568', linecolo
 # ─────────────────────────────────────────
 datos_guardados = cargar_datos()
 
-if "empleados" not in st.session_state: 
-    st.session_state.empleados = datos_guardados["empleados"]
-if "historial_sesiones" not in st.session_state: 
-    st.session_state.historial_sesiones = datos_guardados["historial_sesiones"]
+if "empleados" not in st.session_state: st.session_state.empleados = datos_guardados["empleados"]
+if "historial_sesiones" not in st.session_state: st.session_state.historial_sesiones = datos_guardados["historial_sesiones"]
+if "escenarios_custom" not in st.session_state: st.session_state.escenarios_custom = datos_guardados.get("escenarios_custom", {})
 if "mensajes" not in st.session_state: st.session_state.mensajes = []
 if "evaluacion_actual" not in st.session_state: st.session_state.evaluacion_actual = None
 if "mision_iniciada" not in st.session_state: st.session_state.mision_iniciada = False
+
+# Mezclar escenarios base con los personalizados
+TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **st.session_state.escenarios_custom}
 
 try:
     GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
@@ -638,9 +644,9 @@ with t4:
         c1, c2 = st.columns(2)
         ag_lista = [e["Nombre"] for e in st.session_state.empleados] if st.session_state.empleados else ["INVITADO"]
         ag_sel = c1.selectbox("Asignar Agente:", ag_lista)
-        es_sel = c2.selectbox("Seleccionar Escenario:", list(CONTEXTOS_MISION.keys()))
+        es_sel = c2.selectbox("Seleccionar Escenario:", list(TODAS_LAS_MISIONES.keys()))
 
-        info = CONTEXTOS_MISION[es_sel]
+        info = TODAS_LAS_MISIONES[es_sel]
         st.markdown(f"""
         <div class="briefing-box">
             <h4>📄 BRIEFING OPERATIVO</h4>
@@ -699,7 +705,7 @@ with t4:
                 client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
                 res = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
-                    messages=[{"role": "system", "content": CONTEXTOS_MISION[st.session_state.escenario_activo]["prompt"]}] + st.session_state.mensajes
+                    messages=[{"role": "system", "content": TODAS_LAS_MISIONES[st.session_state.escenario_activo]["prompt"]}] + st.session_state.mensajes
                 ).choices[0].message.content
                 st.session_state.mensajes.append({"role": "assistant", "content": res})
                 st.rerun()
@@ -778,19 +784,68 @@ Una valoración directa y dura: ¿está este agente preparado para una operació
 # TAB 5: LABORATORIO VIP (AJUSTES DEL SISTEMA)
 # ══════════════════════════════════════════
 with t5:
-    st.markdown("<div class='section-label'>SISTEMA Y CONTROL DE MEMORIA</div>", unsafe_allow_html=True)
+    col_izq, col_der = st.columns([2, 1], gap="large")
     
-    st.markdown("""
-    <div class="briefing-box" style="border-left-color: #EF4444;">
-        <h4 style="color: #EF4444;">⚠ ADVERTENCIA DE PROTOCOLO</h4>
-        <p>Esta acción ejecutará un purgado completo de la memoria local. Todos los agentes registrados y el historial de simulaciones serán eliminados de forma irreversible.</p>
-    </div>
-    """, unsafe_allow_html=True)
+    with col_izq:
+        st.markdown("<div class='section-label'>SÍNTESIS DE OPERACIONES MEDIANTE IA</div>", unsafe_allow_html=True)
+        st.write("Introduzca los parámetros para generar una nueva simulación con perfiles psicológicos únicos.")
+        
+        idea_prompt = st.text_area("Describa la situación táctica (Ej: Toma de rehenes en un banco por un ex-militar desesperado. Objetivo: que se rinda sin bajas).", height=100)
+        
+        if st.button("✨ SINTETIZAR NUEVA OPERACIÓN", use_container_width=True):
+            if idea_prompt and GROQ_API_KEY:
+                with st.spinner("Conectando con Inteligencia Central... Analizando tácticas..."):
+                    try:
+                        client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                        sys_instruct = """Eres un creador experto de simulaciones militares y policiales. 
+                        El usuario te dará una idea y tú debes devolver EXCLUSIVAMENTE un objeto JSON válido con esta estructura:
+                        {
+                            "nombre_op": "OPERACION: [NOMBRE IMPACTANTE EN MAYÚSCULAS]",
+                            "contexto": "[Breve descripción militar/policial del entorno y situación]",
+                            "perfil_sujeto": "[Nombre y perfil psicológico detallado del objetivo]",
+                            "objetivo": "[Misión estricta del negociador]",
+                            "prompt": "[Instrucciones directas para el LLM que actuará como el objetivo. Ej: 'Eres X. Estás muy nervioso. Háblale al negociador con frases cortas.']"
+                        }"""
+                        
+                        res = client.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=[
+                                {"role": "system", "content": sys_instruct},
+                                {"role": "user", "content": idea_prompt}
+                            ],
+                            response_format={"type": "json_object"}
+                        ).choices[0].message.content
+                        
+                        nuevo_esc = json.loads(res)
+                        # Le añadimos tu instrucción de ortografía por defecto para que no falle
+                        nuevo_esc["prompt"] += INSTRUCCION_ORTOGRAFIA
+                        
+                        st.session_state.escenarios_custom[nuevo_esc["nombre_op"]] = {
+                            "contexto": nuevo_esc["contexto"],
+                            "perfil_sujeto": nuevo_esc["perfil_sujeto"],
+                            "objetivo": nuevo_esc["objetivo"],
+                            "prompt": nuevo_esc["prompt"]
+                        }
+                        guardar_datos()
+                        st.success(f"✅ Protocolo {nuevo_esc['nombre_op']} integrado en el simulador.")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Fallo en enlace satelital con Groq: {e}")
+            elif not idea_prompt:
+                st.warning("Escriba los parámetros antes de sintetizar.")
 
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("☣️ PURGAR TODOS LOS DATOS DEL SISTEMA", use_container_width=True):
+    with col_der:
+        st.markdown("<div class='section-label'>CONTROL DE MEMORIA</div>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="briefing-box" style="border-left-color: #EF4444; padding: 15px;">
+            <h4 style="color: #EF4444; font-size:0.6rem;">⚠ PROTOCOLO DE PURGA</h4>
+            <p style="font-size:0.75rem;">Eliminación irreversible de agentes, historiales y <b>operaciones personalizadas</b>.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if st.button("☣️ PURGAR TODO EL SISTEMA", use_container_width=True):
             st.session_state.empleados = []
             st.session_state.historial_sesiones = []
+            st.session_state.escenarios_custom = {}  # Ahora esto también se vacía
             guardar_datos()
             st.rerun()
