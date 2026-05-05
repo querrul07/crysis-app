@@ -353,11 +353,15 @@ PLOTLY_THEME = dict(
 AXIS_STYLE = dict(gridcolor='#1A2035', zeroline=False, color='#4A5568', linecolor='#1A2035')
 
 # ─────────────────────────────────────────
-# 4. PERSISTENCIA
+# 4. PERSISTENCIA Y REINICIO
 # ─────────────────────────────────────────
-if "empleados" not in st.session_state: st.session_state.empleados = []
+datos_guardados = cargar_datos()
+
+if "empleados" not in st.session_state: 
+    st.session_state.empleados = datos_guardados["empleados"]
+if "historial_sesiones" not in st.session_state: 
+    st.session_state.historial_sesiones = datos_guardados["historial_sesiones"]
 if "mensajes" not in st.session_state: st.session_state.mensajes = []
-if "historial_sesiones" not in st.session_state: st.session_state.historial_sesiones = []
 if "evaluacion_actual" not in st.session_state: st.session_state.evaluacion_actual = None
 if "mision_iniciada" not in st.session_state: st.session_state.mision_iniciada = False
 
