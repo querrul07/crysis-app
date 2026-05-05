@@ -795,30 +795,10 @@ Una valoración directa y dura: ¿está este agente preparado para una operació
                         "Escenario": st.session_state.escenario_activo,
                         "Nota": nota,
                         "Evaluacion": informe
-                    })  # <--- FALTABA CERRAR ESTO
-                    guardar_datos()  # <--- GUARDADO AUTOMÁTICO DE LA MISIÓN
-                    st.rerun()       # <--- REINICIAR PANTALLA PARA VER EL INFORME
+                    })
+                    guardar_datos()
+                    st.rerun()
 
-# ══════════════════════════════════════════
-# TAB 5: LABORATORIO VIP (AJUSTES DEL SISTEMA)
-# ══════════════════════════════════════════
-with t5:
-    st.markdown("<div class='section-label'>SISTEMA Y CONTROL DE MEMORIA</div>", unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div class="briefing-box" style="border-left-color: #EF4444;">
-        <h4 style="color: #EF4444;">⚠ ADVERTENCIA DE PROTOCOLO</h4>
-        <p>Esta acción ejecutará un purgado completo de la memoria local. Todos los agentes registrados y el historial de simulaciones serán eliminados de forma irreversible.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("☣️ PURGAR TODOS LOS DATOS DEL SISTEMA", use_container_width=True):
-            st.session_state.empleados = []
-            st.session_state.historial_sesiones = []
-            guardar_datos()
-            st.rerun()
 # ══════════════════════════════════════════
 # TAB 5: LABORATORIO VIP (AJUSTES DEL SISTEMA)
 # ══════════════════════════════════════════
