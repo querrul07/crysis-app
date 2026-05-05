@@ -8,11 +8,23 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from supabase import create_client, Client
+import os
 
-# --- CONEXIÓN A BASE DE DATOS ---
-URL = "https://ewiyvtposivvinnszxin.supabase.co/rest/v1/"
-KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV3aXl2dHBvc2l2dmlubnN6eGluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NzkzODIsImV4cCI6MjA5MzU1NTM4Mn0.9DLxvbwv8c6lJ--rS9kjLjOiFYeCNSEQl_2IyP2QzLM"
-supabase: Client = create_client(URL, KEY)
+# --- SISTEMA DE MEMORIA LOCAL ---
+DATA_FILE = "crysis_data.json"
+
+def cargar_datos():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {"empleados": [], "historial_sesiones": []}
+
+def guardar_datos():
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump({
+            "empleados": st.session_state.empleados,
+            "historial_sesiones": st.session_state.historial_sesiones
+        }, f, ensure_ascii=False, indent=4)
 # ─────────────────────────────────────────
 # 1. CONFIGURACIÓN
 # ─────────────────────────────────────────
