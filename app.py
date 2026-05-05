@@ -788,7 +788,7 @@ Una valoración directa y dura: ¿está este agente preparado para una operació
                     except:
                         nota = 50
 
-                   st.session_state.evaluacion_actual = informe
+                    st.session_state.evaluacion_actual = informe
                     st.session_state.historial_sesiones.append({
                         "Fecha": datetime.now().strftime("%Y-%m-%d %H:%M"),
                         "Agente": st.session_state.agente_activo,
