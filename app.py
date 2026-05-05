@@ -589,6 +589,7 @@ with t2:
                 c_rank.markdown(f"<div style='padding:8px 12px; color:#4A5568; font-size:0.78rem; font-family:IBM Plex Mono,monospace;'>{emp['Rango']}</div>", unsafe_allow_html=True)
                 if c_btn.button("✕", key=f"del_{i}", help=f"Eliminar a {emp['Nombre']}"):
                     st.session_state.empleados.pop(i)
+                    guardar_datos()
                     st.rerun()
         else:
             st.markdown("""
@@ -607,6 +608,7 @@ with t2:
             submitted = st.form_submit_button("REGISTRAR →", use_container_width=True)
             if submitted and n:
                 st.session_state.empleados.append({"Nombre": n, "Departamento": d, "Rango": r_emp})
+                guardar_datos()
                 st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
