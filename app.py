@@ -293,31 +293,6 @@ button[title^="Eliminar"] {
 </style>
 """, unsafe_allow_html=True)
 
-st.header("Registro de Personal Operativo")
-
-with st.form("nuevo_agente", clear_on_submit=True):
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        nombre = st.text_input("Nombre Completo del Agente")
-        departamento = st.selectbox("Departamento", ["Inteligencia", "Táctico", "Logística", "Ciberseguridad"])
-    
-    with col2:
-        rango = st.text_input("Rango / Designación")
-    
-    enviar = st.form_submit_button("Añadir a la Unidad")
-
-    if enviar:
-        if nombre and rango:
-            # Llamamos a la función para guardar en Supabase
-            try:
-                res = guardar_agente(nombre, departamento, rango)
-                st.success(f"✅ Agente {nombre} dado de alta en la base de datos.")
-            except Exception as e:
-                st.error(f"❌ Error al conectar con CRYSIS_DB: {e}")
-        else:
-            st.warning("⚠️ Por favor, rellena los campos obligatorios.")
-
 # ─────────────────────────────────────────
 # 3. DATOS DE CONTEXTO
 # ─────────────────────────────────────────
