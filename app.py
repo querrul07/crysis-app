@@ -342,15 +342,15 @@ if "escenarios_custom" not in st.session_state: st.session_state.escenarios_cust
 if "mensajes" not in st.session_state: st.session_state.mensajes = []
 if "evaluacion_actual" not in st.session_state: st.session_state.evaluacion_actual = None
 if "mision_iniciada" not in st.session_state: st.session_state.mision_iniciada = False
+if "tarjeta_objetivo" not in st.session_state: st.session_state.tarjeta_objetivo = None # <--- NUEVA LÍNEA
 
-# Mezclar escenarios base con los personalizados
 TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **st.session_state.escenarios_custom}
 
 try:
     GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except:
     GROQ_API_KEY = None
-
+    
 # ─────────────────────────────────────────
 # 5. HEADER
 # ─────────────────────────────────────────
@@ -649,7 +649,7 @@ with t4:
         info = TODAS_LAS_MISIONES[es_sel]
         st.markdown(f"""
         <div class="briefing-box">
-            <h4>📄 BRIEFING OPERATIVO</h4>
+            <h4>📄 BRIEFING OPERATIVO BASE</h4>
             <p><b>Contexto:</b> {info['contexto']}</p>
             <p><b>Perfil del Sujeto:</b> {info['perfil_sujeto']}</p>
             <p><b>Objetivo Primario:</b> {info['objetivo']}</p>
@@ -657,6 +657,20 @@ with t4:
         """, unsafe_allow_html=True)
 
         if st.button("INICIAR PROTOCOLO DE CONTACTO →", use_container_width=True):
+            if GROQ_API_KEY:
+                with st.spinner("Generando variables dinámicas del objetivo mediante IA..."):
+                    try:
+                        client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                        sys_prompt = f"Genera variables aleatorias para este perfil: {info['perfil_sujeto']}. Devuelve EXCLUSIVAMENTE JSON con estas claves: 'Nombre_Completo' (inventa uno realista), 'Familia' (ej: viudo, 2 hijos, soltero...), 'Estado_Mental' (ej: paranoico, herido, muy agresivo...)."
+                        res = client.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=[{"role": "user", "content": sys_prompt}],
+                            response_format={"type": "json_object"}
+                        ).choices[0].message.content
+                        st.session_state.tarjeta_objetivo = json.loads(res)
+                    except:
+                        st.session_state.tarjeta_objetivo = {"Nombre_Completo": "Desconocido", "Familia": "Clasificado", "Estado_Mental": "Inestable"}
+            
             st.session_state.mision_iniciada = True
             st.session_state.mensajes = []
             st.session_state.agente_activo = ag_sel
@@ -672,6 +686,7 @@ with t4:
             st.session_state.mision_iniciada = False
             st.session_state.evaluacion_actual = None
             st.session_state.mensajes = []
+            st.session_state.tarjeta_objetivo = None
             st.rerun()
 
     else:
@@ -680,6 +695,26 @@ with t4:
         <div class="status-bar">
             ◉ OPERACIÓN ACTIVA: {st.session_state.escenario_activo}  ·  AGENTE: {st.session_state.agente_activo.upper()}
         </div>""", unsafe_allow_html=True)
+
+        # ── TARJETA ALEATORIA DEL OBJETIVO ──
+        if st.session_state.tarjeta_objetivo:
+            t = st.session_state.tarjeta_objetivo
+            st.markdown(f"""
+            <div style="display:flex; gap:15px; background:#0C1020; border:1px solid #1A2035; border-left:3px solid #F59E0B; border-radius:4px; padding:12px 18px; margin-bottom:20px;">
+                <div style="flex:1;">
+                    <div style="color:#F59E0B; font-size:0.55rem; font-family:'IBM Plex Mono'; letter-spacing:0.15em; margin-bottom:4px;">ID OBJETIVO</div>
+                    <div style="color:#E8EDF5; font-size:0.85rem;">{t.get('Nombre_Completo', 'N/A')}</div>
+                </div>
+                <div style="flex:1;">
+                    <div style="color:#F59E0B; font-size:0.55rem; font-family:'IBM Plex Mono'; letter-spacing:0.15em; margin-bottom:4px;">VÍNCULOS FAMILIARES</div>
+                    <div style="color:#C8D0E0; font-size:0.8rem;">{t.get('Familia', 'N/A')}</div>
+                </div>
+                <div style="flex:1;">
+                    <div style="color:#F59E0B; font-size:0.55rem; font-family:'IBM Plex Mono'; letter-spacing:0.15em; margin-bottom:4px;">ESTADO CLÍNICO</div>
+                    <div style="color:#C8D0E0; font-size:0.8rem;">{t.get('Estado_Mental', 'N/A')}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
         for m in st.session_state.mensajes:
             label = "AGENTE" if m["role"] == "user" else "OBJETIVO"
@@ -703,26 +738,45 @@ with t4:
         if st.session_state.mensajes and st.session_state.mensajes[-1]["role"] == "user":
             if GROQ_API_KEY:
                 client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                
+                # Inyección de las variables aleatorias en el cerebro de la IA
+                base_prompt = TODAS_LAS_MISIONES[st.session_state.escenario_activo]["prompt"]
+                if st.session_state.tarjeta_objetivo:
+                    t = st.session_state.tarjeta_objetivo
+                    base_prompt += f"\n\n[INSTRUCCIÓN VITAL PARA ESTA SIMULACIÓN: Tu nombre es {t.get('Nombre_Completo')}. Sobre tu familia: {t.get('Familia')}. Tu estado actual: {t.get('Estado_Mental')}. Actúa según este estado y menciona estos datos si tiene sentido en la conversación.]"
+
                 res = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
-                    messages=[{"role": "system", "content": TODAS_LAS_MISIONES[st.session_state.escenario_activo]["prompt"]}] + st.session_state.mensajes
+                    messages=[{"role": "system", "content": base_prompt}] + st.session_state.mensajes
                 ).choices[0].message.content
                 st.session_state.mensajes.append({"role": "assistant", "content": res})
                 st.rerun()
 
-        if len(st.session_state.mensajes) > 0:
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("🛑 FINALIZAR Y GENERAR INFORME OPERACIONAL →", use_container_width=True):
-                with st.spinner("Procesando análisis psicolingüístico y táctico..."):
-                    client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
-                    escenario = st.session_state.escenario_activo
-                    info = CONTEXTOS_MISION[escenario]
-                    hist_txt = "\n".join([
-                        f"{'NEGOCIADOR (agente a evaluar)' if m['role'] == 'user' else 'OBJETIVO (personaje IA, NO evaluar)'}: {m['content']}"
-                        for m in st.session_state.mensajes
-                    ])
+        # ── PANELES DE CONTROL (ABORTAR Y FINALIZAR) ──
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_end, col_abort = st.columns([3, 1])
+        
+        with col_abort:
+            # Botón tipo "secondary" que con tu CSS táctico se verá rojo y hueco
+            if st.button("✖ ABORTAR", type="secondary", use_container_width=True):
+                st.session_state.mision_iniciada = False
+                st.session_state.mensajes = []
+                st.session_state.tarjeta_objetivo = None
+                st.rerun()
 
-                    eval_prompt = f"""Eres un evaluador de élite en técnicas de negociación de crisis. Tu análisis debe ser ESTRICTO, directo y sin condescendencia.
+        with col_end:
+            if len(st.session_state.mensajes) > 0:
+                if st.button("🛑 FINALIZAR Y GENERAR INFORME OPERACIONAL →", use_container_width=True):
+                    with st.spinner("Procesando análisis psicolingüístico y táctico..."):
+                        client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                        escenario = st.session_state.escenario_activo
+                        info = TODAS_LAS_MISIONES[escenario]
+                        hist_txt = "\n".join([
+                            f"{'NEGOCIADOR (agente a evaluar)' if m['role'] == 'user' else 'OBJETIVO (personaje IA, NO evaluar)'}: {m['content']}"
+                            for m in st.session_state.mensajes
+                        ])
+
+                        eval_prompt = f"""Eres un evaluador de élite en técnicas de negociación de crisis. Tu análisis debe ser ESTRICTO, directo y sin condescendencia.
 
 CONTEXTO DE LA OPERACIÓN:
 - Escenario: {escenario}
@@ -730,55 +784,49 @@ CONTEXTO DE LA OPERACIÓN:
 - Perfil del objetivo: {info['perfil_sujeto']}
 - Objetivo de la misión: {info['objetivo']}
 
-IMPORTANTE: Evalúa ÚNICAMENTE al NEGOCIADOR (agente a evaluar). Ignora completamente las respuestas del OBJETIVO (personaje IA).
+IMPORTANTE: Evalúa ÚNICAMENTE al NEGOCIADOR. Ignora completamente las respuestas del OBJETIVO.
 
 TRANSCRIPCIÓN:
 {hist_txt}
 
-Genera un informe con exactamente esta estructura. Sé implacable: si algo está mal, dilo sin suavizarlo.
-
+Genera un informe con exactamente esta estructura.
 **ANÁLISIS DE LENGUAJE**
-Evalúa el tono, nivel de agresividad, uso de empatía real vs. empatía fingida, y seguridad en cada intervención del negociador. Señala frases concretas que fueron un error o un acierto.
-
+(Tono, agresividad, empatía. Señala frases concretas.)
 **TÁCTICAS EMPLEADAS**
-¿Usó espejeo, etiquetas emocionales, pausas estratégicas, anclaje, preguntas calibradas? ¿Las usó correctamente o de forma torpe? Sé específico.
-
+(Espejeo, pausas, calibración. ¿Bien o mal usadas?)
 **ERRORES CRÍTICOS**
-Lista los errores que pusieron en riesgo la misión. Si no negoció bien, dilo. No suavices nada. Mínimo 2 errores concretos aunque la negociación haya ido bien.
-
+(Mínimo 2 errores concretos aunque haya ido bien.)
 **VEREDICTO DEL EVALUADOR**
-Una valoración directa y dura: ¿está este agente preparado para una operación real? ¿Qué debe trabajar de forma urgente?
+(¿Está preparado para operación real?)
 
-**PUNTUACIÓN FINAL: XX/100**
-(Sé exigente. Una negociación mediocre no supera el 50. Solo una ejecución técnica impecable supera el 80.)"""
+PUNTUACIÓN FINAL: XX/100
+(Sé exigente. Mediocre no supera 50. Impecable supera 80.)"""
 
-                    informe = client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
-                        messages=[{"role": "user", "content": eval_prompt}]
-                    ).choices[0].message.content
+                        informe = client.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=[{"role": "user", "content": eval_prompt}]
+                        ).choices[0].message.content
 
-                    try:
-                        # Busca patrón "XX/100" o "PUNTUACIÓN FINAL: XX"
-                        match = re.search(r'PUNTUACI[OÓ]N FINAL[^\d]*(\d+)\s*\/?\s*100', informe, re.IGNORECASE)
-                        if match:
-                            nota = min(int(match.group(1)), 100)
-                        else:
-                            # fallback: primer número seguido de /100
-                            match2 = re.search(r'(\d+)\s*/\s*100', informe)
-                            nota = min(int(match2.group(1)), 100) if match2 else 50
-                    except:
-                        nota = 50
+                        try:
+                            match = re.search(r'PUNTUACI[OÓ]N FINAL[^\d]*(\d+)\s*\/?\s*100', informe, re.IGNORECASE)
+                            if match:
+                                nota = min(int(match.group(1)), 100)
+                            else:
+                                match2 = re.search(r'(\d+)\s*/\s*100', informe)
+                                nota = min(int(match2.group(1)), 100) if match2 else 50
+                        except:
+                            nota = 50
 
-                    st.session_state.evaluacion_actual = informe
-                    st.session_state.historial_sesiones.append({
-                        "Fecha": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                        "Agente": st.session_state.agente_activo,
-                        "Escenario": st.session_state.escenario_activo,
-                        "Nota": nota,
-                        "Evaluacion": informe
-                    })
-                    guardar_datos()
-                    st.rerun()
+                        st.session_state.evaluacion_actual = informe
+                        st.session_state.historial_sesiones.append({
+                            "Fecha": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                            "Agente": st.session_state.agente_activo,
+                            "Escenario": st.session_state.escenario_activo,
+                            "Nota": nota,
+                            "Evaluacion": informe
+                        })
+                        guardar_datos()
+                        st.rerun()
 
 # ══════════════════════════════════════════
 # TAB 5: LABORATORIO VIP (AJUSTES DEL SISTEMA)
