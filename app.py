@@ -947,18 +947,14 @@ if u["Nombre"] != COMANDANTE_SUPREMO:
     c4, c5 = st.columns(2)
 else:
     c4, c5, c6 = st.columns(3)
+
 agentes_activos = len([e for e in st.session_state.empleados
                        if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"])
-    with c4:
-        st.markdown(f"""
-        <div class="mod">
-          <div class="mod-accent" style="background:var(--border3);"></div>
-          <div class="mod-code">MOD-04 / PERSONAL</div>
-          <div class="mod-title">Gestión de Operadores</div>
-          <div class="mod-desc">Reclutamiento, control de accesos y ajustes de cuenta.</div>
-          <div class="mod-stat"><b style="color:var(--text-hi);">{agentes_activos}</b>AGENTES ACTIVOS</div>
-        </div>""", unsafe_allow_html=True)
-        if st.button("ACCEDER", key="goto_pers", use_container_width=True): ir_a("personal")
+with c4:
+    st.markdown(f"""...""")
+    if st.button("ACCEDER", key="goto_pers", use_container_width=True): ir_a("personal")
+with c5:
+    ...
     with c5:
         esc_creados = len(mis_escenarios)
         st.markdown(f"""
