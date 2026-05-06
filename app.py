@@ -747,14 +747,12 @@ if t5:
             col_m4.markdown(f"""<div class="metric-card"><div class="metric-label">SESIONES TOTALES</div><div class="metric-value">{total_operaciones}</div></div>""", unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
 
-           with st.expander("🌍 GESTIÓN GLOBAL DE USUARIOS (OMNISCIENCIA)", expanded=False):
+            with st.expander("🌍 GESTIÓN GLOBAL DE USUARIOS (OMNISCIENCIA)", expanded=False):
                 st.info("Directorio completo de agentes y corporaciones registradas.")
-                # Añadimos enumerate para que cada botón tenga un ID único (i)
                 for i, usr in enumerate(st.session_state.empleados):
                     if usr["Nombre"] != COMANDANTE_SUPREMO:
                         c_u1, c_u2 = st.columns([4, 1])
                         c_u1.markdown(f"**ID:** {usr['Nombre']} | **Rol:** {usr['Rol']} | **Email:** {usr['Email']}")
-                        # Se añade _{i} a la clave del botón
                         if c_u2.button("PURGAR", key=f"del_g_{usr['Nombre']}_{i}", type="secondary"):
                             st.session_state.empleados = [e for e in st.session_state.empleados if e["Nombre"] != usr["Nombre"]]
                             guardar_datos(); st.rerun()
@@ -771,7 +769,7 @@ if t5:
 
         col_izq, col_der = st.columns([2, 1], gap="large")
         with col_izq:
-            if u["Nombre"] != COMANDANTE_SUPREMO: st.markdown("<div class='section-label'>MÓDULO DE SÍNTESIS DE ESCENARIOS</div>", unsafe_allow_html=True)
+            st.markdown("<div class='section-label'>MÓDULO DE SÍNTESIS DE ESCENARIOS</div>", unsafe_allow_html=True)
             creados = len(mis_escenarios)
             if mis_escenarios and u["Nombre"] != COMANDANTE_SUPREMO:
                 st.markdown("#### TUS ESCENARIOS ACTIVOS")
@@ -782,34 +780,32 @@ if t5:
                         del st.session_state.escenarios_custom[nombre_esc]; guardar_datos(); st.rerun()
                 st.markdown("<br>", unsafe_allow_html=True)
 
-            if u["Nombre"] != COMANDANTE_SUPREMO:
-                if mi_plan == "Gratis":
-                    st.error("🔒 RESTRICCIÓN DE SISTEMA: El Nivel BASE no posee autorización para el uso de Inteligencia Artificial Generativa.")
+            if mi_plan == "Gratis" and u["Nombre"] != COMANDANTE_SUPREMO:
+                st.error("🔒 RESTRICCIÓN DE SISTEMA: El Nivel BASE no posee autorización para el uso de Inteligencia Artificial Generativa.")
+                st.button("✨ GENERAR NUEVA SIMULACIÓN", disabled=True)
+            else:
+                limite_escenarios = 9999 if u["Nombre"] == COMANDANTE_SUPREMO else (3 if mi_plan == "Individual" else 1)
+                if creados >= limite_escenarios:
+                    st.error(f"🔒 CUOTA DE SÍNTESIS ALCANZADA ({creados}/{limite_escenarios}). Borre uno existente para crear otro.")
                     st.button("✨ GENERAR NUEVA SIMULACIÓN", disabled=True)
                 else:
-                    limite_escenarios = 3 if mi_plan == "Individual" else (1 if mi_plan == "Pro" else 9999)
-                    if creados >= limite_escenarios:
-                        st.error(f"🔒 CUOTA DE SÍNTESIS ALCANZADA ({creados}/{limite_escenarios}). Borre uno existente para crear otro.")
-                        st.button("✨ GENERAR NUEVA SIMULACIÓN", disabled=True)
-                    else:
-                        idea_prompt = st.text_area("Describa los parámetros del entorno táctico:", height=100)
-                        if st.button("✨ GENERAR NUEVA SIMULACIÓN", use_container_width=True):
-                            if idea_prompt and GROQ_API_KEY:
-                                with st.spinner("Enlazando con el motor de Inteligencia Central..."):
-                                    try:
-                                        client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
-                                        res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "system", "content": "Devuelve JSON: {'nombre_op': 'OPERACION: [NOMBRE]', 'contexto': '[Desc]', 'perfil_sujeto': '[Perfil]', 'objetivo': '[Misión]', 'prompt': '[Instrucciones]'} "}, {"role": "user", "content": idea_prompt}], response_format={"type": "json_object"}).choices[0].message.content
-                                        nuevo_esc = json.loads(res)
-                                        nuevo_esc["prompt"] += INSTRUCCION_ORTOGRAFIA
-                                        st.session_state.escenarios_custom[nuevo_esc["nombre_op"]] = {"contexto": nuevo_esc["contexto"], "perfil_sujeto": nuevo_esc["perfil_sujeto"], "objetivo": nuevo_esc["objetivo"], "prompt": nuevo_esc["prompt"], "Creador": empresa_actual}
-                                        guardar_datos(); st.success(f"✅ Protocolo {nuevo_esc['nombre_op']} configurado."); st.rerun()
-                                    except Exception as e: st.error(f"❌ Fallo de Motor IA: {e}")
-                            elif not idea_prompt: st.warning("Escriba los parámetros base.")
+                    idea_prompt = st.text_area("Describa los parámetros del entorno táctico:", height=100)
+                    if st.button("✨ GENERAR NUEVA SIMULACIÓN", use_container_width=True):
+                        if idea_prompt and GROQ_API_KEY:
+                            with st.spinner("Enlazando con el motor de Inteligencia Central..."):
+                                try:
+                                    client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                                    res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "system", "content": "Devuelve JSON: {'nombre_op': 'OPERACION: [NOMBRE]', 'contexto': '[Desc]', 'perfil_sujeto': '[Perfil]', 'objetivo': '[Misión]', 'prompt': '[Instrucciones]'} "}, {"role": "user", "content": idea_prompt}], response_format={"type": "json_object"}).choices[0].message.content
+                                    nuevo_esc = json.loads(res)
+                                    nuevo_esc["prompt"] += INSTRUCCION_ORTOGRAFIA
+                                    st.session_state.escenarios_custom[nuevo_esc["nombre_op"]] = {"contexto": nuevo_esc["contexto"], "perfil_sujeto": nuevo_esc["perfil_sujeto"], "objetivo": nuevo_esc["objetivo"], "prompt": nuevo_esc["prompt"], "Creador": empresa_actual}
+                                    guardar_datos(); st.success(f"✅ Protocolo {nuevo_esc['nombre_op']} configurado."); st.rerun()
+                                except Exception as e: st.error(f"❌ Fallo de Motor IA: {e}")
+                        elif not idea_prompt: st.warning("Escriba los parámetros base.")
 
         with col_der:
             if u["Nombre"] == COMANDANTE_SUPREMO:
                 st.markdown("<div class='section-label'>HERRAMIENTAS DE MANDO</div>", unsafe_allow_html=True)
-
                 with st.expander("🛠️ EMITIR CREDENCIAL DE CORTESÍA (NUEVA CUENTA)", expanded=True):
                     st.info("Genera cuentas nuevas con cualquier plan, saltando el pago.")
                     with st.form("admin_create_user"):
@@ -822,28 +818,25 @@ if t5:
                         if st.form_submit_button("GENERAR ACCESO", use_container_width=True):
                             if new_n and new_email and new_pass:
                                 if any(e["Nombre"] == new_n for e in st.session_state.empleados):
-                                    st.warning("⚠️ ID ya registrado. Usa 'Actualizar Plan' para cambiar el plan de un usuario existente.")
+                                    st.warning("⚠️ ID ya registrado.")
                                 else:
                                     fecha_exp_str = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d") if expira else None
                                     nuevo_usuario = {"Nombre": new_n, "Email": new_email, "Rol": new_rol, "Plan": new_plan, "Empresa": new_n, "Password": new_pass, "2FA_Verificado": True}
                                     if new_rol == "Empresa": nuevo_usuario["Departamento"] = "Administración"
                                     if fecha_exp_str: nuevo_usuario["Expiracion"] = fecha_exp_str
                                     st.session_state.empleados.append(nuevo_usuario)
-                                    guardar_datos()
-                                    st.success(f"✅ Cuenta '{new_n}' creada con plan {new_plan}. Expira: {fecha_exp_str if expira else 'Nunca'}.")
-                            else:
-                                st.warning("⚠️ Rellena todos los campos.")
+                                    guardar_datos(); st.success(f"✅ Cuenta '{new_n}' creada."); st.rerun()
+                            else: st.warning("⚠️ Rellena todos los campos.")
 
                 st.markdown("<br>", unsafe_allow_html=True)
-
                 with st.expander("⚡ ACTIVAR / CAMBIAR PLAN DE USUARIO EXISTENTE", expanded=True):
-                    st.info("Activa el plan de pago de un usuario que ya pagó o concede cortesía.")
+                    st.info("Activa el plan de pago de un usuario.")
                     usuarios_no_admin = [e for e in st.session_state.empleados if e["Nombre"] != COMANDANTE_SUPREMO]
                     if usuarios_no_admin:
                         with st.form("admin_upgrade_plan"):
-                            opciones_usuarios = [f"{e['Nombre']} [{e.get('Rol','?')}] — Plan actual: {e.get('Plan','?')}" for e in usuarios_no_admin]
+                            opciones_usuarios = [f"{e['Nombre']} [{e.get('Rol','?')}]" for e in usuarios_no_admin]
                             sel_idx = st.selectbox("Seleccionar Usuario:", range(len(opciones_usuarios)), format_func=lambda i: opciones_usuarios[i])
-                            nuevo_plan_upgrade = st.selectbox("Nuevo Plan a Asignar:", ["Gratis", "Individual", "Pro", "Enterprise"])
+                            nuevo_plan_upgrade = st.selectbox("Nuevo Plan:", ["Gratis", "Individual", "Pro", "Enterprise"])
                             nueva_exp = st.checkbox("Añadir expiración (30 días)", value=False)
                             if st.form_submit_button("✅ APLICAR PLAN", use_container_width=True):
                                 usuario_objetivo = usuarios_no_admin[sel_idx]
@@ -853,11 +846,8 @@ if t5:
                                         e["Plan"] = nuevo_plan_upgrade
                                         if fecha_exp_str: e["Expiracion"] = fecha_exp_str
                                         elif "Expiracion" in e: del e["Expiracion"]
-                                guardar_datos()
-                                st.success(f"✅ Plan de '{usuario_objetivo['Nombre']}' actualizado a {nuevo_plan_upgrade}.")
-                                st.rerun()
-                    else:
-                        st.markdown("No hay usuarios registrados aún.")
+                                guardar_datos(); st.success(f"✅ Plan de '{usuario_objetivo['Nombre']}' actualizado."); st.rerun()
+                    else: st.markdown("No hay usuarios registrados aún.")
 
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("""<div class="briefing-box" style="border-left-color: #EF4444;"><h4 style="color: #EF4444; font-size:0.6rem;">⚠ PROTOCOLO OMEGA</h4><p style="font-size:0.75rem;">Limpieza irreversible de toda la base de datos.</p></div>""", unsafe_allow_html=True)
@@ -866,4 +856,3 @@ if t5:
                     st.session_state.usuario_actual = None; guardar_datos(); st.rerun()
             else:
                 st.info("🔒 ACCESO RESTRINGIDO: El uso de Inteligencia Generativa queda registrado por motivos de auditoría.")
-
