@@ -324,21 +324,20 @@ with c_head2:
     if st.button("DESCONECTAR", key="logout", type="secondary"): st.session_state.usuario_actual = None; st.session_state.login_step = 1; st.rerun()
 st.markdown("<hr class='crysis-divider' style='margin-top:0;'>", unsafe_allow_html=True)
 
-# FILTRO OMNISCIENTE Y MODO FANTASMA
+# FILTRO Y MODO FANTASMA
 if u["Nombre"] == COMANDANTE_SUPREMO:
-    historial_visible = st.session_state.historial_sesiones # El Comandante ve TODO
+    historial_visible = [s for s in st.session_state.historial_sesiones if s["Agente"] == u["Nombre"]] # Solo ves tus propias misiones
+    agentes_de_mi_empresa = [u["Nombre"]] # Solo juegas como tú mismo
 elif es_empresa:
     agentes_de_mi_empresa = [e["Nombre"] for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]
-    # La empresa no puede ver las misiones marcadas como "Personal" (Modo Fantasma)
     historial_visible = [s for s in st.session_state.historial_sesiones if s["Agente"] in agentes_de_mi_empresa and s.get("Tipo_Mision", "Corporativa") != "Personal"]
 else: 
-    # El agente individual ve todas las suyas (Oficiales y Privadas)
     historial_visible = [s for s in st.session_state.historial_sesiones if s["Agente"] == u["Nombre"]]
 
 mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items() if v.get("Creador") == empresa_actual or u["Nombre"] == COMANDANTE_SUPREMO}
 TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **mis_escenarios}
 
-if u["Nombre"] == COMANDANTE_SUPREMO: t1, t2, t3, t4, t5 = st.tabs(["MÉTRICAS GLOBALES", "GESTIÓN DE PERSONAL", "AUDITORÍA GLOBAL", "DESPLIEGUE", "CONSOLA OMEGA (ADMIN)"])
+if u["Nombre"] == COMANDANTE_SUPREMO: t1, t2, t3, t4, t5 = st.tabs(["MÉTRICAS GLOBALES", "GESTIÓN DE PERSONAL", "EXPEDIENTES", "DESPLIEGUE", "CONSOLA OMEGA (ADMIN)"])
 elif es_empresa: t1, t2, t3, t4, t5 = st.tabs(["MÉTRICAS GLOBALES", "GESTIÓN DE PERSONAL", "ARCHIVO OPERACIONAL", "DESPLIEGUE", "SÍNTESIS IA"])
 elif u["Rol"] == "Individual" or mi_plan == "Gratis": t1, t2, t3, t4, t5 = st.tabs(["ESTADÍSTICAS", "PERFIL Y CUENTA", "EXPEDIENTES", "DESPLIEGUE", "SÍNTESIS IA"])
 else:
