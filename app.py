@@ -11,6 +11,11 @@ import smtplib
 from email.mime.text import MIMEText
 import random
 
+# ─────────────────────────────────────────
+# 👑 CONFIGURACIÓN DE SUPERUSUARIO
+# ─────────────────────────────────────────
+COMANDANTE_SUPREMO = "CRYSIS" # <--- CAMBIA ESTO POR TU ID
+
 # --- SISTEMA DE MEMORIA LOCAL ---
 DATA_FILE = "crysis_data.json"
 
@@ -19,7 +24,6 @@ def cargar_datos():
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             datos = json.load(f)
             if "escenarios_custom" not in datos: datos["escenarios_custom"] = {}
-            # Migración: limpiar agentes sin rol para evitar fallos
             datos["empleados"] = [e for e in datos.get("empleados", []) if "Rol" in e]
             return datos
     return {"empleados": [], "historial_sesiones": [], "escenarios_custom": {}}
@@ -32,7 +36,7 @@ def guardar_datos():
             "escenarios_custom": st.session_state.escenarios_custom
         }, f, ensure_ascii=False, indent=4)
 
-# --- MOTOR DE CORREO 2FA (ENMASCARADO) ---
+# --- MOTOR DE CORREO 2FA ---
 def enviar_correo_2fa(destinatario, codigo):
     try:
         remitente = st.secrets["SMTP_EMAIL"]
@@ -64,41 +68,44 @@ header[data-testid="stHeader"] { background: #07090F !important; border-bottom: 
 .crysis-title { font-family: 'IBM Plex Mono', monospace; font-size: 3.2rem; font-weight: 700; letter-spacing: 0.35em; color: #E8EDF5; text-align: center; margin-bottom: 0; text-shadow: 0 0 40px rgba(79, 142, 247, 0.25); }
 .crysis-subtitle { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; letter-spacing: 0.45em; color: #4F8EF7; text-align: center; margin-top: 4px; margin-bottom: 28px; }
 .crysis-divider { border: none; border-top: 1px solid #1A2035; margin: 0 0 32px 0; }
-.stTabs [data-baseweb="tab-list"] { gap: 0; background: #0C1020; border-bottom: 1px solid #1A2035; border-radius: 0; padding: 0 8px; }
-.stTabs [data-baseweb="tab"] { height: 48px; padding: 0 24px; font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.15em; color: #4A5568; border-radius: 0; border: none !important; border-bottom: 2px solid transparent !important; transition: all 0.2s; }
+.stTabs [data-baseweb="tab-list"] { gap: 0; background: #0C1020; border-bottom: 1px solid #1A2035; border-radius: 0; padding: 0 8px; justify-content: center; }
+.stTabs [data-baseweb="tab"] { height: 48px; padding: 0 24px; font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.15em; color: #4A5568; border-radius: 0; border: none !important; border-bottom: 2px solid transparent !important; transition: all 0.2s; }
 .stTabs [data-baseweb="tab"]:hover { color: #8B9CC8; }
 .stTabs [aria-selected="true"] { color: #4F8EF7 !important; background: transparent !important; border-bottom: 2px solid #4F8EF7 !important; }
-.stTabs [data-baseweb="tab-panel"] { background: transparent; padding: 24px 0 0 0; }
 .metric-card { background: #0C1020; border: 1px solid #1A2035; border-radius: 6px; padding: 22px 24px; position: relative; overflow: hidden; }
 .metric-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: #4F8EF7; }
 .metric-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; letter-spacing: 0.2em; color: #4F8EF7; margin-bottom: 8px; }
 .metric-value { font-family: 'IBM Plex Mono', monospace; font-size: 2rem; font-weight: 700; color: #E8EDF5; line-height: 1; }
-.metric-sub { font-size: 0.75rem; color: #4A5568; margin-top: 6px; }
 .briefing-box { background: #0C1020; border: 1px solid #1A2035; border-left: 3px solid #4F8EF7; padding: 24px 28px; border-radius: 4px; margin-bottom: 24px; }
 .briefing-box h4 { font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; letter-spacing: 0.2em; color: #4F8EF7; margin-bottom: 16px; }
-.briefing-box p { color: #8B9CC8; font-size: 0.88rem; margin-bottom: 8px; }
-.stDataFrame, .stTable { background: #0C1020 !important; }
-thead tr th { background: #111827 !important; color: #4F8EF7 !important; font-family: 'IBM Plex Mono', monospace !important; font-size: 0.65rem !important; letter-spacing: 0.15em !important; }
-tbody tr td { color: #C8D0E0 !important; font-size: 0.85rem !important; }
 .stTextInput input, .stSelectbox > div > div, .stTextArea textarea { background: #0C1020 !important; border: 1px solid #1A2035 !important; color: #C8D0E0 !important; border-radius: 4px !important; font-family: 'DM Sans', sans-serif !important; }
 .stTextInput input:focus, .stTextArea textarea:focus { border-color: #4F8EF7 !important; box-shadow: 0 0 0 2px rgba(79,142,247,0.1) !important; }
-label, .stSelectbox label { color: #4A5568 !important; font-size: 0.78rem !important; letter-spacing: 0.05em !important; }
 .stButton > button { background: #4F8EF7 !important; color: #07090F !important; font-family: 'IBM Plex Mono', monospace !important; font-size: 0.7rem !important; font-weight: 700 !important; letter-spacing: 0.15em !important; border: none !important; border-radius: 3px !important; padding: 12px 28px !important; transition: all 0.2s !important; width: auto; }
-.stButton > button:hover { background: #3A7AE4 !important; box-shadow: 0 0 20px rgba(79,142,247,0.3) !important; transform: translateY(-1px); }
-.stChatMessage { background: #0C1020 !important; border: 1px solid #1A2035 !important; border-radius: 4px !important; margin-bottom: 8px !important; }
-.stChatInputContainer { background: #0C1020 !important; border: 1px solid #1A2035 !important; border-radius: 4px !important; }
-.stChatInputContainer textarea { background: transparent !important; color: #C8D0E0 !important; }
-.stExpander { background: #0C1020 !important; border: 1px solid #1A2035 !important; border-radius: 4px !important; }
+.stButton > button:hover { background: #3A7AE4 !important; box-shadow: 0 0 20px rgba(79,142,247,0.3) !important; transform: translateY(-2px); }
 .section-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; letter-spacing: 0.25em; color: #4F8EF7; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #1A2035; }
 .status-bar { background: #0C1020; border: 1px solid #1A2035; border-left: 3px solid #22D3A5; padding: 10px 18px; border-radius: 3px; font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; letter-spacing: 0.12em; color: #22D3A5; margin-bottom: 20px; }
 [data-testid="stButton"] button[disabled] { background: #1A2035 !important; color: #4A5568 !important; border: 1px solid #2A3550 !important; box-shadow: none !important; cursor: not-allowed; }
+
+/* ANIMACIONES TARJETAS DE PLANES */
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 40px; padding: 10px; }
+.plan-card { background: #0C1020; border: 1px solid #1A2035; border-radius: 12px; padding: 30px 20px; text-align: center; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; cursor: default; }
+.plan-card:hover { transform: translateY(-12px) scale(1.02); border-color: #4F8EF7; box-shadow: 0 15px 30px rgba(79, 142, 247, 0.15); z-index: 10; }
+.plan-name { font-family: 'IBM Plex Mono', monospace; font-size: 1.1rem; color: #E8EDF5; font-weight: 700; margin-bottom: 10px; letter-spacing: 0.15em; text-transform: uppercase; }
+.plan-price { font-size: 2.2rem; color: #4F8EF7; font-weight: 700; margin-bottom: 20px; text-shadow: 0 0 20px rgba(79,142,247,0.4); }
+.plan-price span { font-size: 0.9rem; color: #4A5568; font-weight: 400; }
+.plan-feat { font-size: 0.85rem; color: #8B9CC8; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed #1A2035; }
+.plan-feat:last-child { border-bottom: none; }
+.plan-card.enterprise { border-color: #F59E0B; box-shadow: 0 0 20px rgba(245, 158, 11, 0.05); }
+.plan-card.enterprise:hover { border-color: #F59E0B; box-shadow: 0 15px 30px rgba(245, 158, 11, 0.2); }
+.plan-card.enterprise .plan-name, .plan-card.enterprise .plan-price { color: #F59E0B; text-shadow: 0 0 20px rgba(245, 158, 11, 0.4); }
+.badge { position: absolute; top: 15px; right: -35px; background: #F59E0B; color: #000; font-size: 0.65rem; font-weight: bold; padding: 4px 40px; transform: rotate(45deg); font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.1em; }
 </style>
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────
 # 2. DATOS BASE
 # ─────────────────────────────────────────
-INSTRUCCION_ORTOGRAFIA = " Escribe en español correcto, sin faltas de ortografía. Nunca uses acotaciones entre paréntesis para describir acciones. Solo diálogo."
+INSTRUCCION_ORTOGRAFIA = " Escribe en español correcto. Nunca uses acotaciones entre paréntesis para describir acciones. Solo diálogo."
 CONTEXTOS_MISION = {
     "OPERACION: FRONTERA": {"contexto": "Tensiones militares en el paralelo 38.", "perfil_sujeto": "Ministro Volkov.", "objetivo": "Evitar la escalada bélica.", "prompt": "Eres el Ministro de Defensa de Krasnovia. Hostil y burocrático. Solo diálogo directo." + INSTRUCCION_ORTOGRAFIA},
     "OPERACION: EXTRACCION": {"contexto": "Robo a banco fallido. 3 civiles retenidos.", "perfil_sujeto": "Sujeto inestable, bajo presión extrema.", "objetivo": "Asegurar la liberación de rehenes.", "prompt": "Eres un secuestrador acorralado. Gritas, estás nervioso. Solo diálogo crudo." + INSTRUCCION_ORTOGRAFIA}
@@ -107,7 +114,7 @@ PLOTLY_THEME = dict(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
 AXIS_STYLE = dict(gridcolor='#1A2035', zeroline=False, color='#4A5568', linecolor='#1A2035')
 
 # ─────────────────────────────────────────
-# 3. CARGA DE MEMORIA
+# 3. CARGA DE MEMORIA Y ESTADOS
 # ─────────────────────────────────────────
 datos_guardados = cargar_datos()
 if "empleados" not in st.session_state: st.session_state.empleados = datos_guardados["empleados"]
@@ -127,124 +134,147 @@ try: GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except: GROQ_API_KEY = None
 
 # ─────────────────────────────────────────
-# 4. EL MURO DE SEGURIDAD (PAYWALLS & ENRUTAMIENTO)
+# 4. LOGIN (2FA ÚNICA) Y REGISTRO
 # ─────────────────────────────────────────
 params = st.query_params
 empresa_invitada = params.get("empresa", None)
 
 if st.session_state.usuario_actual is None:
-    st.markdown("<div class='crysis-title' style='margin-top: 50px;'>CRYSIS</div>", unsafe_allow_html=True)
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c2:
-        if empresa_invitada:
-            # --- AGENTES RECLUTADOS ---
+    st.markdown("<div class='crysis-title' style='margin-top: 40px;'>CRYSIS</div>", unsafe_allow_html=True)
+    
+    if empresa_invitada:
+        # --- AGENTES RECLUTADOS ---
+        c1, c2, c3 = st.columns([1, 2, 1])
+        with c2:
             st.markdown(f"<div class='crysis-subtitle'>ALISTAMIENTO: {empresa_invitada.upper()}</div><hr class='crysis-divider'>", unsafe_allow_html=True)
             empresa_obj = next((e for e in st.session_state.empleados if e["Rol"] == "Empresa" and e["Nombre"] == empresa_invitada), None)
             
-            # Comprobar límite de Agentes del Plan Pro
             if empresa_obj:
                 agentes_actuales = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_invitada and e.get("Rol") == "Agente"])
                 limite_agentes = 15 if empresa_obj.get("Plan") == "Pro" else 9999
-                
                 if agentes_actuales >= limite_agentes:
-                    st.error("🔒 ESTA ENTIDAD HA ALCANZADO SU LÍMITE DE PERSONAL (Plan Pro). Reclutamiento bloqueado.")
+                    st.error("🔒 ESTA ENTIDAD HA ALCANZADO SU LÍMITE DE PERSONAL (Plan Pro).")
                     st.stop()
 
-            st.info(f"Has sido invitado a unirte a la unidad operativa de **{empresa_invitada}**.")
             with st.form("reg_agente"):
                 n = st.text_input("Nombre de Agente / ID")
-                email = st.text_input("Correo Electrónico")
+                email = st.text_input("Correo Electrónico (Para 2FA inicial)")
                 d = st.text_input("Departamento")
                 p = st.text_input("Crear Código de Acceso", type="password")
                 if st.form_submit_button("UNIRSE A LA UNIDAD", use_container_width=True):
                     if n and p and email:
                         if any(e["Nombre"] == n for e in st.session_state.empleados): st.warning("⚠️ ID en uso.")
                         else:
-                            st.session_state.empleados.append({"Nombre": n, "Email": email, "Departamento": d, "Rol": "Agente", "Empresa": empresa_invitada, "Password": p})
-                            guardar_datos()
-                            st.success("✅ Alistamiento completado. Borra '?empresa=...' de la URL para Iniciar Sesión normal.")
-        else:
-            # --- LOGIN Y COMPRA DE PLANES ---
-            st.markdown("<div class='crysis-subtitle'>SISTEMA CERRADO · IDENTIFICACIÓN REQUERIDA</div><hr class='crysis-divider'>", unsafe_allow_html=True)
-            t_log, t_reg_ind, t_reg_emp = st.tabs(["INICIAR SESIÓN", "ALTA INDIVIDUAL", "ALTA EMPRESA"])
-            
-            with t_log:
-                st.markdown("<br>", unsafe_allow_html=True)
+                            st.session_state.empleados.append({"Nombre": n, "Email": email, "Departamento": d, "Rol": "Agente", "Empresa": empresa_invitada, "Password": p, "2FA_Verificado": False})
+                            guardar_datos(); st.success("✅ Alistamiento completado. Borra '?empresa=...' de la URL para Iniciar Sesión.")
+    else:
+        st.markdown("<div class='crysis-subtitle'>PLATAFORMA DE SIMULACIÓN TÁCTICA</div>", unsafe_allow_html=True)
+        t_log, t_reg = st.tabs(["INICIAR SESIÓN", "CREAR UNA CUENTA / VER PLANES"])
+        
+        with t_log:
+            st.markdown("<br>", unsafe_allow_html=True)
+            c_log1, c_log2, c_log3 = st.columns([1, 1.5, 1])
+            with c_log2:
                 if st.session_state.login_step == 1:
-                    with st.form("login_form"):
-                        u_id = st.text_input("ID de Acceso")
+                    with st.form("login_directo"):
+                        st.markdown("<div class='section-label'>CREDENCIALES DE ACCESO</div>", unsafe_allow_html=True)
+                        u_id = st.text_input("ID de Acceso / Nombre de Usuario")
                         u_pass = st.text_input("Código de Seguridad", type="password")
                         if st.form_submit_button("AUTORIZAR ACCESO", use_container_width=True):
                             agente = next((e for e in st.session_state.empleados if e["Nombre"] == u_id and e.get("Password") == u_pass), None)
                             if agente:
-                                st.session_state["2fa_code"] = str(random.randint(100000, 999999))
-                                st.session_state["2fa_agente"] = agente
-                                st.session_state.login_step = 2
-                                st.rerun()
-                            else: st.error("❌ Acceso denegado.")
+                                # 🛡️ LÓGICA DE 2FA ÚNICA O SUPERUSUARIO
+                                if agente.get("2FA_Verificado", False) == True or agente["Nombre"] == COMANDANTE_SUPREMO:
+                                    st.session_state.usuario_actual = agente
+                                    st.rerun()
+                                else:
+                                    st.session_state["2fa_code"] = str(random.randint(100000, 999999))
+                                    st.session_state["2fa_agente"] = agente
+                                    st.session_state.login_step = 2
+                                    st.rerun()
+                            else:
+                                st.error("❌ Acceso denegado. Credenciales incorrectas.")
+                
                 elif st.session_state.login_step == 2:
                     correo_dest = st.session_state["2fa_agente"].get("Email", "Desconocido")
                     if "correo_enviado" not in st.session_state:
                         exito = enviar_correo_2fa(correo_dest, st.session_state["2fa_code"])
-                        if exito: st.success(f"📧 Código enviado a: {correo_dest}")
+                        if exito: st.success(f"📧 Se ha enviado un código de seguridad a: {correo_dest}")
                         else: st.error("❌ ERROR SMTP.")
                         st.session_state["correo_enviado"] = True
+                    
                     with st.form("2fa_form"):
+                        st.info("Esta verificación solo se te pedirá esta primera vez para vincular tu dispositivo.")
                         u_code = st.text_input("Código 2FA de 6 dígitos")
                         colA, colB = st.columns(2)
-                        if colA.form_submit_button("VERIFICAR", use_container_width=True):
+                        if colA.form_submit_button("VERIFICAR DISPOSITIVO", use_container_width=True):
                             if u_code == st.session_state["2fa_code"]:
+                                # MARCAR COMO VERIFICADO PARA SIEMPRE
+                                st.session_state["2fa_agente"]["2FA_Verificado"] = True
+                                guardar_datos()
                                 st.session_state.usuario_actual = st.session_state["2fa_agente"]
                                 st.session_state.login_step = 1; del st.session_state["correo_enviado"]; st.rerun()
                             else: st.error("❌ Código incorrecto.")
                         if colB.form_submit_button("CANCELAR", use_container_width=True):
                             st.session_state.login_step = 1; del st.session_state["correo_enviado"]; st.rerun()
+        
+        with t_reg:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("""
+            <div class="pricing-grid">
+                <div class="plan-card"><div class="plan-name">GRATIS</div><div class="plan-price">0€<span>/mes</span></div><div class="plan-feat">1 Agente (Tú)</div><div class="plan-feat">1 Simulación mensual</div><div class="plan-feat">Escenarios base incluidos</div><div class="plan-feat" style="color:#EF4444;">Sin IA Generativa</div></div>
+                <div class="plan-card"><div class="plan-name">INDIVIDUAL</div><div class="plan-price">29€<span>/mes</span></div><div class="plan-feat">1 Agente (Tú)</div><div class="plan-feat" style="color:#22D3A5;">Simulaciones Ilimitadas</div><div class="plan-feat">Escenarios base incluidos</div><div class="plan-feat">Generar 3 Escenarios IA</div></div>
+                <div class="plan-card"><div class="plan-name">PRO</div><div class="plan-price">89€<span>/mes</span></div><div class="plan-feat">Hasta 15 Agentes</div><div class="plan-feat">3 Simulaciones/mes por agente</div><div class="plan-feat">Generar 1 Escenario IA</div><div class="plan-feat" style="color:#4F8EF7;">Panel Comandancia Básico</div></div>
+                <div class="plan-card enterprise"><div class="badge">ÉLITE</div><div class="plan-name">ENTERPRISE</div><div class="plan-price">199€<span>/mes</span></div><div class="plan-feat">Agentes Ilimitados</div><div class="plan-feat">Simulaciones Ilimitadas</div><div class="plan-feat">Escenarios IA Ilimitados</div><div class="plan-feat">Modo Dios & Descarga CSV</div></div>
+            </div>
+            """, unsafe_allow_html=True)
             
-            with t_reg_ind:
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.info("PLAN INDIVIDUAL: Operaciones ilimitadas y 3 escenarios custom. Sin panel de mando.")
-                with st.form("reg_ind"):
-                    n = st.text_input("Nombre / Alias")
-                    email = st.text_input("Correo")
-                    p = st.text_input("Contraseña", type="password")
-                    if st.form_submit_button("CREAR PERFIL INDIVIDUAL", use_container_width=True):
+            c_reg1, c_reg2, c_reg3 = st.columns([1, 2, 1])
+            with c_reg2:
+                with st.form("registro_unificado"):
+                    st.markdown("<div class='section-label'>ALTA EN EL SISTEMA</div>", unsafe_allow_html=True)
+                    tipo_cuenta = st.radio("Tipo de Cuenta", ["Personal (1 Usuario)", "Empresa (Equipos)"], horizontal=True)
+                    if tipo_cuenta == "Personal (1 Usuario)":
+                        plan_sel = st.selectbox("Selecciona tu Plan", ["Gratis", "Individual"])
+                        n = st.text_input("Nombre / Alias")
+                    else:
+                        plan_sel = st.selectbox("Selecciona tu Licencia", ["Pro", "Enterprise"])
+                        n = st.text_input("Nombre de la Empresa (Este será tu ID)")
+
+                    email = st.text_input("Correo Electrónico (Para 2FA inicial)")
+                    p = st.text_input("Contraseña de Acceso", type="password")
+                    
+                    if st.form_submit_button("CREAR CUENTA", use_container_width=True):
                         if n and p and email:
-                            if any(e["Nombre"] == n for e in st.session_state.empleados): st.warning("⚠️ ID en uso.")
+                            if any(e["Nombre"] == n for e in st.session_state.empleados): st.warning("⚠️ ID registrado.")
                             else:
-                                st.session_state.empleados.append({"Nombre": n, "Email": email, "Rol": "Individual", "Plan": "Individual", "Empresa": n, "Password": p})
-                                guardar_datos(); st.success("✅ Perfil creado.")
-            
-            with t_reg_emp:
-                st.markdown("<br>", unsafe_allow_html=True)
-                with st.form("reg_empresa"):
-                    n = st.text_input("Nombre de la Empresa (Tu ID de sesión)")
-                    email = st.text_input("Correo Administrativo")
-                    p = st.text_input("Contraseña Maestra", type="password")
-                    plan_sel = st.selectbox("Seleccione Licencia", ["Pro", "Enterprise"])
-                    st.caption("Pro: 15 Agentes, 3 ops/mes, 1 Escenario IA. | Enterprise: Todo Ilimitado + Modo Dios.")
-                    if st.form_submit_button("ADQUIRIR LICENCIA", use_container_width=True):
-                        if n and p and email:
-                            if any(e["Nombre"] == n for e in st.session_state.empleados): st.warning("⚠️ Entidad existente.")
-                            else:
-                                st.session_state.empleados.append({"Nombre": n, "Email": email, "Departamento": "Comandancia", "Rol": "Empresa", "Plan": plan_sel, "Empresa": n, "Password": p})
-                                guardar_datos(); st.success(f"✅ Licencia {plan_sel} activada.")
+                                if tipo_cuenta == "Personal (1 Usuario)": st.session_state.empleados.append({"Nombre": n, "Email": email, "Rol": "Individual", "Plan": plan_sel, "Empresa": n, "Password": p, "2FA_Verificado": False})
+                                else: st.session_state.empleados.append({"Nombre": n, "Email": email, "Departamento": "Comandancia", "Rol": "Empresa", "Plan": plan_sel, "Empresa": n, "Password": p, "2FA_Verificado": False})
+                                guardar_datos(); st.success(f"✅ ¡Cuenta creada! Ve a 'INICIAR SESIÓN' para entrar.")
+                        else: st.warning("⚠️ Rellena todos los campos.")
     st.stop()
 
 # ─────────────────────────────────────────
-# 5. RESOLUCIÓN DE PERMISOS Y PLANES
+# 5. RESOLUCIÓN DEL MODO DIOS (COMANDANTE SUPREMO)
 # ─────────────────────────────────────────
 u = st.session_state.usuario_actual
-es_empresa = u.get("Rol") == "Empresa"
-empresa_actual = u.get("Empresa", u["Nombre"])
 
-# Identificar el Plan Real
-if u.get("Rol") == "Agente":
-    empresa_obj = next((e for e in st.session_state.empleados if e["Rol"] == "Empresa" and e["Nombre"] == empresa_actual), None)
-    mi_plan = empresa_obj.get("Plan", "Pro") if empresa_obj else "Pro"
+# 👑 INYECCIÓN DE PODERES DE SUPERUSUARIO
+if u["Nombre"] == COMANDANTE_SUPREMO:
+    es_empresa = True
+    mi_plan = "Enterprise"
+    empresa_actual = u["Nombre"]
 else:
-    mi_plan = u.get("Plan", "Individual")
+    es_empresa = u.get("Rol") == "Empresa"
+    empresa_actual = u.get("Empresa", u["Nombre"])
+    if u.get("Rol") == "Agente":
+        empresa_obj = next((e for e in st.session_state.empleados if e["Rol"] == "Empresa" and e["Nombre"] == empresa_actual), None)
+        mi_plan = empresa_obj.get("Plan", "Pro") if empresa_obj else "Pro"
+    else:
+        mi_plan = u.get("Plan", "Gratis")
 
 rol_label = f"COMANDANCIA [{mi_plan.upper()}]" if es_empresa else f"AGENTE: {empresa_actual.upper()} [{mi_plan.upper()}]"
+if u["Nombre"] == COMANDANTE_SUPREMO: rol_label = "👑 COMANDANTE SUPREMO [NIVEL OMEGA]"
 
 c_head1, c_head2 = st.columns([8, 1])
 with c_head1:
@@ -256,7 +286,7 @@ with c_head2:
         st.session_state.usuario_actual = None; st.session_state.login_step = 1; st.rerun()
 st.markdown("<hr class='crysis-divider' style='margin-top:0;'>", unsafe_allow_html=True)
 
-# Lógica B2B y Carga de Escenarios (Scoping)
+# Lógica B2B y Scoping
 if es_empresa:
     agentes_de_mi_empresa = [e["Nombre"] for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]
     historial_visible = [s for s in st.session_state.historial_sesiones if s["Agente"] in agentes_de_mi_empresa]
@@ -266,10 +296,9 @@ else:
 mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items() if v.get("Creador") == empresa_actual}
 TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **mis_escenarios}
 
-# Renderizado Condicional de TABS
-if u["Rol"] == "Empresa":
+if es_empresa:
     t1, t2, t3, t4, t5 = st.tabs(["RENDIMIENTO GLOBAL", "RECLUTAMIENTO", "EXPEDIENTES", "SIMULADOR", "LABORATORIO VIP"])
-elif u["Rol"] == "Individual":
+elif u["Rol"] == "Individual" or mi_plan == "Gratis":
     t1, t2, t3, t4, t5 = st.tabs(["ESTADÍSTICAS", "PERFIL", "EXPEDIENTES", "SIMULADOR", "LABORATORIO VIP"])
 else:
     t1, t2, t3, t4 = st.tabs(["MIS ESTADÍSTICAS", "MI PERFIL", "MIS EXPEDIENTES", "SIMULADOR"])
@@ -336,13 +365,12 @@ with t2:
         </div>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
-# TAB 3: EXPEDIENTES (MODO DIOS Y CSV PARA ENTERPRISE)
+# TAB 3: EXPEDIENTES
 # ══════════════════════════════════════════
 with t3:
     c_title, c_btn = st.columns([4, 1])
     c_title.markdown("<div class='section-label'>ARCHIVO DE OPERACIONES CLASIFICADAS</div>", unsafe_allow_html=True)
     
-    # 👑 VENTAJA ENTERPRISE: Descarga CSV
     if es_empresa and mi_plan == "Enterprise" and historial_visible:
         df_export = pd.DataFrame(historial_visible)
         csv_data = df_export.to_csv(index=False).encode('utf-8')
@@ -353,10 +381,9 @@ with t3:
             label_agente = f"[{s['Agente']}] " if es_empresa else ""
             with st.expander(f"⬡ {label_agente}{s['Fecha']} · {s['Escenario']} · PUNTUACIÓN: {s['Nota']}%"):
                 st.markdown(s['Evaluacion'])
-                # 👑 VENTAJA ENTERPRISE: Transcripción completa
                 if es_empresa and mi_plan == "Enterprise" and "Transcripcion" in s:
                     st.markdown("---")
-                    st.markdown("<span style='color:#F59E0B; font-size:0.7rem; letter-spacing:0.1em;'>🔍 TRANSCRIPCIÓN CLASIFICADA (MODO DIOS)</span>", unsafe_allow_html=True)
+                    st.markdown("<span style='color:#F59E0B; font-size:0.7rem; letter-spacing:0.1em;'>🔍 TRANSCRIPCIÓN (MODO DIOS)</span>", unsafe_allow_html=True)
                     for tr in s["Transcripcion"]:
                         ag = "AGENTE" if tr["role"] == "user" else "OBJETIVO"
                         colr = "#4F8EF7" if tr["role"] == "user" else "#EF4444"
@@ -365,7 +392,7 @@ with t3:
         st.markdown("<div style='text-align:center; padding:60px; color:#2A3550; font-family:IBM Plex Mono;'>SIN EXPEDIENTES</div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
-# TAB 4: SIMULADOR (LÍMITES MENSUALES PRO)
+# TAB 4: SIMULADOR
 # ══════════════════════════════════════════
 with t4:
     if not st.session_state.mision_iniciada:
@@ -378,21 +405,23 @@ with t4:
         info = TODAS_LAS_MISIONES[es_sel]
         st.markdown(f"""<div class="briefing-box"><h4>📄 BRIEFING OPERATIVO</h4><p><b>Contexto:</b> {info['contexto']}</p><p><b>Perfil:</b> {info['perfil_sujeto']}</p><p><b>Objetivo:</b> {info['objetivo']}</p></div>""", unsafe_allow_html=True)
 
-        # 🛑 PAYWALL: Límite mensual de 3 operaciones para Plan Pro
         mes_actual = datetime.now().strftime("%Y-%m")
         ops_este_mes = len([s for s in st.session_state.historial_sesiones if s["Agente"] == ag_sel and str(s.get("Fecha", "")).startswith(mes_actual)])
         
         bloquear_inicio = False
-        if mi_plan == "Pro" and ops_este_mes >= 3:
+        if mi_plan == "Gratis" and ops_este_mes >= 1:
             bloquear_inicio = True
-            st.error(f"🔒 LÍMITE MENSUAL ALCANZADO (3/3). {ag_sel} no puede realizar más simulaciones este mes bajo la licencia PRO.")
+            st.error(f"🔒 PLAN GRATUITO: Límite mensual alcanzado (1/1). Mejora a Individual para operaciones ilimitadas.")
+        elif mi_plan == "Pro" and ops_este_mes >= 3:
+            bloquear_inicio = True
+            st.error(f"🔒 PLAN PRO: Límite mensual alcanzado (3/3) para el agente {ag_sel}.")
 
         if st.button("INICIAR PROTOCOLO DE CONTACTO →", use_container_width=True, disabled=bloquear_inicio):
             if GROQ_API_KEY:
                 with st.spinner("Generando variables..."):
                     try:
                         client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
-                        res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": f"Genera para {info['perfil_sujeto']} EXCLUSIVAMENTE JSON: 'Nombre_Completo', 'Familia', 'Estado_Mental'."}], response_format={"type": "json_object"}).choices[0].message.content
+                        res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": f"Genera para {info['perfil_sujeto']} JSON: 'Nombre_Completo', 'Familia', 'Estado_Mental'."}], response_format={"type": "json_object"}).choices[0].message.content
                         st.session_state.tarjeta_objetivo = json.loads(res)
                     except: st.session_state.tarjeta_objetivo = {"Nombre_Completo": "Desconocido", "Familia": "Clasificado", "Estado_Mental": "Inestable"}
             
@@ -457,14 +486,13 @@ with t4:
                             nota = min(int(match.group(1)), 100) if match else (min(int(re.search(r'(\d+)\s*/\s*100', informe).group(1)), 100) if re.search(r'(\d+)\s*/\s*100', informe) else 50)
                         except: nota = 50
                         
-                        # 👑 VENTAJA ENTERPRISE: Guardamos la transcripción para el Modo Dios
                         st.session_state.evaluacion_actual = informe
                         st.session_state.historial_sesiones.append({"Fecha": datetime.now().strftime("%Y-%m-%d %H:%M"), "Agente": st.session_state.agente_activo, "Escenario": escenario, "Nota": nota, "Evaluacion": informe, "Transcripcion": st.session_state.mensajes})
                         guardar_datos()
                         st.rerun()
 
 # ══════════════════════════════════════════
-# TAB 5: LABORATORIO VIP (LÍMITES DE ESCENARIOS)
+# TAB 5: LABORATORIO VIP
 # ══════════════════════════════════════════
 if t5:
     with t5:
@@ -472,37 +500,38 @@ if t5:
         with col_izq:
             st.markdown("<div class='section-label'>SÍNTESIS DE OPERACIONES MEDIANTE IA</div>", unsafe_allow_html=True)
             
-            # 🛑 PAYWALL: Límite de creación de escenarios
             creados = len(mis_escenarios)
-            limite_escenarios = 3 if mi_plan == "Individual" else (1 if mi_plan == "Pro" else 9999)
-            
-            if creados >= limite_escenarios:
-                st.error(f"🔒 LÍMITE DE ESCENARIOS ALCANZADO ({creados}/{limite_escenarios}) bajo el Plan {mi_plan.upper()}.")
+            if mi_plan == "Gratis":
+                st.error("🔒 PLAN GRATUITO: Síntesis de Inteligencia Artificial bloqueada. Mejore su plan para desbloquear el Laboratorio VIP.")
                 st.button("✨ SINTETIZAR NUEVA OPERACIÓN", disabled=True)
             else:
-                idea_prompt = st.text_area("Describa la situación táctica.", height=100)
-                if st.button("✨ SINTETIZAR NUEVA OPERACIÓN", use_container_width=True):
-                    if idea_prompt and GROQ_API_KEY:
-                        with st.spinner("Conectando con Inteligencia Central..."):
-                            try:
-                                client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
-                                res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "system", "content": "Devuelve JSON: {'nombre_op': 'OPERACION: [NOMBRE]', 'contexto': '[Desc]', 'perfil_sujeto': '[Perfil]', 'objetivo': '[Misión]', 'prompt': '[Instrucciones]'} "}, {"role": "user", "content": idea_prompt}], response_format={"type": "json_object"}).choices[0].message.content
-                                nuevo_esc = json.loads(res)
-                                nuevo_esc["prompt"] += INSTRUCCION_ORTOGRAFIA
-                                st.session_state.escenarios_custom[nuevo_esc["nombre_op"]] = {"contexto": nuevo_esc["contexto"], "perfil_sujeto": nuevo_esc["perfil_sujeto"], "objetivo": nuevo_esc["objetivo"], "prompt": nuevo_esc["prompt"], "Creador": empresa_actual}
-                                guardar_datos()
-                                st.success(f"✅ Protocolo {nuevo_esc['nombre_op']} integrado.")
-                                st.rerun()
-                            except Exception as e: st.error(f"❌ Fallo Groq: {e}")
-                    elif not idea_prompt: st.warning("Escriba los parámetros.")
+                limite_escenarios = 3 if mi_plan == "Individual" else (1 if mi_plan == "Pro" else 9999)
+                if creados >= limite_escenarios:
+                    st.error(f"🔒 LÍMITE DE ESCENARIOS ALCANZADO ({creados}/{limite_escenarios}) bajo el Plan {mi_plan.upper()}.")
+                    st.button("✨ SINTETIZAR NUEVA OPERACIÓN", disabled=True)
+                else:
+                    idea_prompt = st.text_area("Describa la situación táctica.", height=100)
+                    if st.button("✨ SINTETIZAR NUEVA OPERACIÓN", use_container_width=True):
+                        if idea_prompt and GROQ_API_KEY:
+                            with st.spinner("Conectando con Inteligencia Central..."):
+                                try:
+                                    client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                                    res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "system", "content": "Devuelve JSON: {'nombre_op': 'OPERACION: [NOMBRE]', 'contexto': '[Desc]', 'perfil_sujeto': '[Perfil]', 'objetivo': '[Misión]', 'prompt': '[Instrucciones]'} "}, {"role": "user", "content": idea_prompt}], response_format={"type": "json_object"}).choices[0].message.content
+                                    nuevo_esc = json.loads(res)
+                                    nuevo_esc["prompt"] += INSTRUCCION_ORTOGRAFIA
+                                    st.session_state.escenarios_custom[nuevo_esc["nombre_op"]] = {"contexto": nuevo_esc["contexto"], "perfil_sujeto": nuevo_esc["perfil_sujeto"], "objetivo": nuevo_esc["objetivo"], "prompt": nuevo_esc["prompt"], "Creador": empresa_actual}
+                                    guardar_datos()
+                                    st.success(f"✅ Protocolo {nuevo_esc['nombre_op']} integrado.")
+                                    st.rerun()
+                                except Exception as e: st.error(f"❌ Fallo Groq: {e}")
+                        elif not idea_prompt: st.warning("Escriba los parámetros.")
 
         with col_der:
             st.markdown("<div class='section-label'>CONTROL DE MEMORIA</div>", unsafe_allow_html=True)
-            COMANDANTE_SUPREMO = "TU_NOMBRE_EXACTO_AQUI" # <--- CAMBIA ESTO
-            if st.session_state.usuario_actual["Nombre"] == COMANDANTE_SUPREMO:
+            if u["Nombre"] == COMANDANTE_SUPREMO:
                 st.markdown("""<div class="briefing-box" style="border-left-color: #EF4444;"><h4 style="color: #EF4444; font-size:0.6rem;">⚠ PROTOCOLO DE PURGA</h4><p style="font-size:0.75rem;">Elimina a TODOS los agentes, historiales y misiones.</p></div>""", unsafe_allow_html=True)
                 if st.button("☣️ PURGAR TODO EL SISTEMA", use_container_width=True):
                     st.session_state.empleados = []; st.session_state.historial_sesiones = []; st.session_state.escenarios_custom = {}
-                    st.session_state.usuario_actual = None; st.session_state.login_step = 1; guardar_datos(); st.rerun()
+                    st.session_state.usuario_actual = None; guardar_datos(); st.rerun()
             else:
-                st.info("🔒 AUTORIZACIÓN DENEGADA para purgas.")
+                st.info("🔒 AUTORIZACIÓN DENEGADA para purgas masivas.")
