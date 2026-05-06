@@ -37,10 +37,14 @@ def enviar_correo_2fa(destinatario, codigo):
     try:
         remitente = st.secrets["SMTP_EMAIL"]
         password = st.secrets["SMTP_PASS"]
+        
         msg = MIMEText(f"Tu código de autorización táctica para CRYSIS es: {codigo}\n\nSi no has solicitado este acceso, reporta una brecha de seguridad inmediatamente.")
         msg['Subject'] = 'CRYSIS | Código de Acceso 2FA'
-        msg['From'] = remitente
+        
+        # Enmascaramiento táctico del remitente (Spoofing visual)
+        msg['From'] = "CRYSIS Security <no-reply@comando-crysis.net>"
         msg['To'] = destinatario
+
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         server.login(remitente, password)
@@ -471,8 +475,15 @@ if t5:
 
         with col_der:
             st.markdown("<div class='section-label'>CONTROL DE MEMORIA</div>", unsafe_allow_html=True)
-            st.markdown("""<div class="briefing-box" style="border-left-color: #EF4444;"><h4 style="color: #EF4444; font-size:0.6rem;">⚠ PROTOCOLO DE PURGA</h4><p style="font-size:0.75rem;">Elimina a TODOS los agentes, historiales y misiones.</p></div>""", unsafe_allow_html=True)
-            if st.button("☣️ PURGAR TODO EL SISTEMA", use_container_width=True):
-                st.session_state.empleados = []; st.session_state.historial_sesiones = []; st.session_state.escenarios_custom = {}
-                st.session_state.usuario_actual = None; st.session_state.login_step = 1
-                guardar_datos(); st.rerun()
+            
+            # 🛡️ RESTRICCIÓN OMEGA: Solo el Comandante Supremo ve el botón
+            COMANDANTE_SUPREMO = "TU_NOMBRE_EXACTO_AQUI" # <--- CAMBIA ESTO POR TU ID DE USUARIO REAL
+            
+            if st.session_state.usuario_actual["Nombre"] == COMANDANTE_SUPREMO:
+                st.markdown("""<div class="briefing-box" style="border-left-color: #EF4444;"><h4 style="color: #EF4444; font-size:0.6rem;">⚠ PROTOCOLO DE PURGA</h4><p style="font-size:0.75rem;">Elimina a TODOS los agentes, historiales y misiones.</p></div>""", unsafe_allow_html=True)
+                if st.button("☣️ PURGAR TODO EL SISTEMA", use_container_width=True):
+                    st.session_state.empleados = []; st.session_state.historial_sesiones = []; st.session_state.escenarios_custom = {}
+                    st.session_state.usuario_actual = None; st.session_state.login_step = 1
+                    guardar_datos(); st.rerun()
+            else:
+                st.info("🔒 AUTORIZACIÓN DENEGADA: No tienes nivel de acceso OMEGA para ejecutar purgas del sistema.")
