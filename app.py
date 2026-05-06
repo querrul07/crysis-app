@@ -18,6 +18,11 @@ import base64
 # 👑 CONFIGURACIÓN DE SUPERUSUARIO
 # ─────────────────────────────────────────
 COMANDANTE_SUPREMO = "CRYSIS" # <--- CAMBIA ESTO POR TU ID
+LINKS_PAGO = {
+    "Enterprise": "https://crysisanalitics.lemonsqueezy.com/checkout/buy/d864d72e-5ff1-4bac-966d-eafc555c5bd2",
+    "Pro": "https://crysisanalitics.lemonsqueezy.com/checkout/buy/1dba647d-e120-4816-9ea0-a25492650825",
+    "Individual": "https://crysisanalitics.lemonsqueezy.com/checkout/buy/adfd50b4-b2e5-40fb-9ece-30717f8828ba"
+}
 
 # --- CONEXIÓN A SUPABASE (NUBE SEGURA) ---
 @st.cache_resource
@@ -469,16 +474,53 @@ with t2:
                         
             # Si es un usuario independiente o empresa normal (lo que ya tenías)
             else:
-                planes_disp = ["Gratis", "Individual"] if u["Rol"] == "Individual" else ["Pro", "Enterprise"]
-                try: index_actual = planes_disp.index(mi_plan)
-                except: index_actual = 0
-                nuevo_plan = st.selectbox("Seleccione nuevo Nivel:", planes_disp, index=index_actual)
-                if st.button("ACTUALIZAR PLAN DE SUSCRIPCIÓN"):
-                    with st.spinner("Actualizando licencias..."):
-                        for e in st.session_state.empleados:
-                            if e["Nombre"] == u["Nombre"]: e["Plan"] = nuevo_plan
-                        st.session_state.usuario_actual["Plan"] = nuevo_plan
-                        guardar_datos(); st.success(f"✅ Nivel actualizado a {nuevo_plan}."); st.rerun()
+    st.markdown("#### ACTUALIZAR NIVEL DE SUSCRIPCIÓN")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    col_p1, col_p2, col_p3 = st.columns(3)
+    
+    with col_p1:
+        activo = "✅ " if mi_plan == "Individual" else ""
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">NIVEL OPERADOR</div>
+            <div class="metric-value" style="font-size:1.4rem;">29€<span style="font-size:0.8rem">/mes</span></div>
+            <div class="metric-sub">Ilimitado · Individual</div>
+        </div>""", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        if mi_plan == "Individual":
+            st.success("✅ Plan activo")
+        else:
+            st.markdown(f'<a href="{LINKS_PAGO["Individual"]}" target="_blank"><button style="background:#4F8EF7;color:#07090F;font-family:IBM Plex Mono,monospace;font-weight:700;border:none;padding:10px;border-radius:3px;cursor:pointer;width:100%;font-size:0.7rem;letter-spacing:0.1em;">ACTIVAR →</button></a>', unsafe_allow_html=True)
+
+    with col_p2:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">NIVEL ESCUADRÓN</div>
+            <div class="metric-value" style="font-size:1.4rem;">89€<span style="font-size:0.8rem">/mes</span></div>
+            <div class="metric-sub">15 Agentes · Corporativo</div>
+        </div>""", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        if mi_plan == "Pro":
+            st.success("✅ Plan activo")
+        else:
+            st.markdown(f'<a href="{LINKS_PAGO["Pro"]}" target="_blank"><button style="background:#4F8EF7;color:#07090F;font-family:IBM Plex Mono,monospace;font-weight:700;border:none;padding:10px;border-radius:3px;cursor:pointer;width:100%;font-size:0.7rem;letter-spacing:0.1em;">ACTIVAR →</button></a>', unsafe_allow_html=True)
+
+    with col_p3:
+        st.markdown(f"""
+        <div class="metric-card" style="border-left-color:#F59E0B;">
+            <div class="metric-label" style="color:#F59E0B;">NIVEL COMANDANCIA</div>
+            <div class="metric-value" style="font-size:1.4rem;">199€<span style="font-size:0.8rem">/mes</span></div>
+            <div class="metric-sub">Ilimitado · Enterprise</div>
+        </div>""", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        if mi_plan == "Enterprise":
+            st.success("✅ Plan activo")
+        else:
+            st.markdown(f'<a href="{LINKS_PAGO["Enterprise"]}" target="_blank"><button style="background:#F59E0B;color:#07090F;font-family:IBM Plex Mono,monospace;font-weight:700;border:none;padding:10px;border-radius:3px;cursor:pointer;width:100%;font-size:0.7rem;letter-spacing:0.1em;">ACTIVAR →</button></a>', unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.info("💡 Tras completar el pago en Lemon Squeezy, tu plan se actualizará automáticamente en un máximo de 5 minutos.")
             st.markdown("---")
         st.markdown("##### Zona de Riesgo")
         if st.button("🚨 ELIMINAR MI CUENTA DEFINITIVAMENTE", type="primary"):
