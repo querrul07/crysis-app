@@ -639,7 +639,21 @@ elif st.session_state.vista_actual == "EXPEDIENTES":
                                 <span style="font-family:IBM Plex Mono, monospace; color:{c_nota}; font-weight:700;">{nota_ind}%</span>
                             </div>
                             <div style="font-size:0.85rem; color:#C8D0E0; margin-bottom:10px;">{s['Evaluacion']}</div>""", unsafe_allow_html=True)
-                            st.download_button(label="EXTRAER DOSSIER PDF", data=generar_pdf_dossier(s), file_name=f"CRYSIS_{s['Agente']}_{s['Fecha'][:10]}.pdf", mime="application/pdf", key=f"pdf_{s['Agente']}_{s['Fecha']}")
+                            
+                            c_btn1, c_btn2 = st.columns([1, 1])
+                            with c_btn1:
+                                st.download_button(label="EXTRAER DOSSIER PDF", data=generar_pdf_dossier(s), file_name=f"CRYSIS_{s['Agente']}_{s['Fecha'][:10]}.pdf", mime="application/pdf", key=f"pdf_{s['Agente']}_{s['Fecha']}")
+                            with c_btn2:
+                                # Comprobamos si la operación es del usuario actual o si es el Comandante
+                                if u["Nombre"] == s["Agente"] or u["Nombre"] == COMANDANTE_SUPREMO:
+                                    if st.button("ELIMINAR REGISTRO", key=f"del_op_{s['Agente']}_{s['Fecha']}", type="secondary"):
+                                        st.session_state.historial_sesiones = [
+                                            h for h in st.session_state.historial_sesiones 
+                                            if not (h.get("Agente") == s["Agente"] and h.get("Fecha") == s["Fecha"])
+                                        ]
+                                        guardar_datos()
+                                        st.rerun()
+
                             if es_empresa and mi_plan == "Enterprise" and "Transcripcion" in s:
                                 st.markdown("<br><span style='color:#F59E0B; font-size:0.7rem; letter-spacing:0.1em;'>[ AUDITORÍA DE COMUNICACIONES ]</span>", unsafe_allow_html=True)
                                 for tr in s["Transcripcion"]:
