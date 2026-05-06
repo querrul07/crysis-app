@@ -207,16 +207,30 @@ if st.session_state.usuario_actual is None:
                 email = st.text_input("Correo Corporativo")
                 d = st.text_input("Unidad / Departamento")
                 p = st.text_input("Establecer Clave de Acceso", type="password")
-                if st.form_submit_button("VALIDAR CREDENCIALES Y ENTRAR", use_container_width=True):
+                
+                # 🔥 CAMBIO DE TEXTO EN EL BOTÓN
+                if st.form_submit_button("REGISTRAR CREDENCIALES OFICIALES", use_container_width=True):
                     if n and p and email:
-                        if any(e["Nombre"] == n for e in st.session_state.empleados): st.warning("⚠️ ID no disponible.")
+                        if any(e["Nombre"] == n and e.get("Empresa") == empresa_invitada for e in st.session_state.empleados): 
+                            st.warning("⚠️ Este ID ya está registrado en esta corporación.")
+                        elif any(e["Nombre"] == n and e.get("Password") == p for e in st.session_state.empleados):
+                            st.warning("⚠️ Este ID ya está en uso. Usa una CONTRASEÑA DIFERENTE a tu cuenta privada para que el sistema las distinga.")
                         else:
                             nuevo_agente = {"Nombre": n, "Email": email, "Departamento": d, "Rol": "Agente", "Empresa": empresa_invitada, "Password": p, "2FA_Verificado": True}
                             st.session_state.empleados.append(nuevo_agente); guardar_datos()
-                            st.session_state.usuario_actual = nuevo_agente
+                            
+                            # 🔥 AQUÍ ESTÁ EL CAMBIO TÁCTICO: 
+                            # Quitamos el Auto-Login, marcamos la bandera de éxito y limpiamos la URL
+                            st.session_state.registro_completado = True
                             st.query_params.clear(); st.rerun()
     else:
         st.markdown("<div class='crysis-subtitle'>PLATAFORMA DE SIMULACIÓN TÁCTICA AVANZADA</div>", unsafe_allow_html=True)
+        
+        # 🔥 EL MENSAJE DE RECEPCIÓN
+        if st.session_state.get("registro_completado"):
+            st.success("✅ Acreditación procesada y guardada en el Creador Central. Por favor, identifícate en el Portal de Acceso para entrar.")
+            st.session_state.registro_completado = False # Limpiamos la memoria para que no salga siempre
+            
         t_log, t_reg = st.tabs(["IDENTIFICACIÓN", "NIVELES DE AUTORIZACIÓN (ALTA)"])
         with t_log:
             st.markdown("<br>", unsafe_allow_html=True)
@@ -242,7 +256,7 @@ if st.session_state.usuario_actual is None:
                                         st.session_state["2fa_code"] = str(random.randint(100000, 999999))
                                         st.session_state["2fa_agente"] = agente
                                         st.session_state.login_step = 2; st.rerun()
-                            else: st.error("❌ Identificación fallida.")
+                            else: st.error("❌ Identificación fallida. Revisa tu ID o Contraseña.")
                 elif st.session_state.login_step == 2:
                     correo_dest = st.session_state["2fa_agente"].get("Email", "Desconocido")
                     if "correo_enviado" not in st.session_state:
@@ -288,7 +302,11 @@ if st.session_state.usuario_actual is None:
                     p = st.text_input("Clave Maestra", type="password")
                     if st.form_submit_button("EMITIR CREDENCIALES Y ENTRAR", use_container_width=True):
                         if n and p and email:
-                            if any(e["Nombre"] == n for e in st.session_state.empleados): st.warning("⚠️ Identificador ya registrado.")
+                            empresa_destino = n if es_corporativo else "Independiente"
+                            if any(e["Nombre"] == n and e.get("Empresa", "Independiente") == empresa_destino for e in st.session_state.empleados): 
+                                st.warning("⚠️ Ya tienes una cuenta de este tipo registrada.")
+                            elif any(e["Nombre"] == n and e.get("Password") == p for e in st.session_state.empleados):
+                                st.warning("⚠️ Ya tienes una cuenta corporativa con este ID. Usa una CONTRASEÑA DIFERENTE para tu cuenta privada.")
                             else:
                                 if es_corporativo: nuevo_usuario = {"Nombre": n, "Email": email, "Departamento": "Administración", "Rol": "Empresa", "Plan": plan_interno, "Empresa": n, "Password": p, "2FA_Verificado": True}
                                 else: nuevo_usuario = {"Nombre": n, "Email": email, "Rol": "Individual", "Plan": plan_interno, "Empresa": n, "Password": p, "2FA_Verificado": True}
