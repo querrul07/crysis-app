@@ -447,18 +447,38 @@ with t2:
                 guardar_datos(); st.success("✅ Contraseña actualizada.")
             else: st.warning("Introduce una contraseña válida.")
         st.markdown("---")
-        if u.get("Rol") in ["Empresa", "Individual"] and u["Nombre"] != COMANDANTE_SUPREMO:
-            st.markdown("##### Gestión de Suscripción (SaaS)")
-            planes_disp = ["Gratis", "Individual"] if u["Rol"] == "Individual" else ["Pro", "Enterprise"]
-            try: index_actual = planes_disp.index(mi_plan)
-            except: index_actual = 0
-            nuevo_plan = st.selectbox("Seleccione nuevo Nivel:", planes_disp, index=index_actual)
-            if st.button("ACTUALIZAR PLAN DE SUSCRIPCIÓN"):
-                with st.spinner("Actualizando licencias..."):
-                    for e in st.session_state.empleados:
-                        if e["Nombre"] == u["Nombre"]: e["Plan"] = nuevo_plan
-                    st.session_state.usuario_actual["Plan"] = nuevo_plan
-                    guardar_datos(); st.success(f"✅ Nivel actualizado a {nuevo_plan}."); st.rerun()
+        if u["Nombre"] != COMANDANTE_SUPREMO:
+            st.markdown("##### Gestión de Suscripción Personal (SaaS)")
+            
+            # Si es un Agente de empresa, le ofrecemos mejorar su cuenta personal
+            if u.get("Rol") == "Agente":
+                st.info("💡 Tu corporación cubre tus misiones oficiales. Puedes adquirir el Nivel OPERADOR para tener misiones de entrenamiento privadas e ilimitadas.")
+                planes_disp = ["Plan Base (Corporativo)", "Individual (Operador Premium)"]
+                index_actual = 1 if u.get("Plan_Privado") == "Individual" else 0
+                nuevo_plan = st.selectbox("Mejora tu Nivel:", planes_disp, index=index_actual)
+                
+                if st.button("ACTUALIZAR LICENCIA PRIVADA"):
+                    plan_interno = "Individual" if "Operador" in nuevo_plan else "Gratis"
+                    with st.spinner("Actualizando licencias..."):
+                        for e in st.session_state.empleados:
+                            if e["Nombre"] == u["Nombre"]: e["Plan_Privado"] = plan_interno
+                        st.session_state.usuario_actual["Plan_Privado"] = plan_interno
+                        guardar_datos()
+                        st.success("✅ Licencia privada actualizada a Premium.")
+                        st.rerun()
+                        
+            # Si es un usuario independiente o empresa normal (lo que ya tenías)
+            else:
+                planes_disp = ["Gratis", "Individual"] if u["Rol"] == "Individual" else ["Pro", "Enterprise"]
+                try: index_actual = planes_disp.index(mi_plan)
+                except: index_actual = 0
+                nuevo_plan = st.selectbox("Seleccione nuevo Nivel:", planes_disp, index=index_actual)
+                if st.button("ACTUALIZAR PLAN DE SUSCRIPCIÓN"):
+                    with st.spinner("Actualizando licencias..."):
+                        for e in st.session_state.empleados:
+                            if e["Nombre"] == u["Nombre"]: e["Plan"] = nuevo_plan
+                        st.session_state.usuario_actual["Plan"] = nuevo_plan
+                        guardar_datos(); st.success(f"✅ Nivel actualizado a {nuevo_plan}."); st.rerun()
             st.markdown("---")
         st.markdown("##### Zona de Riesgo")
         if st.button("🚨 ELIMINAR MI CUENTA DEFINITIVAMENTE", type="primary"):
