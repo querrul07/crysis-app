@@ -477,7 +477,7 @@ if t5:
             st.markdown("<div class='section-label'>CONTROL DE MEMORIA</div>", unsafe_allow_html=True)
             
             # 🛡️ RESTRICCIÓN OMEGA: Solo el Comandante Supremo ve el botón
-            COMANDANTE_SUPREMO = "TU_NOMBRE_EXACTO_AQUI" # <--- CAMBIA ESTO POR TU ID DE USUARIO REAL
+            COMANDANTE_SUPREMO = "CRYSIS" # <--- CAMBIA ESTO POR TU ID DE USUARIO REAL
             
             if st.session_state.usuario_actual["Nombre"] == COMANDANTE_SUPREMO:
                 st.markdown("""<div class="briefing-box" style="border-left-color: #EF4444;"><h4 style="color: #EF4444; font-size:0.6rem;">⚠ PROTOCOLO DE PURGA</h4><p style="font-size:0.75rem;">Elimina a TODOS los agentes, historiales y misiones.</p></div>""", unsafe_allow_html=True)
