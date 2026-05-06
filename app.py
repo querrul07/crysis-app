@@ -943,12 +943,12 @@ if pantalla == "menu":
                 ir_a(dest)
 
     st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
-    if u["Nombre"] != COMANDANTE_SUPREMO:
+if u["Nombre"] != COMANDANTE_SUPREMO:
     c4, c5 = st.columns(2)
 else:
     c4, c5, c6 = st.columns(3)
-    agentes_activos = len([e for e in st.session_state.empleados
-                           if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"])
+agentes_activos = len([e for e in st.session_state.empleados
+                       if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"])
     with c4:
         st.markdown(f"""
         <div class="mod">
