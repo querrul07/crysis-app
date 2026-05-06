@@ -10,32 +10,46 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 import random
-from fpdf import FPDF  # <--- NUEVA LIBRERÍA PDF
+from fpdf import FPDF
+from supabase import create_client, Client # <--- NUEVO MOTOR DE BASE DE DATOS
 
 # ─────────────────────────────────────────
 # 👑 CONFIGURACIÓN DE SUPERUSUARIO
 # ─────────────────────────────────────────
 COMANDANTE_SUPREMO = "CRYSIS" # <--- CAMBIA ESTO POR TU ID
 
-# --- SISTEMA DE MEMORIA LOCAL ---
-DATA_FILE = "crysis_data.json"
+# --- CONEXIÓN A SUPABASE (NUBE SEGURA) ---
+@st.cache_resource
+def init_supabase():
+    url: str = st.secrets["SUPABASE_URL"]
+    key: str = st.secrets["SUPABASE_KEY"]
+    return create_client(url, key)
+
+supabase = init_supabase()
 
 def cargar_datos():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            datos = json.load(f)
+    try:
+        response = supabase.table("crysis_data").select("memoria").eq("id", "main").execute()
+        if response.data:
+            datos = response.data[0]["memoria"]
             if "escenarios_custom" not in datos: datos["escenarios_custom"] = {}
             datos["empleados"] = [e for e in datos.get("empleados", []) if "Rol" in e]
             return datos
+    except Exception as e:
+        st.error(f"⚠️ Error al conectar con Base de Datos Central: {e}")
+    
     return {"empleados": [], "historial_sesiones": [], "escenarios_custom": {}}
 
 def guardar_datos():
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump({
+    try:
+        datos_actualizados = {
             "empleados": st.session_state.empleados,
             "historial_sesiones": st.session_state.historial_sesiones,
             "escenarios_custom": st.session_state.escenarios_custom
-        }, f, ensure_ascii=False, indent=4)
+        }
+        supabase.table("crysis_data").update({"memoria": datos_actualizados}).eq("id", "main").execute()
+    except Exception as e:
+        st.error(f"⚠️ Fallo crítico al sincronizar con Inteligencia Central: {e}")
 
 # --- MOTOR DE CORREO 2FA ---
 def enviar_correo_2fa(destinatario, codigo):
@@ -57,7 +71,6 @@ def enviar_correo_2fa(destinatario, codigo):
 # --- MOTOR DE GENERACIÓN PDF ---
 def sanitizar_texto(texto):
     if not isinstance(texto, str): texto = str(texto)
-    # Limpiamos asteriscos y emojis de la IA que puedan romper la fuente del PDF
     texto = texto.replace('**', '').replace('*', '-').replace('•', '-').replace('✅', '[V]').replace('❌', '[X]')
     return texto.encode('latin-1', 'replace').decode('latin-1')
 
@@ -67,10 +80,10 @@ def generar_pdf_dossier(sesion):
     
     # Cabecera Táctica
     pdf.set_font("Arial", 'B', 16)
-    pdf.set_text_color(79, 142, 247) # Azul
+    pdf.set_text_color(79, 142, 247)
     pdf.cell(0, 10, "CRYSIS | INTELLIGENCE UNIT", ln=True, align='C')
     pdf.set_font("Arial", 'B', 11)
-    pdf.set_text_color(239, 68, 68) # Rojo
+    pdf.set_text_color(239, 68, 68)
     pdf.cell(0, 8, "DOSSIER OPERACIONAL CLASIFICADO", ln=True, align='C')
     pdf.ln(5)
     
@@ -129,6 +142,8 @@ def generar_pdf_dossier(sesion):
 # 1. CONFIGURACIÓN Y CSS (TONO CORPORATIVO)
 # ─────────────────────────────────────────
 st.set_page_config(page_title="CRYSIS | Intelligence Unit", layout="wide", initial_sidebar_state="collapsed")
+
+# ... (MANTÉN TODO TU CÓDIGO ACTUAL DESDE AQUÍ HACIA ABAJO) ...
 
 st.markdown("""
 <style>
