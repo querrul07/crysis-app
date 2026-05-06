@@ -943,7 +943,10 @@ if pantalla == "menu":
                 ir_a(dest)
 
     st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
-    c4, c5 = st.columns(2) if u["Nombre"] != COMANDANTE_SUPREMO else st.columns(3)
+    if u["Nombre"] != COMANDANTE_SUPREMO:
+    c4, c5 = st.columns(2)
+else:
+    c4, c5, c6 = st.columns(3)
     agentes_activos = len([e for e in st.session_state.empleados
                            if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"])
     with c4:
@@ -972,8 +975,7 @@ if pantalla == "menu":
         mrr = sum({"Enterprise":199,"Pro":89,"Individual":29,"Gratis":0}.get(e.get("Plan","Gratis"),0)
                   for e in st.session_state.empleados)
         # c5 already defined as third column in this branch
-        cols6 = st.columns(3)
-        with cols6[2]:
+        with c6:
             st.markdown(f"""
             <div class="mod">
               <div class="mod-accent" style="background:var(--red);"></div>
