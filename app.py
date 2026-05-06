@@ -6,8 +6,10 @@ import pandas as pd
 import re
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import os
+import smtplib
+from email.mime.text import MIMEText
+import random
 
 # --- SISTEMA DE MEMORIA LOCAL ---
 DATA_FILE = "crysis_data.json"
@@ -27,6 +29,27 @@ def guardar_datos():
             "historial_sesiones": st.session_state.historial_sesiones,
             "escenarios_custom": st.session_state.escenarios_custom
         }, f, ensure_ascii=False, indent=4)
+
+# --- MOTOR DE CORREO 2FA ---
+def enviar_correo_2fa(destinatario, codigo):
+    try:
+        remitente = st.secrets["SMTP_EMAIL"]
+        password = st.secrets["SMTP_PASS"]
+        
+        msg = MIMEText(f"Tu código de autorización táctica para CRYSIS es: {codigo}\n\nSi no has solicitado este acceso, reporta una brecha de seguridad inmediatamente.")
+        msg['Subject'] = 'CRYSIS | Código de Acceso 2FA'
+        msg['From'] = remitente
+        msg['To'] = destinatario
+
+        # Configurado por defecto para Gmail
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(remitente, password)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        return False
 
 # ─────────────────────────────────────────
 # 1. CONFIGURACIÓN
@@ -93,6 +116,12 @@ CONTEXTOS_MISION = {
         "objetivo": "Evitar la escalada bélica sin comprometer la soberanía aliada.",
         "prompt": "Eres el Ministro de Defensa de Krasnovia. Hostil y burocrático. Solo diálogo directo." + INSTRUCCION_ORTOGRAFIA
     },
+    "OPERACION: BLACKOUT": {
+        "contexto": "Ataque masivo al sistema eléctrico nacional. El 40% del país está a oscuras.",
+        "perfil_sujeto": "'Shadow'. Hacker mercenario. No tiene ideología, solo interés económico.",
+        "objetivo": "Ganar tiempo para que los técnicos localicen el origen del exploit y reducir el rescate.",
+        "prompt": "Eres Shadow, hacker de elite. Solo texto directo. Sin emociones." + INSTRUCCION_ORTOGRAFIA
+    },
     "OPERACION: EXTRACCION": {
         "contexto": "Robo a banco fallido. 3 civiles retenidos en la bóveda principal.",
         "perfil_sujeto": "Sujeto inestable, bajo presión extrema, posible historial de pánico.",
@@ -117,17 +146,22 @@ if "mision_iniciada" not in st.session_state: st.session_state.mision_iniciada =
 if "tarjeta_objetivo" not in st.session_state: st.session_state.tarjeta_objetivo = None
 if "usuario_actual" not in st.session_state: st.session_state.usuario_actual = None
 
+# Variables de estado para el 2FA
+if "login_step" not in st.session_state: st.session_state.login_step = 1
+if "2fa_code" not in st.session_state: st.session_state["2fa_code"] = None
+if "2fa_agente" not in st.session_state: st.session_state["2fa_agente"] = None
+
 TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **st.session_state.escenarios_custom}
 
 try: GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except: GROQ_API_KEY = None
 
 # ─────────────────────────────────────────
-# 5. EL MURO DE SEGURIDAD (LOGIN / REGISTRO)
+# 5. EL MURO DE SEGURIDAD (LOGIN 2FA / REGISTRO)
 # ─────────────────────────────────────────
 if st.session_state.usuario_actual is None:
     st.markdown("<div class='crysis-title' style='margin-top: 50px;'>CRYSIS</div>", unsafe_allow_html=True)
-    st.markdown("<div class='crysis-subtitle'>SISTEMA CERRADO · IDENTIFICACIÓN REQUERIDA</div>", unsafe_allow_html=True)
+    st.markdown("<div class='crysis-subtitle'>SISTEMA CERRADO · IDENTIFICACIÓN 2FA REQUERIDA</div>", unsafe_allow_html=True)
     st.markdown("<hr class='crysis-divider'>", unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns([1, 2, 1])
@@ -135,34 +169,81 @@ if st.session_state.usuario_actual is None:
         t_log, t_reg = st.tabs(["INICIAR SESIÓN", "NUEVO INGRESO"])
         with t_log:
             st.markdown("<br>", unsafe_allow_html=True)
-            with st.form("login_form"):
-                u_id = st.text_input("ID de Agente (Nombre Exacto)")
-                u_pass = st.text_input("Código de Acceso", type="password")
-                if st.form_submit_button("AUTORIZAR ACCESO", use_container_width=True):
-                    agente = next((e for e in st.session_state.empleados if e["Nombre"] == u_id and e.get("Password") == u_pass), None)
-                    if agente:
-                        st.session_state.usuario_actual = agente
-                        st.rerun()
+            
+            # --- PASO 1: CREDENCIALES BÁSICAS ---
+            if st.session_state.login_step == 1:
+                with st.form("login_form"):
+                    u_id = st.text_input("ID de Agente (Nombre Exacto)")
+                    u_pass = st.text_input("Código de Acceso", type="password")
+                    if st.form_submit_button("AUTORIZAR ACCESO", use_container_width=True):
+                        agente = next((e for e in st.session_state.empleados if e["Nombre"] == u_id and e.get("Password") == u_pass), None)
+                        if agente:
+                            st.session_state["2fa_code"] = str(random.randint(100000, 999999))
+                            st.session_state["2fa_agente"] = agente
+                            st.session_state.login_step = 2
+                            st.rerun()
+                        else:
+                            st.error("❌ Acceso denegado. ID o Código incorrectos.")
+            
+            # --- PASO 2: VERIFICACIÓN 2FA ---
+            elif st.session_state.login_step == 2:
+                correo_dest = st.session_state["2fa_agente"].get("Email", "Desconocido")
+                st.info("Protocolo de doble verificación activado.")
+                
+                if "correo_enviado" not in st.session_state:
+                    exito = enviar_correo_2fa(correo_dest, st.session_state["2fa_code"])
+                    if exito:
+                        st.success(f"📧 Código de seguridad enviado a: {correo_dest}")
                     else:
-                        st.error("❌ Acceso denegado. ID o Código incorrectos.")
+                        st.error("❌ ERROR CRÍTICO DE SISTEMA: No se ha podido contactar con el servidor SMTP. Operación abortada por seguridad.")
+                    st.session_state["correo_enviado"] = True
+
+                with st.form("2fa_form"):
+                    u_code = st.text_input("Introduzca el código de 6 dígitos enviado a su correo")
+                    colA, colB = st.columns(2)
+                    with colA:
+                        submit_2fa = st.form_submit_button("VERIFICAR", use_container_width=True)
+                    with colB:
+                        cancel_2fa = st.form_submit_button("CANCELAR", use_container_width=True)
+
+                    if submit_2fa:
+                        if u_code == st.session_state["2fa_code"]:
+                            st.session_state.usuario_actual = st.session_state["2fa_agente"]
+                            st.session_state.login_step = 1
+                            if "correo_enviado" in st.session_state: del st.session_state["correo_enviado"]
+                            st.rerun()
+                        else:
+                            st.error("❌ Código de verificación incorrecto.")
+                    if cancel_2fa:
+                        st.session_state.login_step = 1
+                        if "correo_enviado" in st.session_state: del st.session_state["correo_enviado"]
+                        st.rerun()
+
         with t_reg:
             st.markdown("<br>", unsafe_allow_html=True)
             with st.form("reg_form"):
                 n = st.text_input("Nombre Completo (Este será tu ID)")
-                d = st.selectbox("Departamento", ["Inteligencia", "Táctico", "Logística", "Ciberseguridad"])
+                email = st.text_input("Correo Electrónico (Requerido para verificación 2FA)")
+                d = st.text_input("Departamento Personalizado (Ej: Operaciones Especiales, Psicología...)")
                 r = st.text_input("Rango / Designación")
                 p = st.text_input("Crear Código de Acceso", type="password")
                 if st.form_submit_button("REGISTRAR PERFIL", use_container_width=True):
-                    if n and p:
+                    if n and p and email:
                         if any(e["Nombre"] == n for e in st.session_state.empleados):
-                            st.warning("⚠️ ID de Agente ya existe.")
+                            st.warning("⚠️ El ID de Agente ya existe en la base de datos.")
                         else:
-                            st.session_state.empleados.append({"Nombre": n, "Departamento": d, "Rango": r, "Password": p})
+                            st.session_state.empleados.append({
+                                "Nombre": n, 
+                                "Email": email,
+                                "Departamento": d if d else "Operaciones",
+                                "Rango": r, 
+                                "Password": p
+                            })
                             guardar_datos()
                             st.success("✅ Perfil creado. Ya puedes Iniciar Sesión.")
                     else:
-                        st.warning("⚠️ Nombre y Código son obligatorios.")
-    st.stop() # Bloquea la carga del resto de la app si no estás logueado
+                        st.warning("⚠️ Nombre, Correo y Código de Acceso son obligatorios.")
+    st.stop() 
 
 # ─────────────────────────────────────────
 # 6. HEADER AUTENTICADO
@@ -175,6 +256,7 @@ with c_head2:
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("SALIR", key="logout", type="secondary"):
         st.session_state.usuario_actual = None
+        st.session_state.login_step = 1 
         st.rerun()
 st.markdown("<hr class='crysis-divider' style='margin-top:0;'>", unsafe_allow_html=True)
 
@@ -184,7 +266,6 @@ st.markdown("<hr class='crysis-divider' style='margin-top:0;'>", unsafe_allow_ht
 t1, t2, t3, t4, t5 = st.tabs(["MIS ESTADÍSTICAS", "MI PERFIL", "MIS EXPEDIENTES", "SIMULADOR", "LABORATORIO VIP"])
 
 usuario = st.session_state.usuario_actual["Nombre"]
-# Filtrar historial SOLO para este usuario
 historial_propio = [s for s in st.session_state.historial_sesiones if s["Agente"] == usuario]
 
 # ══════════════════════════════════════════
@@ -249,6 +330,7 @@ with t2:
     <div class="briefing-box" style="border-left-color:#22D3A5;">
         <h4 style="color:#22D3A5;">🛡️ IDENTIFICACIÓN VALIDADA</h4>
         <p><b>ID de Agente:</b> {u['Nombre']}</p>
+        <p><b>Correo de Seguridad:</b> {u.get('Email', 'No registrado')}</p>
         <p><b>Departamento Asignado:</b> {u.get('Departamento', 'Desconocido')}</p>
         <p><b>Rango Operativo:</b> {u.get('Rango', 'Desconocido')}</p>
     </div>
@@ -259,7 +341,6 @@ with t2:
 # ══════════════════════════════════════════
 with t3:
     st.markdown("<div class='section-label'>ARCHIVO DE OPERACIONES CLASIFICADAS</div>", unsafe_allow_html=True)
-    # Buscamos los indices globales originales para poder borrarlos de la base general
     mis_sesiones_con_index = [(i, s) for i, s in enumerate(st.session_state.historial_sesiones) if s["Agente"] == usuario]
     
     if mis_sesiones_con_index:
@@ -413,5 +494,6 @@ with t5:
         if st.button("☣️ PURGAR TODO EL SISTEMA", use_container_width=True):
             st.session_state.empleados = []; st.session_state.historial_sesiones = []; st.session_state.escenarios_custom = {}
             st.session_state.usuario_actual = None
+            st.session_state.login_step = 1
             guardar_datos()
             st.rerun()
