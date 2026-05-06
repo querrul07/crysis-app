@@ -982,7 +982,7 @@ with c5:
             </div>""", unsafe_allow_html=True)
             if st.button("ACCEDER", key="goto_admin", use_container_width=True): ir_a("admin")
 
-    st.stop()
+st.stop()
 
 
 # ═══════════════════════════════════════════
