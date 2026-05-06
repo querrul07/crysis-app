@@ -747,13 +747,15 @@ if t5:
             col_m4.markdown(f"""<div class="metric-card"><div class="metric-label">SESIONES TOTALES</div><div class="metric-value">{total_operaciones}</div></div>""", unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
 
-            with st.expander("🌍 GESTIÓN GLOBAL DE USUARIOS (OMNISCIENCIA)", expanded=False):
+           with st.expander("🌍 GESTIÓN GLOBAL DE USUARIOS (OMNISCIENCIA)", expanded=False):
                 st.info("Directorio completo de agentes y corporaciones registradas.")
-                for usr in st.session_state.empleados:
+                # Añadimos enumerate para que cada botón tenga un ID único (i)
+                for i, usr in enumerate(st.session_state.empleados):
                     if usr["Nombre"] != COMANDANTE_SUPREMO:
                         c_u1, c_u2 = st.columns([4, 1])
                         c_u1.markdown(f"**ID:** {usr['Nombre']} | **Rol:** {usr['Rol']} | **Email:** {usr['Email']}")
-                        if c_u2.button("PURGAR", key=f"del_g_{usr['Nombre']}", type="secondary"):
+                        # Se añade _{i} a la clave del botón
+                        if c_u2.button("PURGAR", key=f"del_g_{usr['Nombre']}_{i}", type="secondary"):
                             st.session_state.empleados = [e for e in st.session_state.empleados if e["Nombre"] != usr["Nombre"]]
                             guardar_datos(); st.rerun()
 
