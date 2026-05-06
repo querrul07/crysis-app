@@ -394,8 +394,13 @@ with t2:
     if es_empresa:
         st.markdown("<div class='section-label'>ENLACE SEGURO DE RECLUTAMIENTO</div>", unsafe_allow_html=True)
         token_cifrado = base64.urlsafe_b64encode(empresa_actual.encode()).decode()
-        st.info("Distribuye el siguiente sufijo o añádelo al final de la URL principal de tu simulador para reclutar agentes automáticamente.")
-        st.code(f"?invite={token_cifrado}", language="html")
+        
+        # 👇 SUSTITUYE ESTO POR EL LINK REAL DE TU APP EN STREAMLIT CLOUD
+        URL_BASE_APP = "https://crysis.streamlit.app/" 
+        
+        enlace_completo = f"{URL_BASE_APP}?invite={token_cifrado}"
+        st.info("Copia y comparte este enlace directo con tus agentes para que se unan a tu unidad automáticamente.")
+        st.code(enlace_completo, language="html")
         
         st.markdown("<br><div class='section-label'>PLANTILLA OPERATIVA ACTIVA</div>", unsafe_allow_html=True)
         agentes_mios = [e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]
