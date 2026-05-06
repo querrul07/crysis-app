@@ -250,10 +250,10 @@ st.markdown("<hr class='crysis-divider' style='margin-top:0;'>", unsafe_allow_ht
 # ─────────────────────────────────────────
 # 7. LOGICA DE DATOS (Filtrado B2B)
 # ─────────────────────────────────────────
-empresa_actual = u["Empresa"]
+empresa_actual = u.get("Empresa", "General")
 # Si es Empresa, ve las notas de TODOS sus agentes. Si es Agente, solo ve las suyas.
 if es_empresa:
-    agentes_de_mi_empresa = [e["Nombre"] for e in st.session_state.empleados if e["Empresa"] == empresa_actual and e["Rol"] == "Agente"]
+    agentes_de_mi_empresa = [e["Nombre"] for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]
     historial_visible = [s for s in st.session_state.historial_sesiones if s["Agente"] in agentes_de_mi_empresa]
 else:
     historial_visible = [s for s in st.session_state.historial_sesiones if s["Agente"] == u["Nombre"]]
@@ -327,7 +327,7 @@ with t2:
         st.caption("Copia la URL de tu página web y añádele el texto de arriba al final.")
         
         st.markdown("<br><div class='section-label'>TUS AGENTES ACTIVOS</div>", unsafe_allow_html=True)
-        for ag in [e for e in st.session_state.empleados if e["Empresa"] == empresa_actual and e["Rol"] == "Agente"]:
+        for ag in [e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]:
             st.markdown(f"**{ag['Nombre']}** | Dept: {ag['Departamento']} | Correo: {ag['Email']}")
     else:
         st.markdown("<div class='section-label'>CREDENCIALES ACTIVAS</div>", unsafe_allow_html=True)
