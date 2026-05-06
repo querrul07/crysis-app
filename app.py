@@ -748,15 +748,14 @@ if t5:
             st.markdown("<br>", unsafe_allow_html=True)
 
            with st.expander("🌍 GESTIÓN GLOBAL DE USUARIOS (OMNISCIENCIA)", expanded=False):
-            st.info("Directorio completo de agentes y corporaciones registradas.")
-            for i, usr in enumerate(st.session_state.empleados):
-                if usr["Nombre"] != COMANDANTE_SUPREMO:
-                    c_u1, c_u2 = st.columns([4, 1])
-                    c_u1.markdown(f"**ID:** {usr['Nombre']} | **Rol:** {usr['Rol']} | **Email:** {usr['Email']}")
-                    if c_u2.button("PURGAR", key=f"del_g_{i}_{usr['Nombre']}", type="secondary"):
-                        st.session_state.empleados = [e for e in st.session_state.empleados if e["Nombre"] != usr["Nombre"]]
-                        guardar_datos(); st.rerun()
-
+                st.info("Directorio completo de agentes y corporaciones registradas.")
+                for i, usr in enumerate(st.session_state.empleados):
+                    if usr["Nombre"] != COMANDANTE_SUPREMO:
+                        c_u1, c_u2 = st.columns([4, 1])
+                        c_u1.markdown(f"**ID:** {usr['Nombre']} | **Rol:** {usr['Rol']} | **Email:** {usr['Email']}")
+                        if c_u2.button("PURGAR", key=f"del_g_{i}_{usr['Nombre']}", type="secondary"):
+                            st.session_state.empleados = [e for e in st.session_state.empleados if e["Nombre"] != usr["Nombre"]]
+                            guardar_datos(); st.rerun()
             with st.expander("🌍 GESTIÓN GLOBAL DE ESCENARIOS", expanded=False):
                 st.info("Monitorización de simulaciones creadas por las corporaciones.")
                 if not st.session_state.escenarios_custom: st.markdown("No hay escenarios personalizados en la base de datos.")
