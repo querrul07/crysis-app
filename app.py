@@ -55,7 +55,7 @@ def enviar_correo_2fa(destinatario, codigo):
         return False
 
 # ─────────────────────────────────────────
-# 1. CONFIGURACIÓN Y CSS
+# 1. CONFIGURACIÓN Y CSS (TONO CORPORATIVO)
 # ─────────────────────────────────────────
 st.set_page_config(page_title="CRYSIS | Intelligence Unit", layout="wide", initial_sidebar_state="collapsed")
 
@@ -86,19 +86,16 @@ header[data-testid="stHeader"] { background: #07090F !important; border-bottom: 
 .status-bar { background: #0C1020; border: 1px solid #1A2035; border-left: 3px solid #22D3A5; padding: 10px 18px; border-radius: 3px; font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; letter-spacing: 0.12em; color: #22D3A5; margin-bottom: 20px; }
 [data-testid="stButton"] button[disabled] { background: #1A2035 !important; color: #4A5568 !important; border: 1px solid #2A3550 !important; box-shadow: none !important; cursor: not-allowed; }
 
-/* ANIMACIONES TARJETAS DE PLANES */
-.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 40px; padding: 10px; }
-.plan-card { background: #0C1020; border: 1px solid #1A2035; border-radius: 12px; padding: 30px 20px; text-align: center; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; cursor: default; }
-.plan-card:hover { transform: translateY(-12px) scale(1.02); border-color: #4F8EF7; box-shadow: 0 15px 30px rgba(79, 142, 247, 0.15); z-index: 10; }
-.plan-name { font-family: 'IBM Plex Mono', monospace; font-size: 1.1rem; color: #E8EDF5; font-weight: 700; margin-bottom: 10px; letter-spacing: 0.15em; text-transform: uppercase; }
-.plan-price { font-size: 2.2rem; color: #4F8EF7; font-weight: 700; margin-bottom: 20px; text-shadow: 0 0 20px rgba(79,142,247,0.4); }
-.plan-price span { font-size: 0.9rem; color: #4A5568; font-weight: 400; }
-.plan-feat { font-size: 0.85rem; color: #8B9CC8; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed #1A2035; }
-.plan-feat:last-child { border-bottom: none; }
-.plan-card.enterprise { border-color: #F59E0B; box-shadow: 0 0 20px rgba(245, 158, 11, 0.05); }
-.plan-card.enterprise:hover { border-color: #F59E0B; box-shadow: 0 15px 30px rgba(245, 158, 11, 0.2); }
-.plan-card.enterprise .plan-name, .plan-card.enterprise .plan-price { color: #F59E0B; text-shadow: 0 0 20px rgba(245, 158, 11, 0.4); }
-.badge { position: absolute; top: 15px; right: -35px; background: #F59E0B; color: #000; font-size: 0.65rem; font-weight: bold; padding: 4px 40px; transform: rotate(45deg); font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.1em; }
+/* ESTILO MATRIZ DE AUTORIZACIONES (SOBRIO/CORPORATIVO) */
+.auth-matrix { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px; margin-bottom: 30px; }
+.auth-tier { background: #0C1020; border: 1px solid #1A2035; border-left: 4px solid #4A5568; padding: 24px; border-radius: 4px; transition: border-color 0.3s ease; }
+.auth-tier:hover { border-left-color: #4F8EF7; background: #0F1528; }
+.auth-tier.elite { border-left-color: #F59E0B; }
+.tier-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #1A2035; padding-bottom: 10px; }
+.tier-name { font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; font-weight: 700; color: #E8EDF5; letter-spacing: 0.1em; }
+.tier-price { font-size: 1.2rem; color: #4F8EF7; font-weight: 600; }
+.tier-spec { font-size: 0.8rem; color: #8B9CC8; margin-bottom: 8px; display: flex; align-items: center; }
+.tier-spec::before { content: '▪'; margin-right: 8px; color: #4F8EF7; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -134,7 +131,7 @@ try: GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except: GROQ_API_KEY = None
 
 # ─────────────────────────────────────────
-# 4. LOGIN (2FA ÚNICA) Y REGISTRO
+# 4. LOGIN Y MATRIZ DE REGISTRO
 # ─────────────────────────────────────────
 params = st.query_params
 empresa_invitada = params.get("empresa", None)
@@ -146,30 +143,30 @@ if st.session_state.usuario_actual is None:
         # --- AGENTES RECLUTADOS ---
         c1, c2, c3 = st.columns([1, 2, 1])
         with c2:
-            st.markdown(f"<div class='crysis-subtitle'>ALISTAMIENTO: {empresa_invitada.upper()}</div><hr class='crysis-divider'>", unsafe_allow_html=True)
+            st.markdown(f"<div class='crysis-subtitle'>ALISTAMIENTO ACTIVO: {empresa_invitada.upper()}</div><hr class='crysis-divider'>", unsafe_allow_html=True)
             empresa_obj = next((e for e in st.session_state.empleados if e["Rol"] == "Empresa" and e["Nombre"] == empresa_invitada), None)
             
             if empresa_obj:
                 agentes_actuales = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_invitada and e.get("Rol") == "Agente"])
                 limite_agentes = 15 if empresa_obj.get("Plan") == "Pro" else 9999
                 if agentes_actuales >= limite_agentes:
-                    st.error("🔒 ESTA ENTIDAD HA ALCANZADO SU LÍMITE DE PERSONAL (Plan Pro).")
+                    st.error("🔒 ESTA ENTIDAD HA ALCANZADO SU LÍMITE OPERATIVO. Contacte a su administrador.")
                     st.stop()
 
             with st.form("reg_agente"):
-                n = st.text_input("Nombre de Agente / ID")
-                email = st.text_input("Correo Electrónico (Para 2FA inicial)")
-                d = st.text_input("Departamento")
-                p = st.text_input("Crear Código de Acceso", type="password")
-                if st.form_submit_button("UNIRSE A LA UNIDAD", use_container_width=True):
+                n = st.text_input("Identificador de Agente (ID)")
+                email = st.text_input("Correo Corporativo (Para validación inicial)")
+                d = st.text_input("Unidad / Departamento")
+                p = st.text_input("Establecer Clave de Acceso", type="password")
+                if st.form_submit_button("VALIDAR CREDENCIALES", use_container_width=True):
                     if n and p and email:
-                        if any(e["Nombre"] == n for e in st.session_state.empleados): st.warning("⚠️ ID en uso.")
+                        if any(e["Nombre"] == n for e in st.session_state.empleados): st.warning("⚠️ ID no disponible.")
                         else:
                             st.session_state.empleados.append({"Nombre": n, "Email": email, "Departamento": d, "Rol": "Agente", "Empresa": empresa_invitada, "Password": p, "2FA_Verificado": False})
-                            guardar_datos(); st.success("✅ Alistamiento completado. Borra '?empresa=...' de la URL para Iniciar Sesión.")
+                            guardar_datos(); st.success("✅ Acreditación completada. Borra '?empresa=...' de la URL para Iniciar Sesión.")
     else:
-        st.markdown("<div class='crysis-subtitle'>PLATAFORMA DE SIMULACIÓN TÁCTICA</div>", unsafe_allow_html=True)
-        t_log, t_reg = st.tabs(["INICIAR SESIÓN", "CREAR UNA CUENTA / VER PLANES"])
+        st.markdown("<div class='crysis-subtitle'>PLATAFORMA DE SIMULACIÓN TÁCTICA AVANZADA</div>", unsafe_allow_html=True)
+        t_log, t_reg = st.tabs(["IDENTIFICACIÓN", "NIVELES DE AUTORIZACIÓN (ALTA)"])
         
         with t_log:
             st.markdown("<br>", unsafe_allow_html=True)
@@ -177,13 +174,12 @@ if st.session_state.usuario_actual is None:
             with c_log2:
                 if st.session_state.login_step == 1:
                     with st.form("login_directo"):
-                        st.markdown("<div class='section-label'>CREDENCIALES DE ACCESO</div>", unsafe_allow_html=True)
-                        u_id = st.text_input("ID de Acceso / Nombre de Usuario")
-                        u_pass = st.text_input("Código de Seguridad", type="password")
-                        if st.form_submit_button("AUTORIZAR ACCESO", use_container_width=True):
+                        st.markdown("<div class='section-label'>PORTAL DE ACCESO</div>", unsafe_allow_html=True)
+                        u_id = st.text_input("ID Operativo")
+                        u_pass = st.text_input("Clave de Seguridad", type="password")
+                        if st.form_submit_button("INICIAR CONEXIÓN", use_container_width=True):
                             agente = next((e for e in st.session_state.empleados if e["Nombre"] == u_id and e.get("Password") == u_pass), None)
                             if agente:
-                                # 🛡️ LÓGICA DE 2FA ÚNICA O SUPERUSUARIO
                                 if agente.get("2FA_Verificado", False) == True or agente["Nombre"] == COMANDANTE_SUPREMO:
                                     st.session_state.usuario_actual = agente
                                     st.rerun()
@@ -193,7 +189,7 @@ if st.session_state.usuario_actual is None:
                                     st.session_state.login_step = 2
                                     st.rerun()
                             else:
-                                st.error("❌ Acceso denegado. Credenciales incorrectas.")
+                                st.error("❌ Identificación fallida.")
                 
                 elif st.session_state.login_step == 2:
                     correo_dest = st.session_state["2fa_agente"].get("Email", "Desconocido")
@@ -204,12 +200,11 @@ if st.session_state.usuario_actual is None:
                         st.session_state["correo_enviado"] = True
                     
                     with st.form("2fa_form"):
-                        st.info("Esta verificación solo se te pedirá esta primera vez para vincular tu dispositivo.")
-                        u_code = st.text_input("Código 2FA de 6 dígitos")
+                        st.info("Autenticación de dispositivo requerida (Solo una vez).")
+                        u_code = st.text_input("Código de Validación")
                         colA, colB = st.columns(2)
                         if colA.form_submit_button("VERIFICAR DISPOSITIVO", use_container_width=True):
                             if u_code == st.session_state["2fa_code"]:
-                                # MARCAR COMO VERIFICADO PARA SIEMPRE
                                 st.session_state["2fa_agente"]["2FA_Verificado"] = True
                                 guardar_datos()
                                 st.session_state.usuario_actual = st.session_state["2fa_agente"]
@@ -220,46 +215,81 @@ if st.session_state.usuario_actual is None:
         
         with t_reg:
             st.markdown("<br>", unsafe_allow_html=True)
+            
+            # MATRIZ CORPORATIVA
             st.markdown("""
-            <div class="pricing-grid">
-                <div class="plan-card"><div class="plan-name">GRATIS</div><div class="plan-price">0€<span>/mes</span></div><div class="plan-feat">1 Agente (Tú)</div><div class="plan-feat">1 Simulación mensual</div><div class="plan-feat">Escenarios base incluidos</div><div class="plan-feat" style="color:#EF4444;">Sin IA Generativa</div></div>
-                <div class="plan-card"><div class="plan-name">INDIVIDUAL</div><div class="plan-price">29€<span>/mes</span></div><div class="plan-feat">1 Agente (Tú)</div><div class="plan-feat" style="color:#22D3A5;">Simulaciones Ilimitadas</div><div class="plan-feat">Escenarios base incluidos</div><div class="plan-feat">Generar 3 Escenarios IA</div></div>
-                <div class="plan-card"><div class="plan-name">PRO</div><div class="plan-price">89€<span>/mes</span></div><div class="plan-feat">Hasta 15 Agentes</div><div class="plan-feat">3 Simulaciones/mes por agente</div><div class="plan-feat">Generar 1 Escenario IA</div><div class="plan-feat" style="color:#4F8EF7;">Panel Comandancia Básico</div></div>
-                <div class="plan-card enterprise"><div class="badge">ÉLITE</div><div class="plan-name">ENTERPRISE</div><div class="plan-price">199€<span>/mes</span></div><div class="plan-feat">Agentes Ilimitados</div><div class="plan-feat">Simulaciones Ilimitadas</div><div class="plan-feat">Escenarios IA Ilimitados</div><div class="plan-feat">Modo Dios & Descarga CSV</div></div>
+            <div class="auth-matrix">
+                <div class="auth-tier">
+                    <div class="tier-header"><span class="tier-name">NIVEL: BASE</span><span class="tier-price">0€</span></div>
+                    <div class="tier-spec">Acceso Individual</div>
+                    <div class="tier-spec">1 Operación Mensual</div>
+                    <div class="tier-spec">Escenarios Estándar</div>
+                </div>
+                <div class="auth-tier">
+                    <div class="tier-header"><span class="tier-name">NIVEL: OPERADOR</span><span class="tier-price">29€</span></div>
+                    <div class="tier-spec">Acceso Individual</div>
+                    <div class="tier-spec">Operaciones Ilimitadas</div>
+                    <div class="tier-spec">Síntesis IA (3 Misiones)</div>
+                </div>
+                <div class="auth-tier">
+                    <div class="tier-header"><span class="tier-name">NIVEL: ESCUADRÓN</span><span class="tier-price">89€</span></div>
+                    <div class="tier-spec">Hasta 15 Agentes</div>
+                    <div class="tier-spec">3 Operaciones/Mes por Agente</div>
+                    <div class="tier-spec">Panel de Supervisión</div>
+                </div>
+                <div class="auth-tier elite">
+                    <div class="tier-header"><span class="tier-name" style="color:#F59E0B;">NIVEL: COMANDANCIA</span><span class="tier-price" style="color:#F59E0B;">199€</span></div>
+                    <div class="tier-spec">Agentes Ilimitados</div>
+                    <div class="tier-spec">Auditoría Total (Transcripciones)</div>
+                    <div class="tier-spec">Exportación de Datos CSV</div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
             
             c_reg1, c_reg2, c_reg3 = st.columns([1, 2, 1])
             with c_reg2:
                 with st.form("registro_unificado"):
-                    st.markdown("<div class='section-label'>ALTA EN EL SISTEMA</div>", unsafe_allow_html=True)
-                    tipo_cuenta = st.radio("Tipo de Cuenta", ["Personal (1 Usuario)", "Empresa (Equipos)"], horizontal=True)
-                    if tipo_cuenta == "Personal (1 Usuario)":
-                        plan_sel = st.selectbox("Selecciona tu Plan", ["Gratis", "Individual"])
-                        n = st.text_input("Nombre / Alias")
-                    else:
-                        plan_sel = st.selectbox("Selecciona tu Licencia", ["Pro", "Enterprise"])
-                        n = st.text_input("Nombre de la Empresa (Este será tu ID)")
-
-                    email = st.text_input("Correo Electrónico (Para 2FA inicial)")
-                    p = st.text_input("Contraseña de Acceso", type="password")
+                    st.markdown("<div class='section-label'>SOLICITUD DE CREDENCIALES</div>", unsafe_allow_html=True)
                     
-                    if st.form_submit_button("CREAR CUENTA", use_container_width=True):
+                    # Selector único más elegante
+                    plan_sel = st.selectbox("Seleccione el Nivel de Autorización Requerido", 
+                        ["Nivel: BASE (Gratis / 1 Usuario)", 
+                         "Nivel: OPERADOR (Individual / Ilimitado)", 
+                         "Nivel: ESCUADRÓN (Corporativo / 15 Agentes)", 
+                         "Nivel: COMANDANCIA (Corporativo / Ilimitado)"])
+                    
+                    es_corporativo = "Corporativo" in plan_sel
+                    
+                    if es_corporativo:
+                        n = st.text_input("Identificador de la Entidad (Nombre de Empresa)")
+                        plan_interno = "Pro" if "ESCUADRÓN" in plan_sel else "Enterprise"
+                    else:
+                        n = st.text_input("Identificador Personal (Alias)")
+                        plan_interno = "Gratis" if "BASE" in plan_sel else "Individual"
+
+                    email = st.text_input("Correo de Contacto")
+                    p = st.text_input("Clave Maestra", type="password")
+                    
+                    if st.form_submit_button("EMITIR CREDENCIALES", use_container_width=True):
                         if n and p and email:
-                            if any(e["Nombre"] == n for e in st.session_state.empleados): st.warning("⚠️ ID registrado.")
+                            if any(e["Nombre"] == n for e in st.session_state.empleados): 
+                                st.warning("⚠️ Identificador ya registrado en el sistema.")
                             else:
-                                if tipo_cuenta == "Personal (1 Usuario)": st.session_state.empleados.append({"Nombre": n, "Email": email, "Rol": "Individual", "Plan": plan_sel, "Empresa": n, "Password": p, "2FA_Verificado": False})
-                                else: st.session_state.empleados.append({"Nombre": n, "Email": email, "Departamento": "Comandancia", "Rol": "Empresa", "Plan": plan_sel, "Empresa": n, "Password": p, "2FA_Verificado": False})
-                                guardar_datos(); st.success(f"✅ ¡Cuenta creada! Ve a 'INICIAR SESIÓN' para entrar.")
-                        else: st.warning("⚠️ Rellena todos los campos.")
+                                if es_corporativo:
+                                    st.session_state.empleados.append({"Nombre": n, "Email": email, "Departamento": "Administración", "Rol": "Empresa", "Plan": plan_interno, "Empresa": n, "Password": p, "2FA_Verificado": False})
+                                else:
+                                    st.session_state.empleados.append({"Nombre": n, "Email": email, "Rol": "Individual", "Plan": plan_interno, "Empresa": n, "Password": p, "2FA_Verificado": False})
+                                guardar_datos()
+                                st.success("✅ Acreditación procesada. Proceda al Portal de Acceso.")
+                        else:
+                            st.warning("⚠️ Información incompleta.")
     st.stop()
 
 # ─────────────────────────────────────────
-# 5. RESOLUCIÓN DEL MODO DIOS (COMANDANTE SUPREMO)
+# 5. RESOLUCIÓN DE PERMISOS (SUPERVISIÓN AVANZADA)
 # ─────────────────────────────────────────
 u = st.session_state.usuario_actual
 
-# 👑 INYECCIÓN DE PODERES DE SUPERUSUARIO
 if u["Nombre"] == COMANDANTE_SUPREMO:
     es_empresa = True
     mi_plan = "Enterprise"
@@ -273,8 +303,8 @@ else:
     else:
         mi_plan = u.get("Plan", "Gratis")
 
-rol_label = f"COMANDANCIA [{mi_plan.upper()}]" if es_empresa else f"AGENTE: {empresa_actual.upper()} [{mi_plan.upper()}]"
-if u["Nombre"] == COMANDANTE_SUPREMO: rol_label = "👑 COMANDANTE SUPREMO [NIVEL OMEGA]"
+rol_label = f"SUPERVISIÓN [{mi_plan.upper()}]" if es_empresa else f"AGENTE: {empresa_actual.upper()} [{mi_plan.upper()}]"
+if u["Nombre"] == COMANDANTE_SUPREMO: rol_label = "👑 ACCESO ADMINISTRATIVO GLOBAL"
 
 c_head1, c_head2 = st.columns([8, 1])
 with c_head1:
@@ -282,11 +312,10 @@ with c_head1:
     st.markdown(f"<div class='crysis-subtitle' style='text-align:left; margin-bottom:10px;'>{rol_label} | ID: {u['Nombre'].upper()}</div>", unsafe_allow_html=True)
 with c_head2:
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("SALIR", key="logout", type="secondary"):
+    if st.button("DESCONECTAR", key="logout", type="secondary"):
         st.session_state.usuario_actual = None; st.session_state.login_step = 1; st.rerun()
 st.markdown("<hr class='crysis-divider' style='margin-top:0;'>", unsafe_allow_html=True)
 
-# Lógica B2B y Scoping
 if es_empresa:
     agentes_de_mi_empresa = [e["Nombre"] for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]
     historial_visible = [s for s in st.session_state.historial_sesiones if s["Agente"] in agentes_de_mi_empresa]
@@ -297,11 +326,11 @@ mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items() if
 TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **mis_escenarios}
 
 if es_empresa:
-    t1, t2, t3, t4, t5 = st.tabs(["RENDIMIENTO GLOBAL", "RECLUTAMIENTO", "EXPEDIENTES", "SIMULADOR", "LABORATORIO VIP"])
+    t1, t2, t3, t4, t5 = st.tabs(["MÉTRICAS GLOBALES", "GESTIÓN DE PERSONAL", "ARCHIVO OPERACIONAL", "DESPLIEGUE", "SÍNTESIS IA"])
 elif u["Rol"] == "Individual" or mi_plan == "Gratis":
-    t1, t2, t3, t4, t5 = st.tabs(["ESTADÍSTICAS", "PERFIL", "EXPEDIENTES", "SIMULADOR", "LABORATORIO VIP"])
+    t1, t2, t3, t4, t5 = st.tabs(["ESTADÍSTICAS", "PERFIL", "EXPEDIENTES", "DESPLIEGUE", "SÍNTESIS IA"])
 else:
-    t1, t2, t3, t4 = st.tabs(["MIS ESTADÍSTICAS", "MI PERFIL", "MIS EXPEDIENTES", "SIMULADOR"])
+    t1, t2, t3, t4 = st.tabs(["MÉTRICAS", "CREDENCIAL", "EXPEDIENTES", "DESPLIEGUE"])
     t5 = None
 
 # ══════════════════════════════════════════
@@ -320,12 +349,12 @@ with t1:
 
     st.markdown("<br>", unsafe_allow_html=True)
     if not historial_visible:
-        st.markdown("<div style='text-align:center; padding: 60px; color: #2A3550; font-family: IBM Plex Mono; letter-spacing: 0.2em;'>SIN DATOS OPERACIONALES</div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:center; padding: 60px; color: #2A3550; font-family: IBM Plex Mono; letter-spacing: 0.2em;'>SIN REGISTROS OPERACIONALES</div>", unsafe_allow_html=True)
     else:
         df = pd.DataFrame(historial_visible)
         col_left, col_right = st.columns(2, gap="medium")
         with col_left:
-            st.markdown("<div class='section-label'>DISTRIBUCIÓN POR ESCENARIO</div>", unsafe_allow_html=True)
+            st.markdown("<div class='section-label'>DISTRIBUCIÓN DE ESCENARIOS</div>", unsafe_allow_html=True)
             esc_count = df["Escenario"].value_counts().reset_index()
             esc_count.columns = ["Escenario", "Count"]
             fig2 = go.Figure(go.Pie(labels=esc_count["Escenario"], values=esc_count["Count"], hole=0.65, marker=dict(colors=['#4F8EF7', '#22D3A5', '#F59E0B'])))
@@ -333,12 +362,12 @@ with t1:
             st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
         with col_right:
             if es_empresa:
-                st.markdown("<div class='section-label'>RENDIMIENTO POR AGENTE</div>", unsafe_allow_html=True)
+                st.markdown("<div class='section-label'>EVALUACIÓN POR OPERADOR</div>", unsafe_allow_html=True)
                 avg_agent = df.groupby("Agente")["Nota"].mean().reset_index()
                 fig3 = go.Figure(go.Bar(x=avg_agent["Nota"], y=avg_agent["Agente"], orientation='h', marker=dict(color='#4F8EF7')))
                 fig3.update_layout(**PLOTLY_THEME, height=280)
             else:
-                st.markdown("<div class='section-label'>EVOLUCIÓN TEMPORAL</div>", unsafe_allow_html=True)
+                st.markdown("<div class='section-label'>HISTÓRICO DE DESEMPEÑO</div>", unsafe_allow_html=True)
                 df["Fecha_dt"] = pd.to_datetime(df["Fecha"])
                 df_sorted = df.sort_values("Fecha_dt")
                 fig3 = go.Figure(go.Scatter(x=df_sorted["Fecha_dt"], y=df_sorted["Nota"], mode='lines+markers', line=dict(color='#4F8EF7')))
@@ -351,59 +380,61 @@ with t1:
 # ══════════════════════════════════════════
 with t2:
     if es_empresa:
-        st.markdown("<div class='section-label'>ENLACE DE ALISTAMIENTO</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-label'>ENLACE DE INTEGRACIÓN DE PERSONAL</div>", unsafe_allow_html=True)
         import urllib.parse
         st.code(f"?empresa={urllib.parse.quote(empresa_actual)}", language="html")
-        st.markdown("<br><div class='section-label'>TUS AGENTES ACTIVOS</div>", unsafe_allow_html=True)
+        st.markdown("<br><div class='section-label'>PLANTILLA OPERATIVA ACTIVA</div>", unsafe_allow_html=True)
         for ag in [e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]:
-            st.markdown(f"**{ag['Nombre']}** | Dept: {ag['Departamento']} | Correo: {ag['Email']}")
+            st.markdown(f"**{ag['Nombre']}** | Unidad: {ag['Departamento']} | Contacto: {ag['Email']}")
     else:
-        st.markdown("<div class='section-label'>CREDENCIALES ACTIVAS</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-label'>ACREDITACIÓN CONFIRMADA</div>", unsafe_allow_html=True)
         st.markdown(f"""<div class="briefing-box" style="border-left-color:#22D3A5;">
-            <h4 style="color:#22D3A5;">🛡️ IDENTIFICACIÓN VALIDADA</h4>
-            <p><b>Agente:</b> {u['Nombre']} | <b>Unidad:</b> {empresa_actual}</p>
+            <h4 style="color:#22D3A5;">🛡️ DATOS DEL OPERADOR</h4>
+            <p><b>Identificador:</b> {u['Nombre']} | <b>Unidad Asignada:</b> {empresa_actual}</p>
         </div>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
-# TAB 3: EXPEDIENTES
+# TAB 3: EXPEDIENTES (AUDITORÍA TOTAL)
 # ══════════════════════════════════════════
 with t3:
     c_title, c_btn = st.columns([4, 1])
-    c_title.markdown("<div class='section-label'>ARCHIVO DE OPERACIONES CLASIFICADAS</div>", unsafe_allow_html=True)
+    c_title.markdown("<div class='section-label'>BASE DE DATOS DE EXPEDIENTES</div>", unsafe_allow_html=True)
     
     if es_empresa and mi_plan == "Enterprise" and historial_visible:
         df_export = pd.DataFrame(historial_visible)
         csv_data = df_export.to_csv(index=False).encode('utf-8')
-        c_btn.download_button("📥 DESCARGAR CSV", data=csv_data, file_name="crysis_expedientes.csv", mime="text/csv", use_container_width=True)
+        c_btn.download_button("📥 EXPORTAR DATOS (CSV)", data=csv_data, file_name="crysis_auditoria.csv", mime="text/csv", use_container_width=True)
 
     if historial_visible:
         for s in reversed(historial_visible):
             label_agente = f"[{s['Agente']}] " if es_empresa else ""
-            with st.expander(f"⬡ {label_agente}{s['Fecha']} · {s['Escenario']} · PUNTUACIÓN: {s['Nota']}%"):
+            with st.expander(f"⬡ {label_agente}{s['Fecha']} · {s['Escenario']} · EVALUACIÓN: {s['Nota']}%"):
                 st.markdown(s['Evaluacion'])
+                
+                # 👑 VENTAJA ENTERPRISE: Transcripción (Auditoría Total en lugar de Modo Dios)
                 if es_empresa and mi_plan == "Enterprise" and "Transcripcion" in s:
                     st.markdown("---")
-                    st.markdown("<span style='color:#F59E0B; font-size:0.7rem; letter-spacing:0.1em;'>🔍 TRANSCRIPCIÓN (MODO DIOS)</span>", unsafe_allow_html=True)
+                    st.markdown("<span style='color:#F59E0B; font-size:0.7rem; letter-spacing:0.1em;'>🔍 REGISTRO DE COMUNICACIONES (AUDITORÍA TOTAL)</span>", unsafe_allow_html=True)
                     for tr in s["Transcripcion"]:
-                        ag = "AGENTE" if tr["role"] == "user" else "OBJETIVO"
+                        ag = "OPERADOR" if tr["role"] == "user" else "Sujeto"
                         colr = "#4F8EF7" if tr["role"] == "user" else "#EF4444"
                         st.markdown(f"<div style='font-size:0.8rem; margin-bottom:4px;'><b style='color:{colr}'>{ag}:</b> <span style='color:#8B9CC8'>{tr['content']}</span></div>", unsafe_allow_html=True)
     else:
-        st.markdown("<div style='text-align:center; padding:60px; color:#2A3550; font-family:IBM Plex Mono;'>SIN EXPEDIENTES</div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:center; padding:60px; color:#2A3550; font-family:IBM Plex Mono;'>DIRECTORIO VACÍO</div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
-# TAB 4: SIMULADOR
+# TAB 4: SIMULADOR (LÍMITES MÚLTIPLES)
 # ══════════════════════════════════════════
 with t4:
     if not st.session_state.mision_iniciada:
-        st.markdown("<div class='section-label'>CONFIGURACIÓN DE DESPLIEGUE</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-label'>PARÁMETROS DE DESPLIEGUE</div>", unsafe_allow_html=True)
         c1, c2 = st.columns(2)
-        ag_sel = c1.selectbox("Agente Asignado:", agentes_de_mi_empresa) if es_empresa else c1.text_input("Agente:", value=u["Nombre"], disabled=True)
+        ag_sel = c1.selectbox("Asignar Operador:", agentes_de_mi_empresa) if es_empresa else c1.text_input("Operador:", value=u["Nombre"], disabled=True)
         if ag_sel is None and es_empresa: ag_sel = u["Nombre"] 
 
-        es_sel = c2.selectbox("Seleccionar Escenario:", list(TODAS_LAS_MISIONES.keys()))
+        es_sel = c2.selectbox("Seleccionar Protocolo:", list(TODAS_LAS_MISIONES.keys()))
         info = TODAS_LAS_MISIONES[es_sel]
-        st.markdown(f"""<div class="briefing-box"><h4>📄 BRIEFING OPERATIVO</h4><p><b>Contexto:</b> {info['contexto']}</p><p><b>Perfil:</b> {info['perfil_sujeto']}</p><p><b>Objetivo:</b> {info['objetivo']}</p></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="briefing-box"><h4>📄 REPORTE DE SITUACIÓN</h4><p><b>Contexto:</b> {info['contexto']}</p><p><b>Perfil:</b> {info['perfil_sujeto']}</p><p><b>Directiva:</b> {info['objetivo']}</p></div>""", unsafe_allow_html=True)
 
         mes_actual = datetime.now().strftime("%Y-%m")
         ops_este_mes = len([s for s in st.session_state.historial_sesiones if s["Agente"] == ag_sel and str(s.get("Fecha", "")).startswith(mes_actual)])
@@ -411,14 +442,14 @@ with t4:
         bloquear_inicio = False
         if mi_plan == "Gratis" and ops_este_mes >= 1:
             bloquear_inicio = True
-            st.error(f"🔒 PLAN GRATUITO: Límite mensual alcanzado (1/1). Mejora a Individual para operaciones ilimitadas.")
+            st.error(f"🔒 AUTORIZACIÓN DENEGADA: Cuota del Nivel BASE superada (1/1 mes).")
         elif mi_plan == "Pro" and ops_este_mes >= 3:
             bloquear_inicio = True
-            st.error(f"🔒 PLAN PRO: Límite mensual alcanzado (3/3) para el agente {ag_sel}.")
+            st.error(f"🔒 AUTORIZACIÓN DENEGADA: Cuota del Nivel ESCUADRÓN superada (3/3 mes) para el operador {ag_sel}.")
 
-        if st.button("INICIAR PROTOCOLO DE CONTACTO →", use_container_width=True, disabled=bloquear_inicio):
+        if st.button("INICIAR ENLACE DE COMUNICACIÓN →", use_container_width=True, disabled=bloquear_inicio):
             if GROQ_API_KEY:
-                with st.spinner("Generando variables..."):
+                with st.spinner("Estableciendo conexión y generando perfil psicológico..."):
                     try:
                         client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
                         res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": f"Genera para {info['perfil_sujeto']} JSON: 'Nombre_Completo', 'Familia', 'Estado_Mental'."}], response_format={"type": "json_object"}).choices[0].message.content
@@ -432,30 +463,30 @@ with t4:
             st.rerun()
 
     elif st.session_state.evaluacion_actual:
-        st.markdown("<div class='section-label'>DEBRIEFING — INFORME DE RENDIMIENTO</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-label'>INFORME DE EVALUACIÓN TÁCTICA</div>", unsafe_allow_html=True)
         st.markdown(st.session_state.evaluacion_actual)
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("CERRAR OPERACIÓN Y VOLVER A BASE →", use_container_width=True):
+        if st.button("ARCHIVAR INFORME Y VOLVER →", use_container_width=True):
             st.session_state.mision_iniciada = False; st.session_state.evaluacion_actual = None; st.session_state.mensajes = []; st.session_state.tarjeta_objetivo = None; st.rerun()
 
     else:
-        st.markdown(f"<div class='status-bar'>◉ OPERACIÓN: {st.session_state.escenario_activo} · AGENTE: {st.session_state.agente_activo.upper()}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='status-bar'>◉ LÍNEA SEGURA ACTIVA: {st.session_state.escenario_activo} · OPERADOR: {st.session_state.agente_activo.upper()}</div>", unsafe_allow_html=True)
         if st.session_state.tarjeta_objetivo:
             t = st.session_state.tarjeta_objetivo
             st.markdown(f"""<div style="display:flex; gap:15px; background:#0C1020; border:1px solid #1A2035; border-left:3px solid #F59E0B; border-radius:4px; padding:12px 18px; margin-bottom:20px;">
-                <div style="flex:1;"><div style="color:#F59E0B; font-size:0.55rem; font-family:'IBM Plex Mono'; letter-spacing:0.15em; margin-bottom:4px;">ID</div><div style="color:#E8EDF5; font-size:0.85rem;">{t.get('Nombre_Completo', 'N/A')}</div></div>
-                <div style="flex:1;"><div style="color:#F59E0B; font-size:0.55rem; font-family:'IBM Plex Mono'; letter-spacing:0.15em; margin-bottom:4px;">FAMILIA</div><div style="color:#C8D0E0; font-size:0.8rem;">{t.get('Familia', 'N/A')}</div></div>
-                <div style="flex:1;"><div style="color:#F59E0B; font-size:0.55rem; font-family:'IBM Plex Mono'; letter-spacing:0.15em; margin-bottom:4px;">CLÍNICO</div><div style="color:#C8D0E0; font-size:0.8rem;">{t.get('Estado_Mental', 'N/A')}</div></div>
+                <div style="flex:1;"><div style="color:#F59E0B; font-size:0.55rem; font-family:'IBM Plex Mono'; letter-spacing:0.15em; margin-bottom:4px;">IDENTIFICACIÓN</div><div style="color:#E8EDF5; font-size:0.85rem;">{t.get('Nombre_Completo', 'N/A')}</div></div>
+                <div style="flex:1;"><div style="color:#F59E0B; font-size:0.55rem; font-family:'IBM Plex Mono'; letter-spacing:0.15em; margin-bottom:4px;">VÍNCULOS</div><div style="color:#C8D0E0; font-size:0.8rem;">{t.get('Familia', 'N/A')}</div></div>
+                <div style="flex:1;"><div style="color:#F59E0B; font-size:0.55rem; font-family:'IBM Plex Mono'; letter-spacing:0.15em; margin-bottom:4px;">ESTADO CLÍNICO</div><div style="color:#C8D0E0; font-size:0.8rem;">{t.get('Estado_Mental', 'N/A')}</div></div>
             </div>""", unsafe_allow_html=True)
 
         for m in st.session_state.mensajes:
-            label = "AGENTE" if m["role"] == "user" else "OBJETIVO"
+            label = "TÚ" if m["role"] == "user" else "SUJETO"
             bg = "#0F1829" if m["role"] == "user" else "#0C1020"
             border = "#4F8EF7" if m["role"] == "user" else "#EF4444"
             align = "flex-end" if m["role"] == "user" else "flex-start"
             st.markdown(f"""<div style="display:flex; justify-content:{align}; margin-bottom:12px;"><div style="max-width:78%; background:{bg}; border:1px solid {border}22; border-left: 3px solid {border}; border-radius:4px; padding:14px 18px;"><div style="font-family:'IBM Plex Mono',monospace; font-size:0.58rem; letter-spacing:0.18em; color:{border}; margin-bottom:8px;">{label}</div><div style="color:#C8D0E0; font-size:0.9rem; line-height:1.6;">{m['content']}</div></div></div>""", unsafe_allow_html=True)
 
-        if prompt := st.chat_input("Introduzca directiva de negociación..."):
+        if prompt := st.chat_input("Introduzca directiva de respuesta..."):
             st.session_state.mensajes.append({"role": "user", "content": prompt}); st.rerun()
 
         if st.session_state.mensajes and st.session_state.mensajes[-1]["role"] == "user":
@@ -469,17 +500,17 @@ with t4:
 
         col_end, col_abort = st.columns([3, 1])
         with col_abort:
-            if st.button("✖ ABORTAR", type="secondary", use_container_width=True):
+            if st.button("✖ ROMPER ENLACE", type="secondary", use_container_width=True):
                 st.session_state.mision_iniciada = False; st.session_state.mensajes = []; st.session_state.tarjeta_objetivo = None; st.rerun()
         with col_end:
             if len(st.session_state.mensajes) > 0:
-                if st.button("🛑 FINALIZAR Y GENERAR INFORME OPERACIONAL →", use_container_width=True):
-                    with st.spinner("Procesando análisis táctico..."):
+                if st.button("🛑 SOLICITAR EVALUACIÓN TÁCTICA →", use_container_width=True):
+                    with st.spinner("Procesando auditoría lingüística..."):
                         client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
                         escenario = st.session_state.escenario_activo
                         info = TODAS_LAS_MISIONES[escenario]
-                        hist_txt = "\n".join([f"{'NEGOCIADOR' if m['role'] == 'user' else 'OBJETIVO'}: {m['content']}" for m in st.session_state.mensajes])
-                        eval_prompt = f"Evalúa ÚNICAMENTE al NEGOCIADOR en esta misión: {escenario}. Situación: {info['contexto']}.\nTRANSCRIPCIÓN:\n{hist_txt}\nGenera informe estricto. Estructura:\n**ANÁLISIS DE LENGUAJE**\n**TÁCTICAS EMPLEADAS**\n**ERRORES CRÍTICOS**\n**VEREDICTO DEL EVALUADOR**\n\nPUNTUACIÓN FINAL: XX/100"
+                        hist_txt = "\n".join([f"{'OPERADOR' if m['role'] == 'user' else 'SUJETO'}: {m['content']}" for m in st.session_state.mensajes])
+                        eval_prompt = f"Evalúa ÚNICAMENTE al OPERADOR en esta misión: {escenario}. Situación: {info['contexto']}.\nTRANSCRIPCIÓN:\n{hist_txt}\nGenera informe estricto. Estructura:\n**ANÁLISIS DE LENGUAJE**\n**TÁCTICAS EMPLEADAS**\n**ERRORES CRÍTICOS**\n**VEREDICTO DEL EVALUADOR**\n\nPUNTUACIÓN FINAL: XX/100"
                         informe = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": eval_prompt}]).choices[0].message.content
                         try:
                             match = re.search(r'PUNTUACI[OÓ]N FINAL[^\d]*(\d+)\s*\/?\s*100', informe, re.IGNORECASE)
@@ -492,28 +523,28 @@ with t4:
                         st.rerun()
 
 # ══════════════════════════════════════════
-# TAB 5: LABORATORIO VIP
+# TAB 5: SÍNTESIS IA (LABORATORIO VIP)
 # ══════════════════════════════════════════
 if t5:
     with t5:
         col_izq, col_der = st.columns([2, 1], gap="large")
         with col_izq:
-            st.markdown("<div class='section-label'>SÍNTESIS DE OPERACIONES MEDIANTE IA</div>", unsafe_allow_html=True)
+            st.markdown("<div class='section-label'>MÓDULO DE SÍNTESIS DE ESCENARIOS</div>", unsafe_allow_html=True)
             
             creados = len(mis_escenarios)
             if mi_plan == "Gratis":
-                st.error("🔒 PLAN GRATUITO: Síntesis de Inteligencia Artificial bloqueada. Mejore su plan para desbloquear el Laboratorio VIP.")
-                st.button("✨ SINTETIZAR NUEVA OPERACIÓN", disabled=True)
+                st.error("🔒 RESTRICCIÓN DE SISTEMA: El Nivel BASE no posee autorización para el uso de Inteligencia Artificial Generativa.")
+                st.button("✨ GENERAR NUEVA SIMULACIÓN", disabled=True)
             else:
                 limite_escenarios = 3 if mi_plan == "Individual" else (1 if mi_plan == "Pro" else 9999)
                 if creados >= limite_escenarios:
-                    st.error(f"🔒 LÍMITE DE ESCENARIOS ALCANZADO ({creados}/{limite_escenarios}) bajo el Plan {mi_plan.upper()}.")
-                    st.button("✨ SINTETIZAR NUEVA OPERACIÓN", disabled=True)
+                    st.error(f"🔒 CUOTA DE SÍNTESIS ALCANZADA ({creados}/{limite_escenarios}).")
+                    st.button("✨ GENERAR NUEVA SIMULACIÓN", disabled=True)
                 else:
-                    idea_prompt = st.text_area("Describa la situación táctica.", height=100)
-                    if st.button("✨ SINTETIZAR NUEVA OPERACIÓN", use_container_width=True):
+                    idea_prompt = st.text_area("Describa los parámetros del entorno táctico:", height=100)
+                    if st.button("✨ GENERAR NUEVA SIMULACIÓN", use_container_width=True):
                         if idea_prompt and GROQ_API_KEY:
-                            with st.spinner("Conectando con Inteligencia Central..."):
+                            with st.spinner("Enlazando con el motor de Inteligencia Central..."):
                                 try:
                                     client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
                                     res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "system", "content": "Devuelve JSON: {'nombre_op': 'OPERACION: [NOMBRE]', 'contexto': '[Desc]', 'perfil_sujeto': '[Perfil]', 'objetivo': '[Misión]', 'prompt': '[Instrucciones]'} "}, {"role": "user", "content": idea_prompt}], response_format={"type": "json_object"}).choices[0].message.content
@@ -521,17 +552,17 @@ if t5:
                                     nuevo_esc["prompt"] += INSTRUCCION_ORTOGRAFIA
                                     st.session_state.escenarios_custom[nuevo_esc["nombre_op"]] = {"contexto": nuevo_esc["contexto"], "perfil_sujeto": nuevo_esc["perfil_sujeto"], "objetivo": nuevo_esc["objetivo"], "prompt": nuevo_esc["prompt"], "Creador": empresa_actual}
                                     guardar_datos()
-                                    st.success(f"✅ Protocolo {nuevo_esc['nombre_op']} integrado.")
+                                    st.success(f"✅ Protocolo {nuevo_esc['nombre_op']} configurado.")
                                     st.rerun()
-                                except Exception as e: st.error(f"❌ Fallo Groq: {e}")
-                        elif not idea_prompt: st.warning("Escriba los parámetros.")
+                                except Exception as e: st.error(f"❌ Fallo de Motor IA: {e}")
+                        elif not idea_prompt: st.warning("Escriba los parámetros base.")
 
         with col_der:
-            st.markdown("<div class='section-label'>CONTROL DE MEMORIA</div>", unsafe_allow_html=True)
+            st.markdown("<div class='section-label'>ADMINISTRACIÓN DE MEMORIA</div>", unsafe_allow_html=True)
             if u["Nombre"] == COMANDANTE_SUPREMO:
-                st.markdown("""<div class="briefing-box" style="border-left-color: #EF4444;"><h4 style="color: #EF4444; font-size:0.6rem;">⚠ PROTOCOLO DE PURGA</h4><p style="font-size:0.75rem;">Elimina a TODOS los agentes, historiales y misiones.</p></div>""", unsafe_allow_html=True)
-                if st.button("☣️ PURGAR TODO EL SISTEMA", use_container_width=True):
+                st.markdown("""<div class="briefing-box" style="border-left-color: #EF4444;"><h4 style="color: #EF4444; font-size:0.6rem;">⚠ PROTOCOLO OMEGA</h4><p style="font-size:0.75rem;">Limpieza irreversible de toda la base de datos (Personal, Historial y Simulaciones).</p></div>""", unsafe_allow_html=True)
+                if st.button("☣️ FORMATEAR PLATAFORMA", use_container_width=True):
                     st.session_state.empleados = []; st.session_state.historial_sesiones = []; st.session_state.escenarios_custom = {}
                     st.session_state.usuario_actual = None; guardar_datos(); st.rerun()
             else:
-                st.info("🔒 AUTORIZACIÓN DENEGADA para purgas masivas.")
+                st.info("🔒 ACCESO RESTRINGIDO: No dispone de acreditación Nivel OMEGA.")
