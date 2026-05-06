@@ -21,8 +21,9 @@ COMANDANTE_SUPREMO = "CRYSIS" # <--- CAMBIA ESTO POR TU ID
 # --- CONEXIÓN A SUPABASE (NUBE SEGURA) ---
 @st.cache_resource
 def init_supabase():
-    url: str = st.secrets["SUPABASE_URL"]
-    key: str = st.secrets["SUPABASE_KEY"]
+    # El .strip() quita espacios fantasma y .rstrip("/") destruye la barra diagonal problemática
+    url: str = st.secrets["SUPABASE_URL"].strip().rstrip("/")
+    key: str = st.secrets["SUPABASE_KEY"].strip()
     return create_client(url, key)
 
 supabase = init_supabase()
