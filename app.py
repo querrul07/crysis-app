@@ -309,11 +309,11 @@ mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items() if
 TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **mis_escenarios}
 
 if es_empresa:
-    t1, t2, t3, t4, t5 = st.tabs(["MÉTRICAS GLOBALES", "GESTIÓN DE PERSONAL", "ARCHIVO OPERACIONAL", "DESPLIEGUE", "SÍNTESIS IA"])
+    t1, t2, t3, t4, t5 = st.tabs(["MÉTRICAS GLOBALES", "GESTIÓN DE PERSONAL", "ARCHIVO OPERACIONAL", "DESPLIEGUE", "ADMINISTRACIÓN"])
 elif u["Rol"] == "Individual" or mi_plan == "Gratis":
-    t1, t2, t3, t4, t5 = st.tabs(["ESTADÍSTICAS", "PERFIL", "EXPEDIENTES", "DESPLIEGUE", "SÍNTESIS IA"])
+    t1, t2, t3, t4, t5 = st.tabs(["ESTADÍSTICAS", "PERFIL Y CUENTA", "EXPEDIENTES", "DESPLIEGUE", "SÍNTESIS IA"])
 else:
-    t1, t2, t3, t4 = st.tabs(["MÉTRICAS", "CREDENCIAL", "EXPEDIENTES", "DESPLIEGUE"])
+    t1, t2, t3, t4 = st.tabs(["MÉTRICAS", "PERFIL Y CUENTA", "EXPEDIENTES", "DESPLIEGUE"])
     t5 = None
 
 # ══════════════════════════════════════════
@@ -335,7 +335,7 @@ with t1:
         st.markdown("<div style='text-align:center; padding: 60px; color: #2A3550; font-family: IBM Plex Mono; letter-spacing: 0.2em;'>SIN REGISTROS OPERACIONALES</div>", unsafe_allow_html=True)
     else:
         df = pd.DataFrame(historial_visible)
-        df["Nota"] = pd.to_numeric(df["Nota"]) # Asegurar cálculo
+        df["Nota"] = pd.to_numeric(df["Nota"])
         col_left, col_right = st.columns(2, gap="medium")
         with col_left:
             st.markdown("<div class='section-label'>DISTRIBUCIÓN DE ESCENARIOS</div>", unsafe_allow_html=True)
@@ -360,16 +360,31 @@ with t1:
             st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
 
 # ══════════════════════════════════════════
-# TAB 2: MI PERFIL / RECLUTAMIENTO
+# TAB 2: GESTIÓN DE PERSONAL Y AUTOGESTIÓN DE CUENTA
 # ══════════════════════════════════════════
 with t2:
     if es_empresa:
         st.markdown("<div class='section-label'>ENLACE DE INTEGRACIÓN DE PERSONAL</div>", unsafe_allow_html=True)
         import urllib.parse
         st.code(f"?empresa={urllib.parse.quote(empresa_actual)}", language="html")
+        
         st.markdown("<br><div class='section-label'>PLANTILLA OPERATIVA ACTIVA</div>", unsafe_allow_html=True)
-        for ag in [e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]:
-            st.markdown(f"**{ag['Nombre']}** | Unidad: {ag['Departamento']} | Contacto: {ag['Email']}")
+        agentes_mios = [e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]
+        if agentes_mios:
+            for ag in agentes_mios:
+                st.markdown(f"**{ag['Nombre']}** | Unidad: {ag['Departamento']} | Contacto: {ag['Email']}")
+                
+            st.markdown("<br>", unsafe_allow_html=True)
+            with st.expander("🗑️ REVOCAR ACCESO DE PERSONAL (DESPEDIR)"):
+                st.info("Al revocar a un agente, perderá el acceso a la plataforma inmediatamente.")
+                ag_a_borrar = st.selectbox("Seleccione el operador a revocar:", [a['Nombre'] for a in agentes_mios])
+                if st.button("REVOCAR CREDENCIALES DE AGENTE", type="primary"):
+                    st.session_state.empleados = [e for e in st.session_state.empleados if e['Nombre'] != ag_a_borrar]
+                    guardar_datos()
+                    st.success(f"Operador {ag_a_borrar} revocado del sistema.")
+                    st.rerun()
+        else:
+            st.markdown("No hay agentes activos en esta unidad.")
     else:
         st.markdown("<div class='section-label'>ACREDITACIÓN CONFIRMADA</div>", unsafe_allow_html=True)
         st.markdown(f"""<div class="briefing-box" style="border-left-color:#22D3A5;">
@@ -377,8 +392,55 @@ with t2:
             <p><b>Identificador:</b> {u['Nombre']} | <b>Unidad Asignada:</b> {empresa_actual}</p>
         </div>""", unsafe_allow_html=True)
 
+    # PORTAL DE AUTOGESTIÓN (Para todos los usuarios)
+    st.markdown("<br><div class='section-label'>PORTAL DE AUTOGESTIÓN Y SEGURIDAD</div>", unsafe_allow_html=True)
+    with st.expander("⚙️ AJUSTES DE CUENTA", expanded=False):
+        
+        st.markdown("##### Cambiar Clave de Acceso")
+        nueva_pass = st.text_input("Nueva Contraseña", type="password")
+        if st.button("ACTUALIZAR CONTRASEÑA"):
+            if nueva_pass:
+                for e in st.session_state.empleados:
+                    if e["Nombre"] == u["Nombre"]: e["Password"] = nueva_pass
+                st.session_state.usuario_actual["Password"] = nueva_pass
+                guardar_datos()
+                st.success("✅ Contraseña actualizada correctamente.")
+            else: st.warning("Introduce una contraseña válida.")
+            
+        st.markdown("---")
+        
+        # Opciones de mejora de plan (Solo Empresas o Individuos)
+        if u.get("Rol") in ["Empresa", "Individual"] and u["Nombre"] != COMANDANTE_SUPREMO:
+            st.markdown("##### Gestión de Suscripción (SaaS)")
+            planes_disp = ["Gratis", "Individual"] if u["Rol"] == "Individual" else ["Pro", "Enterprise"]
+            try: index_actual = planes_disp.index(mi_plan)
+            except: index_actual = 0
+            
+            nuevo_plan = st.selectbox("Seleccione nuevo Nivel:", planes_disp, index=index_actual)
+            if st.button("ACTUALIZAR PLAN DE SUSCRIPCIÓN"):
+                with st.spinner("Conectando con pasarela de pago y actualizando licencias..."):
+                    for e in st.session_state.empleados:
+                        if e["Nombre"] == u["Nombre"]: e["Plan"] = nuevo_plan
+                    st.session_state.usuario_actual["Plan"] = nuevo_plan
+                    guardar_datos()
+                    st.success(f"✅ Nivel actualizado a {nuevo_plan}. ¡Gracias por confiar en CRYSIS!")
+                    st.rerun()
+            st.markdown("---")
+
+        # Zona de Peligro
+        st.markdown("##### Zona de Riesgo")
+        if st.button("🚨 ELIMINAR MI CUENTA DEFINITIVAMENTE", type="primary"):
+            # Si es empresa, borramos también a todos sus agentes asociados
+            if es_empresa:
+                st.session_state.empleados = [e for e in st.session_state.empleados if e.get("Empresa") != u["Nombre"]]
+            else:
+                st.session_state.empleados = [e for e in st.session_state.empleados if e["Nombre"] != u["Nombre"]]
+            st.session_state.usuario_actual = None
+            guardar_datos()
+            st.rerun()
+
 # ══════════════════════════════════════════
-# TAB 3: EXPEDIENTES (AGRUPADOS POR AGENTE Y MISIÓN)
+# TAB 3: EXPEDIENTES
 # ══════════════════════════════════════════
 with t3:
     c_title, c_btn = st.columns([4, 1])
@@ -393,18 +455,14 @@ with t3:
         df_hist = pd.DataFrame(historial_visible)
         df_hist["Nota"] = pd.to_numeric(df_hist["Nota"])
         
-        # 1. Agrupar por Agente
         for agente, df_agente in df_hist.groupby("Agente"):
             media_agente = int(df_agente["Nota"].mean())
             with st.expander(f"👤 OPERADOR: {agente.upper()}  ·  MÉTRICA GLOBAL: {media_agente}%", expanded=False):
                 st.markdown("<br>", unsafe_allow_html=True)
-                
-                # 2. Agrupar por Operación
                 for escenario, df_op in df_agente.groupby("Escenario"):
                     media_op = int(df_op["Nota"].mean())
                     lbl_esc = escenario.replace("OPERACION: ", "")
                     with st.expander(f"⬡ {lbl_esc} · Evaluación Media: {media_op}%", expanded=True):
-                        # 3. Listar Sesiones
                         for _, s in df_op.sort_values("Fecha", ascending=False).iterrows():
                             nota_ind = s['Nota']
                             c_nota = "#22D3A5" if nota_ind >= 70 else ("#F59E0B" if nota_ind >= 40 else "#EF4444")
@@ -416,7 +474,6 @@ with t3:
                             <div style="font-size:0.85rem; color:#C8D0E0;">{s['Evaluacion']}</div>
                             </div>""", unsafe_allow_html=True)
                             
-                            # Auditoría Enterprise (Transcripciones)
                             if es_empresa and mi_plan == "Enterprise" and "Transcripcion" in s:
                                 st.markdown("<span style='color:#F59E0B; font-size:0.7rem; letter-spacing:0.1em;'>🔍 AUDITORÍA DE COMUNICACIONES</span>", unsafe_allow_html=True)
                                 for tr in s["Transcripcion"]:
@@ -427,7 +484,7 @@ with t3:
         st.markdown("<div style='text-align:center; padding:60px; color:#2A3550; font-family:IBM Plex Mono;'>DIRECTORIO VACÍO</div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════
-# TAB 4: SIMULADOR (CON EVALUACIÓN MEJORADA)
+# TAB 4: SIMULADOR
 # ══════════════════════════════════════════
 with t4:
     if not st.session_state.mision_iniciada:
@@ -456,8 +513,7 @@ with t4:
                 with st.spinner("Estableciendo conexión..."):
                     try:
                         client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
-                        # Prompt forzado a texto plano para evitar anidamientos de JSON en la interfaz
-                        json_prompt = f"Genera para {info['perfil_sujeto']} EXCLUSIVAMENTE JSON PLANO (cadenas de texto breves, sin diccionarios anidados) con 3 claves: 'Nombre_Completo' (ej: Ivan Petrov), 'Familia' (ej: Viudo, 2 hijos), 'Estado_Mental' (ej: Paranoico, agresivo)."
+                        json_prompt = f"Genera para {info['perfil_sujeto']} EXCLUSIVAMENTE JSON PLANO (cadenas de texto breves) con 3 claves: 'Nombre_Completo' (ej: Ivan Petrov), 'Familia' (ej: Viudo, 2 hijos), 'Estado_Mental' (ej: Paranoico, agresivo)."
                         res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": json_prompt}], response_format={"type": "json_object"}).choices[0].message.content
                         st.session_state.tarjeta_objetivo = json.loads(res)
                     except: st.session_state.tarjeta_objetivo = {"Nombre_Completo": "Desconocido", "Familia": "Clasificado", "Estado_Mental": "Inestable"}
@@ -477,8 +533,6 @@ with t4:
 
     else:
         st.markdown(f"<div class='status-bar'>◉ LÍNEA SEGURA ACTIVA: {st.session_state.escenario_activo} · OPERADOR: {st.session_state.agente_activo.upper()}</div>", unsafe_allow_html=True)
-        
-        # DOSSIER LIMPIO (A PRUEBA DE FALLOS JSON)
         if st.session_state.tarjeta_objetivo:
             t = st.session_state.tarjeta_objetivo
             st.markdown(f"""<div style="display:flex; gap:15px; background:#0C1020; border:1px solid #1A2035; border-left:3px solid #F59E0B; border-radius:4px; padding:12px 18px; margin-bottom:20px;">
@@ -518,10 +572,7 @@ with t4:
                         escenario = st.session_state.escenario_activo
                         info = TODAS_LAS_MISIONES[escenario]
                         hist_txt = "\n".join([f"{'OPERADOR' if m['role'] == 'user' else 'SUJETO'}: {m['content']}" for m in st.session_state.mensajes])
-                        
-                        # PROMPT DE EVALUACIÓN MEJORADO (Más analítico, menos punitivo)
                         eval_prompt = f"Evalúa el desempeño del OPERADOR en: {escenario}. Situación: {info['contexto']}.\nTRANSCRIPCIÓN:\n{hist_txt}\nGenera un informe estricto pero JUSTO. Valora positivamente la empatía, la escucha activa y los intentos de desescalada. No penalices al operador si el sujeto es inherentemente agresivo; valora cómo gestionó esa agresividad. Si el operador fue asertivo y calmado, la nota debe ser alta (70-100). Solo pon notas bajas (<50) si el operador fue hostil, cedió inmediatamente a exigencias imposibles o rompió el protocolo de rehenes.\nEstructura:\n**ANÁLISIS DE LENGUAJE**\n**TÁCTICAS EMPLEADAS**\n**ERRORES CRÍTICOS**\n**VEREDICTO DEL EVALUADOR**\n\nPUNTUACIÓN FINAL: XX/100"
-                        
                         informe = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": eval_prompt}]).choices[0].message.content
                         try:
                             match = re.search(r'PUNTUACI[OÓ]N FINAL[^\d]*(\d+)\s*\/?\s*100', informe, re.IGNORECASE)
@@ -534,10 +585,39 @@ with t4:
                         st.rerun()
 
 # ══════════════════════════════════════════
-# TAB 5: SÍNTESIS IA (LABORATORIO VIP) Y ADMIN CONSOLE
+# TAB 5: SÍNTESIS IA / ADMINISTRACIÓN MÁXIMA
 # ══════════════════════════════════════════
 if t5:
     with t5:
+        if u["Nombre"] == COMANDANTE_SUPREMO:
+            # 📊 RADAR DE NEGOCIO (Solo visible para Comandante Supremo)
+            st.markdown("<div class='section-label'>RADAR ESTRATÉGICO (SAAS METRICS)</div>", unsafe_allow_html=True)
+            
+            # Cálculos del negocio
+            clientes_corporativos = [e for e in st.session_state.empleados if e["Rol"] == "Empresa"]
+            clientes_individuales = [e for e in st.session_state.empleados if e["Rol"] == "Individual"]
+            todos_clientes = clientes_corporativos + clientes_individuales
+            
+            total_enterprise = len([c for c in todos_clientes if c.get("Plan") == "Enterprise"])
+            total_pro = len([c for c in todos_clientes if c.get("Plan") == "Pro"])
+            total_indiv = len([c for c in todos_clientes if c.get("Plan") == "Individual"])
+            total_gratis = len([c for c in todos_clientes if c.get("Plan") == "Gratis"])
+            
+            # MRR Estimado (Suscripciones mensuales)
+            mrr_estimado = (total_enterprise * 199) + (total_pro * 89) + (total_indiv * 29)
+            total_agentes = len([e for e in st.session_state.empleados if e["Rol"] == "Agente"])
+            total_operaciones = len(st.session_state.historial_sesiones)
+            
+            col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+            col_m1.markdown(f"""<div class="metric-card" style="border-left-color:#F59E0B;"><div class="metric-label" style="color:#F59E0B;">MRR ESTIMADO</div><div class="metric-value">{mrr_estimado}€</div></div>""", unsafe_allow_html=True)
+            col_m2.markdown(f"""<div class="metric-card"><div class="metric-label">CUENTAS PAGO</div><div class="metric-value">{total_enterprise + total_pro + total_indiv}</div></div>""", unsafe_allow_html=True)
+            col_m3.markdown(f"""<div class="metric-card"><div class="metric-label">AGENTES DESPLEGADOS</div><div class="metric-value">{total_agentes}</div></div>""", unsafe_allow_html=True)
+            col_m4.markdown(f"""<div class="metric-card"><div class="metric-label">SESIONES TOTALES</div><div class="metric-value">{total_operaciones}</div></div>""", unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown(f"**Desglose de Planes Activos:**  👑 Enterprise: `{total_enterprise}` | 🏢 Pro: `{total_pro}` | 👤 Individual: `{total_indiv}` | 🆓 Gratis: `{total_gratis}`")
+            st.markdown("---")
+
         col_izq, col_der = st.columns([2, 1], gap="large")
         with col_izq:
             st.markdown("<div class='section-label'>MÓDULO DE SÍNTESIS DE ESCENARIOS</div>", unsafe_allow_html=True)
@@ -569,7 +649,7 @@ if t5:
                         elif not idea_prompt: st.warning("Escriba los parámetros base.")
 
         with col_der:
-            st.markdown("<div class='section-label'>ADMINISTRACIÓN DE SISTEMA</div>", unsafe_allow_html=True)
+            st.markdown("<div class='section-label'>ADMINISTRACIÓN TÉCNICA</div>", unsafe_allow_html=True)
             
             # 👑 PANEL EXCLUSIVO PARA EL COMANDANTE SUPREMO
             if u["Nombre"] == COMANDANTE_SUPREMO:
@@ -604,4 +684,4 @@ if t5:
                     st.session_state.empleados = []; st.session_state.historial_sesiones = []; st.session_state.escenarios_custom = {}
                     st.session_state.usuario_actual = None; guardar_datos(); st.rerun()
             else:
-                st.info("🔒 ACCESO RESTRINGIDO: No dispone de acreditación Nivel OMEGA.")
+                st.info("🔒 ACCESO RESTRINGIDO: El uso de Inteligencia Generativa queda registrado por motivos de auditoría.")
