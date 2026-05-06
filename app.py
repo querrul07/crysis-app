@@ -288,31 +288,66 @@ if st.session_state.usuario_actual is None:
             """, unsafe_allow_html=True)
             c_reg1, c_reg2, c_reg3 = st.columns([1, 2, 1])
             with c_reg2:
-                with st.form("registro_unificado"):
-                    st.markdown("<div class='section-label'>SOLICITUD DE CREDENCIALES</div>", unsafe_allow_html=True)
-                    plan_sel = st.selectbox("Seleccione Nivel", ["Nivel: BASE (Gratis / 1 Usuario)", "Nivel: OPERADOR (Individual / Ilimitado)", "Nivel: ESCUADRÓN (Corporativo / 15 Agentes)", "Nivel: COMANDANCIA (Corporativo / Ilimitado)"])
-                    es_corporativo = "Corporativo" in plan_sel
-                    if es_corporativo:
-                        n = st.text_input("Identificador de la Entidad (Empresa)")
-                        plan_interno = "Pro" if "ESCUADRÓN" in plan_sel else "Enterprise"
-                    else:
-                        n = st.text_input("Identificador Personal (Alias)")
-                        plan_interno = "Gratis" if "BASE" in plan_sel else "Individual"
-                    email = st.text_input("Correo de Contacto")
-                    p = st.text_input("Clave Maestra", type="password")
-                    if st.form_submit_button("EMITIR CREDENCIALES Y ENTRAR", use_container_width=True):
-                        if n and p and email:
-                            empresa_destino = n if es_corporativo else "Independiente"
-                            if any(e["Nombre"] == n and e.get("Empresa", "Independiente") == empresa_destino for e in st.session_state.empleados):
-                                st.warning("⚠️ Ya tienes una cuenta de este tipo registrada.")
-                            elif any(e["Nombre"] == n and e.get("Password") == p for e in st.session_state.empleados):
-                                st.warning("⚠️ Ya tienes una cuenta corporativa con este ID. Usa una CONTRASEÑA DIFERENTE para tu cuenta privada.")
+                # Mostrar enlace de pago si se acaba de registrar con plan de pago
+                if st.session_state.get("mostrar_pago"):
+                    info_pago = st.session_state.mostrar_pago
+                    st.success(f"✅ Cuenta creada con Nivel BASE. Completa el pago para activar tu plan.")
+                    st.markdown(f"""
+                    <div style="background:#0C1020; border:1px solid #F59E0B; border-left:4px solid #F59E0B; padding:20px; border-radius:4px; margin-bottom:16px;">
+                        <div style="font-family:'IBM Plex Mono',monospace; font-size:0.65rem; letter-spacing:0.2em; color:#F59E0B; margin-bottom:10px;">⚡ ACTIVACIÓN DE PLAN PENDIENTE</div>
+                        <p style="color:#C8D0E0; font-size:0.85rem; margin-bottom:14px;">Tu cuenta <b style='color:#E8EDF5'>{info_pago['id']}</b> ha sido creada con Nivel BASE. Tras completar el pago, el administrador activará tu plan en un máximo de 24h.</p>
+                        <a href="{info_pago['link']}" target="_blank" style="display:inline-block; background:#F59E0B; color:#07090F; font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:0.7rem; letter-spacing:0.1em; padding:10px 24px; border-radius:3px; text-decoration:none;">IR AL PAGO → {info_pago['plan']}</a>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    if st.button("ENTRAR CON NIVEL BASE POR AHORA", use_container_width=True):
+                        st.session_state.usuario_actual = info_pago["usuario"]
+                        del st.session_state.mostrar_pago
+                        st.rerun()
+                else:
+                    with st.form("registro_unificado"):
+                        st.markdown("<div class='section-label'>SOLICITUD DE CREDENCIALES</div>", unsafe_allow_html=True)
+                        plan_sel = st.selectbox("Seleccione Nivel", [
+                            "Nivel: BASE (Gratis / 1 Usuario)",
+                            "Nivel: OPERADOR (Individual / Ilimitado) — 29€/mes",
+                            "Nivel: ESCUADRÓN (Corporativo / 15 Agentes) — 89€/mes",
+                            "Nivel: COMANDANCIA (Corporativo / Ilimitado) — 199€/mes"
+                        ])
+                        es_corporativo = "Corporativo" in plan_sel
+                        es_pago = "BASE" not in plan_sel
+                        if es_corporativo:
+                            n = st.text_input("Identificador de la Entidad (Empresa)")
+                        else:
+                            n = st.text_input("Identificador Personal (Alias)")
+                        email = st.text_input("Correo de Contacto")
+                        p = st.text_input("Clave Maestra", type="password")
+                        lbl_btn = "CREAR CUENTA Y IR AL PAGO →" if es_pago else "EMITIR CREDENCIALES Y ENTRAR"
+                        if st.form_submit_button(lbl_btn, use_container_width=True):
+                            if n and p and email:
+                                empresa_destino = n if es_corporativo else "Independiente"
+                                if any(e["Nombre"] == n and e.get("Empresa", "Independiente") == empresa_destino for e in st.session_state.empleados):
+                                    st.warning("⚠️ Ya tienes una cuenta de este tipo registrada.")
+                                elif any(e["Nombre"] == n and e.get("Password") == p for e in st.session_state.empleados):
+                                    st.warning("⚠️ ID ya en uso con esa contraseña. Usa una contraseña diferente.")
+                                else:
+                                    # SIEMPRE se crea con plan Gratis. El admin activa planes de pago.
+                                    if es_corporativo:
+                                        nuevo_usuario = {"Nombre": n, "Email": email, "Departamento": "Administración", "Rol": "Empresa", "Plan": "Gratis", "Empresa": n, "Password": p, "2FA_Verificado": True}
+                                    else:
+                                        nuevo_usuario = {"Nombre": n, "Email": email, "Rol": "Individual", "Plan": "Gratis", "Empresa": n, "Password": p, "2FA_Verificado": True}
+                                    st.session_state.empleados.append(nuevo_usuario)
+                                    guardar_datos()
+                                    if es_pago:
+                                        # Determinar link de pago correcto
+                                        if "OPERADOR" in plan_sel: link_pago = LINKS_PAGO["Individual"]; nombre_plan = "NIVEL OPERADOR (29€/mes)"
+                                        elif "ESCUADRÓN" in plan_sel: link_pago = LINKS_PAGO["Pro"]; nombre_plan = "NIVEL ESCUADRÓN (89€/mes)"
+                                        else: link_pago = LINKS_PAGO["Enterprise"]; nombre_plan = "NIVEL COMANDANCIA (199€/mes)"
+                                        st.session_state.mostrar_pago = {"id": n, "link": link_pago, "plan": nombre_plan, "usuario": nuevo_usuario}
+                                        st.rerun()
+                                    else:
+                                        st.session_state.usuario_actual = nuevo_usuario
+                                        st.rerun()
                             else:
-                                if es_corporativo: nuevo_usuario = {"Nombre": n, "Email": email, "Departamento": "Administración", "Rol": "Empresa", "Plan": plan_interno, "Empresa": n, "Password": p, "2FA_Verificado": True}
-                                else: nuevo_usuario = {"Nombre": n, "Email": email, "Rol": "Individual", "Plan": plan_interno, "Empresa": n, "Password": p, "2FA_Verificado": True}
-                                st.session_state.empleados.append(nuevo_usuario); guardar_datos()
-                                st.session_state.usuario_actual = nuevo_usuario; st.rerun()
-                        else: st.warning("⚠️ Información incompleta.")
+                                st.warning("⚠️ Información incompleta.")
     st.stop()
 
 # ─────────────────────────────────────────
@@ -764,26 +799,56 @@ if t5:
         with col_der:
             if u["Nombre"] == COMANDANTE_SUPREMO:
                 st.markdown("<div class='section-label'>HERRAMIENTAS DE MANDO</div>", unsafe_allow_html=True)
-                with st.expander("🛠️ EMITIR CREDENCIAL DE CORTESÍA", expanded=False):
-                    st.info("Genera cuentas saltando el protocolo de pago.")
+
+                with st.expander("🛠️ EMITIR CREDENCIAL DE CORTESÍA (NUEVA CUENTA)", expanded=True):
+                    st.info("Genera cuentas nuevas con cualquier plan, saltando el pago.")
                     with st.form("admin_create_user"):
                         new_n = st.text_input("ID / Entidad")
                         new_email = st.text_input("Correo Electrónico")
                         new_pass = st.text_input("Contraseña", type="password")
                         new_rol = st.selectbox("Rol Estructural", ["Individual", "Empresa"])
                         new_plan = st.selectbox("Nivel a Otorgar", ["Gratis", "Individual", "Pro", "Enterprise"])
-                        expira = st.checkbox("Licencia Temporal (30 días)", value=True)
+                        expira = st.checkbox("Licencia Temporal (30 días)", value=False)
                         if st.form_submit_button("GENERAR ACCESO", use_container_width=True):
                             if new_n and new_email and new_pass:
-                                if any(e["Nombre"] == new_n for e in st.session_state.empleados): st.warning("⚠️ ID ya registrado.")
+                                if any(e["Nombre"] == new_n for e in st.session_state.empleados):
+                                    st.warning("⚠️ ID ya registrado. Usa 'Actualizar Plan' para cambiar el plan de un usuario existente.")
                                 else:
                                     fecha_exp_str = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d") if expira else None
                                     nuevo_usuario = {"Nombre": new_n, "Email": new_email, "Rol": new_rol, "Plan": new_plan, "Empresa": new_n, "Password": new_pass, "2FA_Verificado": True}
                                     if new_rol == "Empresa": nuevo_usuario["Departamento"] = "Administración"
                                     if fecha_exp_str: nuevo_usuario["Expiracion"] = fecha_exp_str
-                                    st.session_state.empleados.append(nuevo_usuario); guardar_datos()
-                                    st.success(f"✅ Credencial {new_plan} activada. Expira: {fecha_exp_str if expira else 'Nunca'}.")
-                            else: st.warning("⚠️ Rellena todos los campos.")
+                                    st.session_state.empleados.append(nuevo_usuario)
+                                    guardar_datos()
+                                    st.success(f"✅ Cuenta '{new_n}' creada con plan {new_plan}. Expira: {fecha_exp_str if expira else 'Nunca'}.")
+                            else:
+                                st.warning("⚠️ Rellena todos los campos.")
+
+                st.markdown("<br>", unsafe_allow_html=True)
+
+                with st.expander("⚡ ACTIVAR / CAMBIAR PLAN DE USUARIO EXISTENTE", expanded=True):
+                    st.info("Activa el plan de pago de un usuario que ya pagó o concede cortesía.")
+                    usuarios_no_admin = [e for e in st.session_state.empleados if e["Nombre"] != COMANDANTE_SUPREMO]
+                    if usuarios_no_admin:
+                        with st.form("admin_upgrade_plan"):
+                            opciones_usuarios = [f"{e['Nombre']} [{e.get('Rol','?')}] — Plan actual: {e.get('Plan','?')}" for e in usuarios_no_admin]
+                            sel_idx = st.selectbox("Seleccionar Usuario:", range(len(opciones_usuarios)), format_func=lambda i: opciones_usuarios[i])
+                            nuevo_plan_upgrade = st.selectbox("Nuevo Plan a Asignar:", ["Gratis", "Individual", "Pro", "Enterprise"])
+                            nueva_exp = st.checkbox("Añadir expiración (30 días)", value=False)
+                            if st.form_submit_button("✅ APLICAR PLAN", use_container_width=True):
+                                usuario_objetivo = usuarios_no_admin[sel_idx]
+                                fecha_exp_str = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d") if nueva_exp else None
+                                for e in st.session_state.empleados:
+                                    if e["Nombre"] == usuario_objetivo["Nombre"]:
+                                        e["Plan"] = nuevo_plan_upgrade
+                                        if fecha_exp_str: e["Expiracion"] = fecha_exp_str
+                                        elif "Expiracion" in e: del e["Expiracion"]
+                                guardar_datos()
+                                st.success(f"✅ Plan de '{usuario_objetivo['Nombre']}' actualizado a {nuevo_plan_upgrade}.")
+                                st.rerun()
+                    else:
+                        st.markdown("No hay usuarios registrados aún.")
+
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("""<div class="briefing-box" style="border-left-color: #EF4444;"><h4 style="color: #EF4444; font-size:0.6rem;">⚠ PROTOCOLO OMEGA</h4><p style="font-size:0.75rem;">Limpieza irreversible de toda la base de datos.</p></div>""", unsafe_allow_html=True)
                 if st.button("☣️ FORMATEAR PLATAFORMA", use_container_width=True):
