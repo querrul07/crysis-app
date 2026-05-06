@@ -786,32 +786,30 @@ elif st.session_state.vista_actual == "SINTESIS":
                     del st.session_state.escenarios_custom[nombre_esc]; guardar_datos(); st.rerun()
             st.markdown("<br>", unsafe_allow_html=True)
 
-        # Si es plan Gratis Y NO ES el Comandante Supremo, se bloquea. Si no, pasa.
         if mi_plan == "Gratis" and u["Nombre"] != COMANDANTE_SUPREMO:
             st.error("🔒 RESTRICCIÓN DE SISTEMA: El Nivel BASE no posee autorización para el uso de Inteligencia Artificial Generativa.")
             st.button("✨ GENERAR NUEVA SIMULACIÓN", disabled=True)
         else:
-            # Determinamos el límite de escenarios
             limite_escenarios = 3 if mi_plan == "Individual" else (1 if mi_plan == "Pro" else 9999)
-            if u["Nombre"] == COMANDANTE_SUPREMO: limite_escenarios = 9999 # El Comandante no tiene límites
+            if u["Nombre"] == COMANDANTE_SUPREMO: limite_escenarios = 9999
             
             if creados >= limite_escenarios:
                 st.error(f"🔒 CUOTA DE SÍNTESIS ALCANZADA ({creados}/{limite_escenarios}). Borre uno existente para crear otro.")
                 st.button("✨ GENERAR NUEVA SIMULACIÓN", disabled=True)
             else:
                 idea_prompt = st.text_area("Describa los parámetros del entorno táctico:", height=100)
-                    if st.button("✨ GENERAR NUEVA SIMULACIÓN", use_container_width=True):
-                        if idea_prompt and GROQ_API_KEY:
-                            with st.spinner("Enlazando con el motor de Inteligencia Central..."):
-                                try:
-                                    client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
-                                    res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "system", "content": "Devuelve JSON: {'nombre_op': 'OPERACION: [NOMBRE]', 'contexto': '[Desc]', 'perfil_sujeto': '[Perfil]', 'objetivo': '[Misión]', 'prompt': '[Instrucciones]'} "}, {"role": "user", "content": idea_prompt}], response_format={"type": "json_object"}).choices[0].message.content
-                                    nuevo_esc = json.loads(res)
-                                    nuevo_esc["prompt"] += INSTRUCCION_ORTOGRAFIA
-                                    st.session_state.escenarios_custom[nuevo_esc["nombre_op"]] = {"contexto": nuevo_esc["contexto"], "perfil_sujeto": nuevo_esc["perfil_sujeto"], "objetivo": nuevo_esc["objetivo"], "prompt": nuevo_esc["prompt"], "Creador": empresa_actual}
-                                    guardar_datos(); st.success(f"✅ Protocolo {nuevo_esc['nombre_op']} configurado."); st.rerun()
-                                except Exception as e: st.error(f"❌ Fallo de Motor IA: {e}")
-                        elif not idea_prompt: st.warning("Escriba los parámetros base.")
+                if st.button("✨ GENERAR NUEVA SIMULACIÓN", use_container_width=True):
+                    if idea_prompt and GROQ_API_KEY:
+                        with st.spinner("Enlazando con el motor de Inteligencia Central..."):
+                            try:
+                                client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                                res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "system", "content": "Devuelve JSON: {'nombre_op': 'OPERACION: [NOMBRE]', 'contexto': '[Desc]', 'perfil_sujeto': '[Perfil]', 'objetivo': '[Misión]', 'prompt': '[Instrucciones]'} "}, {"role": "user", "content": idea_prompt}], response_format={"type": "json_object"}).choices[0].message.content
+                                nuevo_esc = json.loads(res)
+                                nuevo_esc["prompt"] += INSTRUCCION_ORTOGRAFIA
+                                st.session_state.escenarios_custom[nuevo_esc["nombre_op"]] = {"contexto": nuevo_esc["contexto"], "perfil_sujeto": nuevo_esc["perfil_sujeto"], "objetivo": nuevo_esc["objetivo"], "prompt": nuevo_esc["prompt"], "Creador": empresa_actual}
+                                guardar_datos(); st.success(f"✅ Protocolo {nuevo_esc['nombre_op']} configurado."); st.rerun()
+                            except Exception as e: st.error(f"❌ Fallo de Motor IA: {e}")
+                    elif not idea_prompt: st.warning("Escriba los parámetros base.")
 
 elif st.session_state.vista_actual == "OMEGA" and u["Nombre"] == COMANDANTE_SUPREMO:
     st.markdown("<div class='section-label'>RADAR ESTRATÉGICO (SAAS METRICS)</div>", unsafe_allow_html=True)
