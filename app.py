@@ -473,11 +473,10 @@ with t2:
                         st.rerun()
                         
             # Si es un usuario independiente o empresa normal (lo que ya tenías)
-            else:
-    st.markdown("#### ACTUALIZAR NIVEL DE SUSCRIPCIÓN")
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    col_p1, col_p2, col_p3 = st.columns(3)
+    else:
+        st.markdown("#### ACTUALIZAR NIVEL DE SUSCRIPCIÓN")
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_p1, col_p2, col_p3 = st.columns(3)
     
     with col_p1:
         activo = "✅ " if mi_plan == "Individual" else ""
