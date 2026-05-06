@@ -203,9 +203,12 @@ if st.session_state.usuario_actual is None:
 
             if empresa_obj:
                 agentes_actuales = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_invitada and e.get("Rol") == "Agente"])
-                limite_agentes = 15 if empresa_obj.get("Plan") == "Pro" else 9999
+                # Verificamos el plan real de la empresa para asignar el límite
+                plan_emp = empresa_obj.get("Plan", "Gratis")
+                limite_agentes = 9999 if plan_emp == "Enterprise" else (15 if plan_emp == "Pro" else 0)
+                
                 if agentes_actuales >= limite_agentes:
-                    st.error("🔒 ESTA ENTIDAD HA ALCANZADO SU LÍMITE OPERATIVO. Contacte a su administrador.")
+                    st.error("🔒 ESTA ENTIDAD NO TIENE LICENCIA CORPORATIVA ACTIVA O HA ALCANZADO SU LÍMITE.")
                     st.stop()
 
             with st.form("reg_agente"):
@@ -446,11 +449,16 @@ with t1:
 with t2:
     if es_empresa:
         st.markdown("<div class='section-label'>ENLACE SEGURO DE RECLUTAMIENTO</div>", unsafe_allow_html=True)
-        token_cifrado = base64.urlsafe_b64encode(empresa_actual.encode()).decode()
-        URL_BASE_APP = "https://crysis.streamlit.app/"
-        enlace_completo = f"{URL_BASE_APP}?invite={token_cifrado}"
-        st.info("Copia y comparte este enlace directo con tus agentes para que se unan a tu unidad automáticamente.")
-        st.code(enlace_completo, language="html")
+        
+        # Solo mostramos el link si tienen plan Corporativo (Pro/Enterprise) o son el Comandante
+        if mi_plan in ["Pro", "Enterprise"] or u["Nombre"] == COMANDANTE_SUPREMO:
+            token_cifrado = base64.urlsafe_b64encode(empresa_actual.encode()).decode()
+            URL_BASE_APP = "https://crysis.streamlit.app/"
+            enlace_completo = f"{URL_BASE_APP}?invite={token_cifrado}"
+            st.info("Copia y comparte este enlace directo con tus agentes para que se unan a tu unidad automáticamente.")
+            st.code(enlace_completo, language="html")
+        else:
+            st.warning("🔒 Tu nivel de licencia actual (BASE o OPERADOR) no permite la formación de escuadrones. Actualiza a ESCUADRÓN o COMANDANCIA para habilitar el reclutamiento de agentes.")
 
         st.markdown("<br><div class='section-label'>PLANTILLA OPERATIVA ACTIVA</div>", unsafe_allow_html=True)
         agentes_mios = [e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]
