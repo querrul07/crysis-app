@@ -786,17 +786,20 @@ elif st.session_state.vista_actual == "SINTESIS":
                     del st.session_state.escenarios_custom[nombre_esc]; guardar_datos(); st.rerun()
             st.markdown("<br>", unsafe_allow_html=True)
 
-        if u["Nombre"] != COMANDANTE_SUPREMO:
-            if mi_plan == "Gratis":
-                st.error("🔒 RESTRICCIÓN DE SISTEMA: El Nivel BASE no posee autorización para el uso de Inteligencia Artificial Generativa.")
+        # Si es plan Gratis Y NO ES el Comandante Supremo, se bloquea. Si no, pasa.
+        if mi_plan == "Gratis" and u["Nombre"] != COMANDANTE_SUPREMO:
+            st.error("🔒 RESTRICCIÓN DE SISTEMA: El Nivel BASE no posee autorización para el uso de Inteligencia Artificial Generativa.")
+            st.button("✨ GENERAR NUEVA SIMULACIÓN", disabled=True)
+        else:
+            # Determinamos el límite de escenarios
+            limite_escenarios = 3 if mi_plan == "Individual" else (1 if mi_plan == "Pro" else 9999)
+            if u["Nombre"] == COMANDANTE_SUPREMO: limite_escenarios = 9999 # El Comandante no tiene límites
+            
+            if creados >= limite_escenarios:
+                st.error(f"🔒 CUOTA DE SÍNTESIS ALCANZADA ({creados}/{limite_escenarios}). Borre uno existente para crear otro.")
                 st.button("✨ GENERAR NUEVA SIMULACIÓN", disabled=True)
             else:
-                limite_escenarios = 3 if mi_plan == "Individual" else (1 if mi_plan == "Pro" else 9999)
-                if creados >= limite_escenarios:
-                    st.error(f"🔒 CUOTA DE SÍNTESIS ALCANZADA ({creados}/{limite_escenarios}). Borre uno existente para crear otro.")
-                    st.button("✨ GENERAR NUEVA SIMULACIÓN", disabled=True)
-                else:
-                    idea_prompt = st.text_area("Describa los parámetros del entorno táctico:", height=100)
+                idea_prompt = st.text_area("Describa los parámetros del entorno táctico:", height=100)
                     if st.button("✨ GENERAR NUEVA SIMULACIÓN", use_container_width=True):
                         if idea_prompt and GROQ_API_KEY:
                             with st.spinner("Enlazando con el motor de Inteligencia Central..."):
