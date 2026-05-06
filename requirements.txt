@@ -5,3 +5,4 @@ plotly
 supabase
 streamlit-authenticator
 fpdf
+supabase
