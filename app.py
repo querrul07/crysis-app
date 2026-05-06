@@ -1264,21 +1264,32 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
         with st.expander("ACTIVAR / CAMBIAR PLAN", expanded=True):
             usuarios_no_admin = [e for e in st.session_state.empleados if e["Nombre"] != COMANDANTE_SUPREMO]
             if usuarios_no_admin:
-                with st.form("admin_upgrade"):
-                    opciones = [f"{e['Nombre']} [{e.get('Rol','?')}]" for e in usuarios_no_admin]
-                    sel_idx = st.selectbox("Usuario:", range(len(opciones)), format_func=lambda i: opciones[i])
-                    nuevo_plan_upg = st.selectbox("Nuevo Plan:", ["Gratis", "Individual", "Pro", "Enterprise"])
-                    nueva_exp2 = st.checkbox("Añadir expiración (30 dias)", value=False)
-                    if st.form_submit_button("APLICAR PLAN", use_container_width=True):
-                        usuario_obj = usuarios_no_admin[sel_idx]
-                        fe = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d") if nueva_exp2 else None
-                        for e in st.session_state.empleados:
-                            if e["Nombre"] == usuario_obj["Nombre"]:
-                                e["Plan"] = nuevo_plan_upg
-                                if fe: e["Expiracion"] = fe
-                                elif "Expiracion" in e: del e["Expiracion"]
-                        guardar_datos(); st.success(f"Plan de '{usuario_obj['Nombre']}' actualizado."); st.rerun()
-
+                opciones_labels = [f"{e['Nombre']} [{e.get('Rol','?')}] — Plan actual: {e.get('Plan','Gratis')}" for e in usuarios_no_admin]
+                sel_idx = st.selectbox("Usuario:", range(len(opciones_labels)), format_func=lambda i: opciones_labels[i], key="admin_sel_usuario")
+                nuevo_plan_upg = st.selectbox("Nuevo Plan:", ["Gratis", "Individual", "Pro", "Enterprise"], key="admin_nuevo_plan")
+                nueva_exp2 = st.checkbox("Añadir expiración (30 dias)", value=False, key="admin_exp_check")
+                if st.button("APLICAR PLAN", use_container_width=True, key="btn_aplicar_plan"):
+                    usuario_obj = usuarios_no_admin[sel_idx]
+                    nombre_target = usuario_obj["Nombre"]
+                    rol_target = usuario_obj.get("Rol")
+                    empresa_target = usuario_obj.get("Empresa")
+                    fe = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d") if nueva_exp2 else None
+                    actualizado = False
+                    for e in st.session_state.empleados:
+                        if e["Nombre"] == nombre_target and e.get("Rol") == rol_target and e.get("Empresa") == empresa_target:
+                            e["Plan"] = nuevo_plan_upg
+                            if fe: e["Expiracion"] = fe
+                            elif "Expiracion" in e: del e["Expiracion"]
+                            actualizado = True
+                            break
+                    if actualizado:
+                        guardar_datos()
+                        st.success(f"Plan de '{nombre_target}' actualizado a {nuevo_plan_upg}.")
+                        st.rerun()
+                    else:
+                        st.error("No se encontró el usuario. Recarga la página.")
+            else:
+                st.info("No hay usuarios registrados.")
     st.markdown("<br><div class='section-label'>ZONA DE PELIGRO</div>", unsafe_allow_html=True)
     if st.button("FORMATEAR PLATAFORMA COMPLETA", use_container_width=True):
         st.session_state.empleados = []; st.session_state.historial_sesiones = []; st.session_state.escenarios_custom = {}
