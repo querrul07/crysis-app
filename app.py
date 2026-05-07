@@ -406,6 +406,13 @@ if "login_subpantalla"  not in st.session_state: st.session_state.login_subpanta
 try:    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except: GROQ_API_KEY = None
 
+# ═══ MANEJADOR DE NAVEGACIÓN POR TARJETAS (PRIMERO DE TODO) ═══
+menu_destino = st.query_params.get("menu", None)
+if menu_destino and st.session_state.usuario_actual is not None:
+    st.session_state.pantalla_actual = menu_destino
+    st.query_params.clear()
+    st.rerun()
+
 # ─────────────────────────────────────────
 # LOGIN
 # ─────────────────────────────────────────
@@ -736,7 +743,7 @@ if st.session_state.pantalla_actual != "menu":
             st.session_state.usuario_actual = None; st.session_state.login_step = 1; st.session_state.pantalla_actual = "menu"; st.rerun()
 
 # ─────────────────────────────────────────
-# MENÚ PRINCIPAL — DISEÑO B + D SIN ERRORES
+# MENÚ PRINCIPAL — COLORES POR SECCIÓN Y SIN BOTONES DUPLICADOS
 # ─────────────────────────────────────────
 if st.session_state.pantalla_actual == "menu":
     ahora = datetime.now()
@@ -752,6 +759,7 @@ if st.session_state.pantalla_actual == "menu":
     </div>
     """, unsafe_allow_html=True)
 
+    # Métricas reales
     total_ops    = len(historial_visible)
     media_global = int(sum(s["Nota"] for s in historial_visible) / total_ops) if total_ops > 0 else 0
     mes_actual   = datetime.now().strftime("%Y-%m")
@@ -769,33 +777,78 @@ if st.session_state.pantalla_actual == "menu":
     mrr = sum(_precios.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
               for e in st.session_state.empleados)
 
+    # Tarjetas con color asignado
+    # Cada tupla: (destino, título, métrica, color_hex)
     tarjetas = [
-        ("estadisticas", "ANÁLISIS DE RENDIMIENTO",     f"RENDIMIENTO MEDIO {media_global}%"),
-        ("simulador",    "SIMULADOR TÁCTICO",            f"OPERACIONES ACTIVAS ESTE MES {ops_mes}"),
-        ("expedientes",  "HISTORIAL DE EXPEDIENTES",     f"EXPEDIENTES TOTALES {total_ops}"),
-        ("personal",     "GESTIÓN DE OPERADORES",        metrica_personal),
-        ("sintesis",     "GENERACIÓN DE ESCENARIOS",     f"ESCENARIOS ACTIVOS {esc_creados}"),
+        ("estadisticas", "ANÁLISIS DE RENDIMIENTO",  f"RENDIMIENTO MEDIO {media_global}%",         "#4F8EF7"),
+        ("simulador",    "SIMULADOR TÁCTICO",         f"OPERACIONES ACTIVAS ESTE MES {ops_mes}",     "#00D4A0"),
+        ("expedientes",  "HISTORIAL DE EXPEDIENTES",  f"EXPEDIENTES TOTALES {total_ops}",            "#F0A500"),
+        ("personal",     "GESTIÓN DE OPERADORES",     metrica_personal,                              "#E8394A"),
+        ("sintesis",     "GENERACIÓN DE ESCENARIOS",  f"ESCENARIOS ACTIVOS {esc_creados}",           "#A855F7"),
     ]
     if u["Nombre"] == COMANDANTE_SUPREMO:
-        tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR"))
+        tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR", "#F59E0B"))
 
+    # Grid de 3 columnas
     for fila in range(0, len(tarjetas), 3):
         cols = st.columns(3)
-        for i, (destino, titulo, metrica) in enumerate(tarjetas[fila:fila+3]):
+        for i, (destino, titulo, metrica, color) in enumerate(tarjetas[fila:fila+3]):
             with cols[i]:
                 st.markdown(f"""
-                <div class="card-wrapper">
-                    <div class="dashboard-card">
+                <a href="?menu={destino}" style="text-decoration: none;">
+                    <div class="dashboard-card colored-card">
                         <div class="dashboard-card-content">
                             <div class="dashboard-card-title">{titulo}</div>
-                            <div class="dashboard-card-metric">{metrica}</div>
+                            <div class="dashboard-card-metric" style="color:{color};">{metrica}</div>
                         </div>
                     </div>
-                </div>
+                </a>
                 """, unsafe_allow_html=True)
-                if st.button(titulo, key=f"btn_{destino}"):
-                    st.session_state.pantalla_actual = destino
-                    st.rerun()
+
+    # Nuevo CSS insertado SOLO durante el menú
+    st.markdown(f"""
+    <style>
+    .colored-card {{
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        background: linear-gradient(135deg, #0B0E1A 0%, #0F1425 100%);
+        border: 1px solid var(--border);
+        border-radius: 2px;
+        padding: 24px;
+        transition: all 0.2s ease;
+        height: 140px;
+        cursor: pointer;
+        overflow: hidden;
+        margin-bottom: 20px;
+    }}
+    .colored-card:hover {{
+        border-color: var(--border2);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        transform: translateY(-3px);
+    }}
+    .colored-card::before {{
+        content: '';
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--border);
+        transition: background 0.2s ease;
+        flex-shrink: 0;
+    }}
+    .colored-card:hover::before {{
+        background: var(--blue);
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Manejador de navegación por URL (sin recarga de sesión)
+    menu_destino = st.query_params.get("menu", None)
+    if menu_destino:
+        st.session_state.pantalla_actual = menu_destino
+        st.query_params.clear()
+        st.rerun()
 
     st.stop()
 
