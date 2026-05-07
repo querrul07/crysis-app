@@ -124,6 +124,7 @@ def generar_pdf_dossier(sesion):
             pdf.multi_cell(0,6,sanitizar_texto(msg["content"])); pdf.ln(2)
     out = pdf.output(dest='S')
     return out.encode('latin-1') if isinstance(out, str) else out
+
 def generar_url_imagen(prompt_contexto, seed, width=800, height=450):
     """Construye la URL de Pollinations con el prompt táctico."""
     import urllib.parse
@@ -505,7 +506,7 @@ if st.session_state.usuario_actual is None:
                 if "plan_sel_reg" not in st.session_state: st.session_state.plan_sel_reg = "BASE"
 
                 planes_registro = [
-                    ("BASE",        "0€",     "Individual · 1 op/mes",            False),
+                    ("BASE",        "0€",      "Individual · 1 op/mes",            False),
                     ("OPERADOR",    "19€/mes", "Individual · 10 ops/mes · 3 esc.", False),
                     ("ELITE",       "49€/mes", "Individual · ilimitado · IA ∞",    True),
                     ("ESCUADRON",   "89€/mes", "Equipo · 15 agentes · ∞ ops",      True),
@@ -1063,6 +1064,7 @@ elif st.session_state.pantalla_actual == "simulador":
                         st.session_state.tarjeta_objetivo = json.loads(res)
                     except:
                         st.session_state.tarjeta_objetivo = {"Nombre_Completo":"Desconocido","Familia":"Clasificado","Estado_Mental":"Inestable"}
+            
             st.session_state.mision_iniciada      = True
             st.session_state.mensajes             = []
             st.session_state.agente_activo        = ag_sel
@@ -1073,32 +1075,32 @@ elif st.session_state.pantalla_actual == "simulador":
             st.session_state.imagenes_activas     = False # el usuario las activa manualmente
             st.rerun()
 
-        # 👇 EL ELIF VUELVE AL MARGEN DEL IF PRINCIPAL (4 espacios) 👇
-        elif st.session_state.evaluacion_actual:
-            st.markdown("<div class='section-label'>INFORME DE EVALUACION TACTICA</div>", unsafe_allow_html=True)
-            st.markdown(st.session_state.evaluacion_actual)
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            col_end1, col_end2 = st.columns(2)
-            
-            with col_end1:
-                if st.button("ARCHIVAR INFORME Y VOLVER AL MENU", use_container_width=True):
-                    st.session_state.mision_iniciada = False
-                    st.session_state.evaluacion_actual = None
-                    st.session_state.mensajes = []
-                    st.session_state.tarjeta_objetivo = None
-                    st.session_state.pantalla_actual = "menu"
-                    st.rerun()
-                    
-            with col_end2:
-                ultima_sesion = st.session_state.historial_sesiones[-1]
-                st.download_button(
-                    label="DESCARGAR DOSSIER PDF",
-                    data=generar_pdf_dossier(ultima_sesion),
-                    file_name=f"CRYSIS_{ultima_sesion['Agente']}_Report.pdf",
-                    mime="application/pdf",
-                    use_container_width=True
-                )
+    # 👇 EL ELIF VUELVE AL MARGEN DEL IF PRINCIPAL (4 espacios) 👇
+    elif st.session_state.evaluacion_actual:
+        st.markdown("<div class='section-label'>INFORME DE EVALUACION TACTICA</div>", unsafe_allow_html=True)
+        st.markdown(st.session_state.evaluacion_actual)
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        col_end1, col_end2 = st.columns(2)
+        
+        with col_end1:
+            if st.button("ARCHIVAR INFORME Y VOLVER AL MENU", use_container_width=True):
+                st.session_state.mision_iniciada = False
+                st.session_state.evaluacion_actual = None
+                st.session_state.mensajes = []
+                st.session_state.tarjeta_objetivo = None
+                st.session_state.pantalla_actual = "menu"
+                st.rerun()
+                
+        with col_end2:
+            ultima_sesion = st.session_state.historial_sesiones[-1]
+            st.download_button(
+                label="DESCARGAR DOSSIER PDF",
+                data=generar_pdf_dossier(ultima_sesion),
+                file_name=f"CRYSIS_{ultima_sesion['Agente']}_Report.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
 
     else:
         dif_sesion = st.session_state.get("dificultad_sesion", "OPERATOR")
@@ -1118,95 +1120,6 @@ elif st.session_state.pantalla_actual == "simulador":
                 <div style="flex:1;"><div style="color:#F0A500; font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">VINCULOS</div><div style="color:#B8C4DC; font-size:0.88rem;">{str(t.get('Familia','N/A'))}</div></div>
                 <div style="flex:1;"><div style="color:#F0A500; font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">ESTADO CLINICO</div><div style="color:#B8C4DC; font-size:0.88rem;">{str(t.get('Estado_Mental','N/A'))}</div></div>
             </div>""", unsafe_allow_html=True)
-# ── CONTROLES INFERIORES ────────────────────────────────
-        col_toggle, col_end, col_abort = st.columns([2, 3, 1])
-
-        with col_toggle:
-            if mi_plan != "BASE":
-                imagenes_on = st.toggle(
-                    "IMÁGENES TÁCTICAS",
-                    value=st.session_state.get("imagenes_activas", False),
-                    key="toggle_imagenes",
-                    help="Activa la generación de imágenes de reconocimiento durante el chat"
-                )
-                if imagenes_on != st.session_state.get("imagenes_activas", False):
-                    st.session_state.imagenes_activas = imagenes_on
-                    st.rerun()
-            else:
-                st.markdown(
-                    "<div style='font-family:var(--mono); font-size:0.5rem; "
-                    "letter-spacing:0.15em; color:#3A4A6A; padding-top:14px;'>"
-                    "IMÁGENES · PLAN DE PAGO</div>",
-                    unsafe_allow_html=True
-                )
-
-        with col_abort:
-            if st.button("ROMPER ENLACE", type="secondary", use_container_width=True):
-                st.session_state.mision_iniciada   = False
-                st.session_state.mensajes          = []
-                st.session_state.tarjeta_objetivo  = None
-                st.session_state.imagenes_activas  = False
-                st.rerun()
-
-        with col_end:
-            if len(st.session_state.mensajes) > 0:
-                if st.button("SOLICITAR EVALUACION TACTICA", use_container_width=True):
-                    with st.spinner("Procesando auditoria lingüística..."):
-                        client    = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
-                        escenario = st.session_state.escenario_activo
-                        info_ev   = TODAS_LAS_MISIONES[escenario]
-                        dif_ev    = st.session_state.get("dificultad_sesion", "OPERATOR")
-                        dif_nivel = DIFICULTADES.get(dif_ev, {}).get("nivel", 2)
-                        hist_txt  = "\n".join([
-                            f"{'OPERADOR' if m['role']=='user' else 'SUJETO'}: {m['content']}"
-                            for m in st.session_state.mensajes
-                        ])
-                        umbral_excelente = {1:85, 2:80, 3:70, 4:60}.get(dif_nivel, 80)
-                        umbral_correcto  = {1:65, 2:55, 3:45, 4:35}.get(dif_nivel, 55)
-                        eval_prompt = f"""Eres un Analista de Inteligencia y Negociación Táctica altamente estricto.
-Evalúa el desempeño del OPERADOR en el escenario: {escenario}.
-Situación: {info_ev['contexto']}.
-Dificultad seleccionada: {dif_ev} (Nivel {dif_nivel}/4).
-
-AJUSTE POR DIFICULTAD:
-- En nivel {dif_ev}, una puntuación de {umbral_excelente} o más es EXCELENTE.
-- Una puntuación de {umbral_correcto}-{umbral_excelente-1} es CORRECTA pero mejorable.
-- Por debajo de {umbral_correcto} es INSUFICIENTE.
-
-TRANSCRIPCION:
-{hist_txt}
-
-REGLAS:
-1. NO regales puntuación por cortesía básica.
-2. Evalúa: control, técnicas de desescalada, resistencia a manipulación, lenguaje estratégico.
-3. Penaliza: ceder sin contrapartida, lenguaje amenazante, pérdida de control emocional.
-
-Estructura: ANALISIS DE LENGUAJE / TACTICAS EMPLEADAS / ERRORES CRITICOS / VEREDICTO / COMO MEJORAR
-
-PUNTUACION FINAL: XX/100"""
-                        informe = client.chat.completions.create(
-                            model="llama-3.3-70b-versatile",
-                            messages=[{"role":"user","content":eval_prompt}]
-                        ).choices[0].message.content
-                        try:
-                            match = re.search(r'PUNTUACI[OÓ]N FINAL[^\d]*(\d+)\s*\/?\s*100', informe, re.IGNORECASE)
-                            nota  = min(int(match.group(1)), 100) if match else (
-                                min(int(re.search(r'(\d+)\s*/\s*100', informe).group(1)), 100)
-                                if re.search(r'(\d+)\s*/\s*100', informe) else 50)
-                        except:
-                            nota = 50
-                        st.session_state.evaluacion_actual = informe
-                        st.session_state.historial_sesiones.append({
-                            "Fecha":         datetime.now().strftime("%Y-%m-%d %H:%M"),
-                            "Agente":        st.session_state.agente_activo,
-                            "Escenario":     escenario,
-                            "Nota":          nota,
-                            "Evaluacion":    informe,
-                            "Transcripcion": st.session_state.mensajes,
-                            "Tipo_Mision":   st.session_state.tipo_mision_actual,
-                            "Dificultad":    dif_ev,
-                        })
-                        guardar_datos(); st.rerun()
 
         # ── IMAGEN BAJO DEMANDA ─────────────────────────────────
         if (st.session_state.get("imagenes_activas", False)
@@ -1284,7 +1197,7 @@ PUNTUACION FINAL: XX/100"""
                 ).choices[0].message.content
                 st.session_state.mensajes.append({"role":"assistant","content":res}); st.rerun()
 
-       # ── CONTROLES INFERIORES ────────────────────────────────
+        # ── CONTROLES INFERIORES ────────────────────────────────
         col_toggle, col_end, col_abort = st.columns([2, 3, 1])
 
         with col_toggle:
@@ -1371,116 +1284,6 @@ PUNTUACION FINAL: XX/100"""
                             "Transcripcion": st.session_state.mensajes,
                             "Tipo_Mision":   st.session_state.tipo_mision_actual,
                             "Dificultad":    dif_ev,
-                        })
-                        guardar_datos(); st.rerun()
-
-        # ── IMAGEN BAJO DEMANDA ─────────────────────────────────
-        if (st.session_state.get("imagenes_activas", False)
-                and mi_plan != "BASE"
-                and st.session_state.mensajes):
-
-            ultimo_msg = st.session_state.mensajes[-1]
-
-            # Detectar si el último mensaje del usuario pide una imagen
-            keywords_imagen = [
-                "imagen", "foto", "satélite", "satelite", "fotografía", "fotografia",
-                "reconocimiento", "visual", "muéstrame", "muestrame", "ver", "mapa",
-                "plano", "vista", "captura", "snapshot", "intel visual"
-            ]
-            es_peticion_imagen = (
-                ultimo_msg["role"] == "user"
-                and any(k in ultimo_msg["content"].lower() for k in keywords_imagen)
-            )
-
-            if es_peticion_imagen:
-                # Extraer contexto adicional del mensaje del usuario
-                contexto_extra = ultimo_msg["content"][:120]
-                url_demanda = generar_url_imagen(
-                    construir_prompt_imagen(
-                        st.session_state.escenario_activo,
-                        st.session_state.tarjeta_objetivo,
-                        contexto_extra=contexto_extra
-                    ),
-                    seed=st.session_state.get("imagen_seed", 42) + len(st.session_state.mensajes),
-                )
-                st.markdown("""
-                <div style="border:1px solid #18213A; border-left:3px solid #4F8EF7;
-                            background:#0B0E1A; padding:10px 14px; margin-top:12px; margin-bottom:6px;">
-                    <div style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.3em;
-                                color:#4F8EF7; margin-bottom:8px;">
-                        ▸ INTELIGENCIA VISUAL — SOLICITUD PROCESADA
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                st.image(url_demanda, use_container_width=True)
-                st.markdown(
-                    "<div style='font-family:var(--mono); font-size:0.48rem; "
-                    "letter-spacing:0.2em; color:#18213A; margin-bottom:16px;'>"
-                    f"REF: SAT-{st.session_state.get('imagen_seed',42) + len(st.session_state.mensajes)}"
-                    f" · {datetime.now().strftime('%H:%M:%S')} · CLASIFICADO</div>",
-                    unsafe_allow_html=True
-                )
-        with col_end:
-            if len(st.session_state.mensajes) > 0:
-                if st.button("SOLICITAR EVALUACION TACTICA", use_container_width=True):
-                    with st.spinner("Procesando auditoria lingüística..."):
-                        client    = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
-                        escenario = st.session_state.escenario_activo
-                        info_ev   = TODAS_LAS_MISIONES[escenario]
-                        dif_ev    = st.session_state.get("dificultad_sesion","OPERATOR")
-                        dif_nivel = DIFICULTADES.get(dif_ev,{}).get("nivel",2)
-                        hist_txt  = "\n".join([f"{'OPERADOR' if m['role']=='user' else 'SUJETO'}: {m['content']}" for m in st.session_state.mensajes])
-
-                        umbral_excelente = {1:85, 2:80, 3:70, 4:60}.get(dif_nivel, 80)
-                        umbral_correcto  = {1:65, 2:55, 3:45, 4:35}.get(dif_nivel, 55)
-
-                        eval_prompt = f"""Eres un Analista de Inteligencia y Negociación Táctica altamente estricto.
-Evalúa el desempeño del OPERADOR en el escenario: {escenario}.
-Situación: {info_ev['contexto']}.
-Dificultad seleccionada: {dif_ev} (Nivel {dif_nivel}/4).
-
-AJUSTE POR DIFICULTAD:
-- En nivel {dif_ev}, una puntuación de {umbral_excelente} o más es EXCELENTE (sujeto muy difícil de manejar).
-- Una puntuación de {umbral_correcto}-{umbral_excelente-1} es CORRECTA pero mejorable.
-- Por debajo de {umbral_correcto} es INSUFICIENTE incluso considerando la dificultad.
-- Penaliza proporcionalmente menos los errores menores en niveles altos.
-
-TRANSCRIPCION:
-{hist_txt}
-
-REGLAS DE EVALUACIÓN:
-1. NO regales puntuación por cortesía básica.
-2. Evalúa: control de la situación, técnicas de desescalada, resistencia a manipulación, lenguaje estratégico.
-3. Penaliza: ceder ante presión sin contrapartida, lenguaje amenazante, pérdida de control emocional.
-
-Estructura tu informe en:
-ANALISIS DE LENGUAJE / TACTICAS EMPLEADAS / ERRORES CRITICOS / VEREDICTO / COMO MEJORAR
-
-PUNTUACION FINAL: XX/100"""
-
-                        informe = client.chat.completions.create(
-                            model="llama-3.3-70b-versatile",
-                            messages=[{"role":"user","content":eval_prompt}]
-                        ).choices[0].message.content
-
-                        try:
-                            match = re.search(r'PUNTUACI[OÓ]N FINAL[^\d]*(\d+)\s*\/?\s*100', informe, re.IGNORECASE)
-                            nota  = min(int(match.group(1)), 100) if match else (
-                                min(int(re.search(r'(\d+)\s*/\s*100', informe).group(1)), 100)
-                                if re.search(r'(\d+)\s*/\s*100', informe) else 50)
-                        except:
-                            nota = 50
-
-                        st.session_state.evaluacion_actual = informe
-                        st.session_state.historial_sesiones.append({
-                            "Fecha":       datetime.now().strftime("%Y-%m-%d %H:%M"),
-                            "Agente":      st.session_state.agente_activo,
-                            "Escenario":   escenario,
-                            "Nota":        nota,
-                            "Evaluacion":  informe,
-                            "Transcripcion": st.session_state.mensajes,
-                            "Tipo_Mision": st.session_state.tipo_mision_actual,
-                            "Dificultad":  dif_ev,
                         })
                         guardar_datos(); st.rerun()
 
