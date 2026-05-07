@@ -780,6 +780,8 @@ if st.session_state.pantalla_actual == "menu":
     mrr = sum(_precios.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
               for e in st.session_state.empleados)
 
+    # --- Definimos las tarjetas como botones de Streamlit ---
+    # Cada elemento: (destino, título, métrica, color)
     tarjetas = [
         ("estadisticas", "ANÁLISIS DE RENDIMIENTO",  f"RENDIMIENTO MEDIO {media_global}%",         "#4F8EF7"),
         ("simulador",    "SIMULADOR TÁCTICO",         f"OPERACIONES ACTIVAS ESTE MES {ops_mes}",     "#00D4A0"),
@@ -790,53 +792,46 @@ if st.session_state.pantalla_actual == "menu":
     if u["Nombre"] == COMANDANTE_SUPREMO:
         tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR", "#F59E0B"))
 
-    # Grid de 3 columnas
+    # --- Grid de 3 columnas con botones estilizados ---
     for fila in range(0, len(tarjetas), 3):
         cols = st.columns(3)
         for i, (destino, titulo, metrica, color) in enumerate(tarjetas[fila:fila+3]):
             with cols[i]:
-                # Tarjeta HTML
-                st.markdown(f"""
-                <div class="card-wrapper">
-                    <div class="dashboard-card colored-card">
-                        <div class="dashboard-card-content">
-                            <div class="dashboard-card-title">{titulo}</div>
-                            <div class="dashboard-card-metric" style="color:{color};">{metrica}</div>
-                        </div>
-                    </div>
-                """, unsafe_allow_html=True)
-                # Botón invisible (label=" " para que no esté vacío del todo)
-                if st.button(" ", key=f"btn_{destino}"):
+                # Creamos un botón con el título y la métrica en el label
+                # Usamos un key único para cada destino
+                if st.button(
+                    label=f"**{titulo}**\n\n{metrica}",
+                    key=f"btn_{destino}",
+                    use_container_width=True,
+                    # No usamos type="primary" para permitir colores personalizados
+                ):
                     st.session_state.pantalla_actual = destino
                     st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
 
-    # CSS para ocultar el botón y posicionarlo sobre la tarjeta
+    # --- CSS para estilizar los botones como tarjetas ---
     st.markdown("""
     <style>
-    .card-wrapper {
-        position: relative;
-        margin-bottom: 20px;
-    }
-    .card-wrapper button {
-        position: absolute !important;
-        inset: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        opacity: 0 !important;
-        z-index: 10 !important;
-        background: transparent !important;
-        border: none !important;
-        border-radius: 0 !important;
+    /* Botón como tarjeta */
+    button[kind] {
+        background: linear-gradient(135deg, #0B0E1A 0%, #0F1425 100%) !important;
+        border: 1px solid var(--border) !important;
+        border-left: 4px solid var(--blue) !important;
+        border-radius: 2px !important;
+        padding: 20px 16px !important;
+        text-align: left !important;
+        line-height: 1.5 !important;
+        transition: all 0.2s ease !important;
         cursor: pointer !important;
-        padding: 0 !important;
-        margin: 0 !important;
+        white-space: normal !important;
+        word-wrap: break-word !important;
     }
-    .card-wrapper button span,
-    .card-wrapper button p,
-    .card-wrapper button [data-testid="stButtonLabel"] {
-        display: none !important;
+    button[kind]:hover {
+        border-color: var(--border2) !important;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
+        transform: translateY(-3px) !important;
     }
+    /* Ocultamos la etiqueta por defecto del botón para mostrar solo nuestro contenido */
+    /* No es necesario ocultar porque usamos el label directamente */
     </style>
     """, unsafe_allow_html=True)
 
