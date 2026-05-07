@@ -576,7 +576,7 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
 @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
 .sys-status-val { color: var(--text); font-weight: 600; }
 
-/* ── MODULE CARDS (clickable) ── */
+/* ── MODULE CARDS ── */
 .module-card {
   background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
   border: 1px solid var(--border); border-radius: 3px; padding: 0;
@@ -606,17 +606,6 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
 .module-card.primary:hover .module-arrow { color: var(--blue); }
 .module-card.danger:hover  .module-arrow { color: var(--red); }
 .module-card.gold:hover    .module-arrow { color: var(--amber); }
-
-/* Invisible click overlay button ON TOP of card */
-.card-click-btn { position: relative; }
-.card-click-btn .stButton > button {
-  position: absolute !important; top: 0 !important; left: 0 !important;
-  width: 100% !important; height: 100% !important;
-  opacity: 0 !important; z-index: 20 !important;
-  cursor: pointer !important; background: transparent !important;
-  border: none !important; border-radius: 3px !important;
-  min-height: 220px !important;
-}
 
 /* ── SECTION HEADERS ── */
 .section-header { padding: 28px 0 22px 0; border-bottom: 1px solid var(--border); margin-bottom: 32px; display: flex; align-items: flex-end; justify-content: space-between; position: relative; }
@@ -719,7 +708,7 @@ button[kind="secondary"]:hover { border-color: var(--blue) !important; color: va
 .tac-badge.secure { background: rgba(0,212,160,0.1); color: var(--green); border: 1px solid rgba(0,212,160,0.2); }
 .tac-badge.red    { background: rgba(232,57,74,0.1);  color: var(--red);   border: 1px solid rgba(232,57,74,0.2); }
 
-/* Tactical map placeholder */
+/* Tactical map */
 .tac-map {
   background: linear-gradient(135deg, #050812, #080D1A);
   border: 1px solid var(--border2);
@@ -731,14 +720,6 @@ button[kind="secondary"]:hover { border-color: var(--blue) !important; color: va
   display: flex;
   align-items: center;
   justify-content: center;
-}
-.tac-map::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(79,142,247,0.04) 20px, rgba(79,142,247,0.04) 21px),
-    repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(79,142,247,0.04) 20px, rgba(79,142,247,0.04) 21px);
 }
 .tac-map-ping {
   width: 12px; height: 12px;
@@ -753,15 +734,6 @@ button[kind="secondary"]:hover { border-color: var(--blue) !important; color: va
   70%  { box-shadow: 0 0 0 16px rgba(232,57,74,0); }
   100% { box-shadow: 0 0 0 0 rgba(232,57,74,0); }
 }
-.tac-map-label {
-  position: absolute;
-  bottom: 6px; right: 8px;
-  font-family: var(--mono);
-  font-size: 0.42rem;
-  color: var(--text-lo);
-  letter-spacing: 0.1em;
-  z-index: 2;
-}
 .tac-obj {
   font-family: var(--mono);
   font-size: 0.52rem;
@@ -774,11 +746,6 @@ button[kind="secondary"]:hover { border-color: var(--blue) !important; color: va
 }
 .tac-obj-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
 .tac-obj-dot.pending { background: var(--text-lo); }
-
-/* ── OPERATOR QUICK BUTTONS ── */
-.op-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
-.op-btn { background: rgba(79,142,247,0.06); border: 1px solid var(--border2); border-radius: 2px; padding: 8px 10px; font-family: var(--mono); font-size: 0.46rem; letter-spacing: 0.08em; color: var(--text-lo); cursor: pointer; transition: all 0.15s; text-align: center; }
-.op-btn:hover { background: rgba(79,142,247,0.12); border-color: var(--blue); color: var(--blue); }
 
 /* ── SUBJECT DIAGNOSTICS ── */
 .diag-panel { background: linear-gradient(135deg, var(--bg2), var(--bg3)); border: 1px solid var(--border); border-radius: 3px; padding: 16px; }
@@ -814,6 +781,9 @@ button[kind="secondary"]:hover { border-color: var(--blue) !important; color: va
 /* Plan cards */
 .plan-card { border: 1px solid var(--border); background: var(--bg3); border-radius: 3px; padding: 12px 14px; margin-bottom: 6px; cursor: pointer; transition: all 0.15s; }
 .plan-card:hover { border-color: var(--border2); }
+
+/* Alerta roja animada */
+@keyframes border-pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 </style>
 """, unsafe_allow_html=True)
 
@@ -856,6 +826,7 @@ defaults = {
     "show_avatar_menu": False,
     "diagnostico_sujeto": None,
     "quick_msg": None,
+    "grid_id": random.randint(100, 999),
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -1652,19 +1623,22 @@ elif st.session_state.pantalla_actual == "expedientes":
         st.markdown(f"<div style='text-align:center; padding:60px; color:var(--text-lo); font-family:var(--mono);'>{t('empty_dir')}</div>", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────
-# SIMULADOR TÁCTICO v3 — REDISEÑO VISUAL (3 COLUMNAS)
+# SIMULADOR TÁCTICO v3
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "simulador":
 
-    # ── LÓGICA DE ALERTA ROJA (CSS DINÁMICO) ──
-    agitacion_actual = st.session_state.get("diagnostico_sujeto", {}).get("agitation", 0)
-    if agitacion_actual > 85:
-        st.markdown("""<style>
-            .stApp { border: 4px solid #E8394A; animation: border-pulse 1s infinite; }
-            @keyframes border-pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-        </style>""", unsafe_allow_html=True)
+    # ── FIX BUG 1: Manejo seguro de diagnostico_sujeto que puede ser None ──
+    _diag_raw = st.session_state.get("diagnostico_sujeto")
+    diag_global = _diag_raw if isinstance(_diag_raw, dict) else {}
 
-    # Solo mostramos el header si NO estamos en plena misión (evita la caja estancada arriba)
+    # Alerta roja solo si hay misión activa y diagnostico real
+    if st.session_state.mision_iniciada and diag_global:
+        agitacion_actual = diag_global.get("agitation", 0)
+        if agitacion_actual > 85:
+            st.markdown("""<style>
+                .stApp { border: 4px solid #E8394A; animation: border-pulse 1s infinite; }
+            </style>""", unsafe_allow_html=True)
+
     if not st.session_state.mision_iniciada and not st.session_state.evaluacion_actual:
         st.markdown(f"<div class='section-header'><div><div class='section-code'>{t('sim_code')}</div><div class='section-title'>{t('sim_title')}</div></div></div>", unsafe_allow_html=True)
 
@@ -1676,6 +1650,7 @@ elif st.session_state.pantalla_actual == "simulador":
                 <span>PARÁMETROS DE DESPLIEGUE</span>
                 <span class="tac-badge amber">PRE-FLIGHT</span>
             </div>
+        </div>
         """, unsafe_allow_html=True)
 
         c1, c2 = st.columns(2)
@@ -1688,7 +1663,7 @@ elif st.session_state.pantalla_actual == "simulador":
         es_sel = c2.selectbox(t("select_proto"), list(TODAS_LAS_MISIONES.keys()))
 
         st.markdown(f"<div style='font-family:var(--mono); font-size:0.5rem; letter-spacing:0.2em; color:var(--blue); margin: 20px 0 10px 0; border-bottom: 1px solid var(--border); padding-bottom: 5px;'>{t('difficulty').upper()}</div>", unsafe_allow_html=True)
-        
+
         d_cols = st.columns(4)
         for i, (d_nombre, d_data) in enumerate(DIFICULTADES.items()):
             with d_cols[i]:
@@ -1705,8 +1680,6 @@ elif st.session_state.pantalla_actual == "simulador":
                 if st.button(f"{'▶ ' if is_sel_d else ''}{d_nombre}", key=f"diff_{d_nombre}", use_container_width=True):
                     st.session_state.dificultad_actual = d_nombre; st.rerun()
 
-        st.markdown("</div>", unsafe_allow_html=True)
-
         if u.get("Rol") == "Agente":
             tipo_despliegue = st.radio(t("privacy_level"), [t("official_mission"), t("private_training")], horizontal=True)
             tipo_mision_val = "Corporativa" if t("official_mission") in tipo_despliegue else "Personal"
@@ -1716,9 +1689,9 @@ elif st.session_state.pantalla_actual == "simulador":
         info = TODAS_LAS_MISIONES[es_sel]
         dif_activa = st.session_state.dificultad_actual
         dif_color  = DIFICULTADES[dif_activa]["color"]
-        
+
         st.markdown(f"""
-        <div class="tac-panel" style="border-left: 4px solid var(--blue); min-height: auto; margin-bottom: 24px;">
+        <div class="tac-panel" style="border-left: 4px solid var(--blue); min-height: auto; margin-bottom: 24px; margin-top: 16px;">
             <div style="font-family:var(--mono); font-size:0.55rem; letter-spacing:0.2em; color:var(--blue); margin-bottom:14px;">{t('situation_report').upper()}</div>
             <p style="margin-bottom: 8px; font-size: 0.9rem;"><b>{t('context')}</b> <span style="color:var(--text-lo);">{info['contexto']}</span></p>
             <p style="margin-bottom: 8px; font-size: 0.9rem;"><b>{t('target_profile')}</b> <span style="color:var(--text-lo);">{info['perfil_sujeto']}</span></p>
@@ -1754,6 +1727,7 @@ elif st.session_state.pantalla_actual == "simulador":
                         st.session_state.tarjeta_objetivo = json.loads(res)
                     except:
                         st.session_state.tarjeta_objetivo = {"Nombre_Completo":"Desconocido","Familia":"Clasificado","Estado_Mental":"Inestable"}
+            # FIX: Resetear diagnostico_sujeto a None limpiamente
             st.session_state.mision_iniciada    = True
             st.session_state.mensajes           = []
             st.session_state.agente_activo      = ag_sel
@@ -1762,6 +1736,7 @@ elif st.session_state.pantalla_actual == "simulador":
             st.session_state.dificultad_sesion  = dif_activa
             st.session_state.diagnostico_sujeto = None
             st.session_state.quick_msg          = None
+            st.session_state.grid_id            = random.randint(100, 999)
             st.rerun()
 
     # ── PANTALLA EVALUACION FINAL ──
@@ -1799,8 +1774,29 @@ elif st.session_state.pantalla_actual == "simulador":
 
         col_left, col_center, col_right = st.columns([1, 1.6, 1], gap="small")
 
-        # ── COLUMNA 1: CONTEXTO TÁCTICO Y BLUEPRINT ──
+        # ── COLUMNA 1: CONTEXTO TÁCTICO ──
         with col_left:
+            # Pre-calcular valores para el mapa (FIX: sin random dentro del f-string)
+            grid_id = st.session_state.get("grid_id", 999)
+            ping_left = 50
+            ping_top  = 50
+            n_msgs    = len(st.session_state.mensajes)
+            obj2_class = "tac-obj-dot" if n_msgs >= 4 else "tac-obj-dot pending"
+
+            # Intel data
+            intel_html = ""
+            if st.session_state.tarjeta_objetivo:
+                t2 = st.session_state.tarjeta_objetivo
+                intel_html = f"""
+                <div style="font-family:var(--mono); font-size:0.48rem; color:var(--text-lo); line-height:1.8; margin-top:10px;">
+                    <div><span style="color:var(--amber);">{t('identification').upper()}</span></div>
+                    <div style="color:var(--text-hi);">{str(t2.get('Nombre_Completo','N/A'))}</div>
+                    <div style="margin-top:6px;"><span style="color:var(--amber);">{t('links').upper()}</span></div>
+                    <div>{str(t2.get('Familia','N/A'))}</div>
+                    <div style="margin-top:6px;"><span style="color:var(--amber);">{t('clinical_state').upper()}</span></div>
+                    <div>{str(t2.get('Estado_Mental','N/A'))}</div>
+                </div>"""
+
             st.markdown(f"""
             <div class="tac-panel">
                 <div class="tac-panel-header">
@@ -1809,8 +1805,8 @@ elif st.session_state.pantalla_actual == "simulador":
                 </div>
                 <div style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.15em; color:var(--text-lo); margin-bottom:8px;">{t('active_negotiation')}</div>
                 <div style="font-family:var(--cond); font-size:0.95rem; font-weight:700; color:var(--text-hi); margin-bottom:16px;">{escenario_a.replace('OPERACION: ','')}</div>
-                
-                <div class="tac-map" style="height:160px; background:#050812; border:1px solid var(--border); position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; margin-bottom:14px;">
+
+                <div class="tac-map">
                     <svg width="100%" height="100%" style="position:absolute; opacity:0.3;">
                         <defs>
                             <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -1820,39 +1816,24 @@ elif st.session_state.pantalla_actual == "simulador":
                         <rect width="100%" height="100%" fill="url(#grid)" />
                         <path d="M20,20 L180,20 L180,120 L20,120 Z M60,60 L140,60 M60,90 L140,90" stroke="#4F8EF7" stroke-width="1" fill="none"/>
                     </svg>
-                    <div style="width:10px; height:10px; background:var(--red); border-radius:50%; box-shadow:0 0 10px var(--red); animation: pulse-dot 1.5s infinite; position:absolute; left:{random.randint(40,60)}%; top:{random.randint(40,60)}%;"></div>
-                    <div style="position:absolute; bottom:6px; right:8px; font-family:var(--mono); font-size:0.42rem; color:var(--text-lo);">GRID: {escenario_a[:3].upper()}-{random.randint(100,999) if not st.session_state.get('grid_id') else st.session_state.grid_id}</div>
+                    <div style="width:10px; height:10px; background:var(--red); border-radius:50%; box-shadow:0 0 10px var(--red); animation: radar-ping 1.5s infinite; position:absolute; left:{ping_left}%; top:{ping_top}%; z-index:2;"></div>
+                    <div style="position:absolute; bottom:6px; right:8px; font-family:var(--mono); font-size:0.42rem; color:var(--text-lo); z-index:2;">GRID: {escenario_a[:3].upper()}-{grid_id}</div>
                 </div>
 
                 <div style="margin-bottom:12px;">
                     <div class="tac-obj"><div class="tac-obj-dot"></div>{t('obj1')}</div>
-                    <div class="tac-obj"><div class="tac-obj-dot {'pending' if len(st.session_state.mensajes) < 4 else ''}"></div>{t('obj2')}</div>
+                    <div class="tac-obj"><div class="{obj2_class}"></div>{t('obj2')}</div>
                     <div class="tac-obj"><div class="tac-obj-dot pending"></div>{t('obj3')}</div>
                 </div>
+
                 <div style="font-family:var(--mono); font-size:0.44rem; letter-spacing:0.15em; color:var(--blue); margin-bottom:8px; border-top:1px solid var(--border); padding-top:10px;">INTEL</div>
-            """, unsafe_allow_html=True)
+                {intel_html}
 
-            if st.session_state.tarjeta_objetivo:
-                t2 = st.session_state.tarjeta_objetivo
-                st.markdown(f"""
-                <div style="font-family:var(--mono); font-size:0.48rem; color:var(--text-lo); line-height:1.8;">
-                    <div><span style="color:var(--amber);">{t('identification').upper()}</span></div>
-                    <div style="color:var(--text-hi);">{str(t2.get('Nombre_Completo','N/A'))}</div>
-                    <div style="margin-top:6px;"><span style="color:var(--amber);">{t('links').upper()}</span></div>
-                    <div>{str(t2.get('Familia','N/A'))}</div>
-                    <div style="margin-top:6px;"><span style="color:var(--amber);">{t('clinical_state').upper()}</span></div>
-                    <div>{str(t2.get('Estado_Mental','N/A'))}</div>
-                </div>
-                """, unsafe_allow_html=True)
-
-            st.markdown(f"""
-                <div style="margin-top:14px;">
-                    <div style="font-family:var(--mono); font-size:0.44rem; letter-spacing:0.15em; color:var(--blue); margin-bottom:8px; border-top:1px solid var(--border); padding-top:10px;">{t('operator_controls')}</div>
-                </div>
+                <div style="margin-top:14px; font-family:var(--mono); font-size:0.44rem; letter-spacing:0.15em; color:var(--blue); border-top:1px solid var(--border); padding-top:10px;">{t('operator_controls')}</div>
             </div>
             """, unsafe_allow_html=True)
 
-            # Botones Rápidos (Modo Comando)
+            # Botones Rápidos
             b1, b2 = st.columns(2)
             with b1:
                 if st.button(t("btn_contact"), key="qb1", use_container_width=True, type="secondary"):
@@ -1865,46 +1846,43 @@ elif st.session_state.pantalla_actual == "simulador":
                 if st.button(t("btn_crisis"), key="qb4", use_container_width=True, type="secondary"):
                     st.session_state.quick_msg = t("quick_crisis"); st.rerun()
 
-        # ── COLUMNA 2: CHAT Y ALIMENTACIÓN DE COMUNICACIONES ──
+        # ── COLUMNA 2: CHAT ──
         with col_center:
             st.markdown(f"""
-            <div style="background:linear-gradient(135deg,var(--bg2),var(--bg3)); border:1px solid var(--border); border-radius:3px; padding:16px; min-height:520px; display:flex; flex-direction:column;">
+            <div style="background:linear-gradient(135deg,var(--bg2),var(--bg3)); border:1px solid var(--border); border-radius:3px; padding:16px; min-height:520px;">
                 <div class="tac-panel-header">
                     <span>{t('live_feed')}</span>
                     <span class="tac-badge red">{t('diff_short')} {dif_sesion}</span>
                 </div>
+            </div>
             """, unsafe_allow_html=True)
 
             # Render de mensajes
-            chat_container = st.container()
-            with chat_container:
-                for m in st.session_state.mensajes:
-                    label  = t("operator_short")[:-1] if m["role"] == "user" else "SUJETO"
-                    bubble_class = "user" if m["role"] == "user" else "assistant"
-                    role_color = "var(--blue)" if m["role"] == "user" else "var(--red)"
-                    st.markdown(f"""
-                    <div class="chat-msg {bubble_class}">
-                        <div class="chat-bubble {bubble_class}">
-                            <div class="chat-role" style="color:{role_color};">{label}</div>
-                            <div class="chat-text">{m['content']}</div>
-                        </div>
-                    </div>""", unsafe_allow_html=True)
+            for m in st.session_state.mensajes:
+                label  = t("operator_short")[:-1] if m["role"] == "user" else "SUJETO"
+                bubble_class = "user" if m["role"] == "user" else "assistant"
+                role_color = "var(--blue)" if m["role"] == "user" else "var(--red)"
+                st.markdown(f"""
+                <div class="chat-msg {bubble_class}">
+                    <div class="chat-bubble {bubble_class}">
+                        <div class="chat-role" style="color:{role_color};">{label}</div>
+                        <div class="chat-text">{m['content']}</div>
+                    </div>
+                </div>""", unsafe_allow_html=True)
 
-            st.markdown("</div>", unsafe_allow_html=True)
-
-            # Input de usuario
+            # Input
             if prompt := st.chat_input(t("chat_placeholder")):
                 st.session_state.mensajes.append({"role":"user","content":prompt})
                 st.session_state.quick_msg = None
                 st.rerun()
 
-            # Botones de control inferiores
+            # Botones de control
             col_abort, col_eval = st.columns([1, 2])
             with col_abort:
                 if st.button(t("break_link"), type="secondary", use_container_width=True):
-                    st.session_state.mision_iniciada  = False
-                    st.session_state.mensajes         = []
-                    st.session_state.tarjeta_objetivo = None
+                    st.session_state.mision_iniciada    = False
+                    st.session_state.mensajes           = []
+                    st.session_state.tarjeta_objetivo   = None
                     st.session_state.diagnostico_sujeto = None
                     st.rerun()
             with col_eval:
@@ -1953,25 +1931,29 @@ PUNTUACIÓN FINAL: XX/100"""
                             })
                             guardar_datos(); st.rerun()
 
-        # ── COLUMNA 3: DIAGNÓSTICO DEL SUJETO (RENDER CSS) ──
+        # ── COLUMNA 3: DIAGNÓSTICO DEL SUJETO ──
         with col_right:
-            msgs = st.session_state.mensajes
-            last_assistant = next((m["content"] for m in reversed(msgs) if m["role"] == "assistant"), None)
+            msgs   = st.session_state.mensajes
             n_msgs = len(msgs)
             n_asst = sum(1 for m in msgs if m["role"] == "assistant")
+            last_assistant = next((m["content"] for m in reversed(msgs) if m["role"] == "assistant"), None)
+
             dif_nivel_s = DIFICULTADES.get(dif_sesion, {}).get("nivel", 2)
             base_tension = {1: 20, 2: 45, 3: 65, 4: 85}.get(dif_nivel_s, 45)
 
-            # Lógica de Diagnóstico IA en segundo plano
-            diag = st.session_state.get("diagnostico_sujeto") or {}
-            agitation_val   = diag.get("agitation", min(base_tension + random.randint(-5,5), 100))
-            index_val       = diag.get("index",     min(50 + random.randint(-10,10), 100))
-            high_val        = diag.get("high",      min(base_tension + random.randint(0,15), 100))
-            receptivity_val = diag.get("receptivity", max(100 - base_tension + random.randint(-10,10), 0))
-            rating_val      = diag.get("rating",    max(100 - base_tension + random.randint(-5,5), 0))
-            compliance_val  = diag.get("compliance", max(100 - base_tension + random.randint(-15,5), 0))
-            latency_val     = diag.get("latency",   random.randint(20,80))
+            # FIX BUG 1: Acceso seguro a diagnostico_sujeto
+            _diag_raw = st.session_state.get("diagnostico_sujeto")
+            diag = _diag_raw if isinstance(_diag_raw, dict) else {}
 
+            agitation_val   = diag.get("agitation",   min(base_tension + 3, 100))
+            index_val       = diag.get("index",        min(50, 100))
+            high_val        = diag.get("high",         min(base_tension + 8, 100))
+            receptivity_val = diag.get("receptivity",  max(100 - base_tension, 0))
+            rating_val      = diag.get("rating",       max(100 - base_tension, 0))
+            compliance_val  = diag.get("compliance",   max(100 - base_tension, 0))
+            latency_val     = diag.get("latency",      50)
+
+            # Llamada IA para diagnóstico (en background)
             if last_assistant and GROQ_API_KEY and n_asst > 0:
                 diag_key = f"diag_msg_{n_asst}"
                 if not st.session_state.get(diag_key):
@@ -1988,6 +1970,7 @@ Dificultad: Nivel {dif_nivel_s}/4."""
                             max_tokens=200
                         ).choices[0].message.content
                         new_diag = json.loads(diag_res)
+                        # FIX: Guardar siempre un dict, nunca None
                         st.session_state.diagnostico_sujeto = new_diag
                         st.session_state[diag_key] = True
                         agitation_val   = new_diag.get("agitation",   agitation_val)
@@ -1997,7 +1980,8 @@ Dificultad: Nivel {dif_nivel_s}/4."""
                         rating_val      = new_diag.get("rating",      rating_val)
                         compliance_val  = new_diag.get("compliance",  compliance_val)
                         latency_val     = new_diag.get("latency",     latency_val)
-                    except:
+                    except Exception:
+                        # FIX: No cambiar diagnostico_sujeto si falla, dejarlo como está
                         pass
 
             mean_tension = (agitation_val + high_val) / 2
@@ -2014,35 +1998,57 @@ Dificultad: Nivel {dif_nivel_s}/4."""
             def bar_color(val): return "#E8394A" if val >= 70 else ("#F0A500" if val >= 40 else "#00D4A0")
             def bar_color_pos(val): return "#00D4A0" if val >= 70 else ("#F0A500" if val >= 40 else "#E8394A")
 
-            # Render de las barras del panel derecho (HTML/CSS)
+            # FIX: Extraer color RGB para el badge de forma segura
+            sc_r = int(status_color[1:3], 16)
+            sc_g = int(status_color[3:5], 16)
+            sc_b = int(status_color[5:7], 16)
+
             st.markdown(f"""
             <div class="diag-panel">
                 <div class="tac-panel-header">
                     <span>{t('subject_diag')}</span>
-                    <span class="tac-badge" style="background:rgba({int(status_color[1:3],16)},{int(status_color[3:5],16)},{int(status_color[5:7],16)},0.1); color:{status_color}; border:1px solid {status_color}40;">LIVE</span>
+                    <span class="tac-badge" style="background:rgba({sc_r},{sc_g},{sc_b},0.1); color:{status_color}; border:1px solid {status_color}40;">LIVE</span>
                 </div>
 
                 <div class="diag-section">
                     <div class="diag-label">{t('emotional_state')}</div>
-                    <div class="diag-metric-row"><span class="diag-metric-name">Agitation</span><span class="diag-metric-val" style="color:{bar_color(agitation_val)};">{agitation_val}%</span></div>
+                    <div class="diag-metric-row">
+                        <span class="diag-metric-name">Agitation</span>
+                        <span class="diag-metric-val" style="color:{bar_color(agitation_val)};">{agitation_val}%</span>
+                    </div>
                     <div class="diag-status-bar"><div class="diag-status-fill" style="width:{agitation_val}%; background:{bar_color(agitation_val)};"></div></div>
-                    <div class="diag-metric-row" style="margin-top:6px;"><span class="diag-metric-name">Index</span><span class="diag-metric-val" style="color:{bar_color(index_val)};">{index_val}%</span></div>
+                    <div class="diag-metric-row" style="margin-top:6px;">
+                        <span class="diag-metric-name">Index</span>
+                        <span class="diag-metric-val" style="color:{bar_color(index_val)};">{index_val}%</span>
+                    </div>
                     <div class="diag-status-bar"><div class="diag-status-fill" style="width:{index_val}%; background:{bar_color(index_val)};"></div></div>
-                    <div class="diag-metric-row" style="margin-top:6px;"><span class="diag-metric-name">High</span><span class="diag-metric-val" style="color:{bar_color(high_val)};">{high_val}%</span></div>
+                    <div class="diag-metric-row" style="margin-top:6px;">
+                        <span class="diag-metric-name">High</span>
+                        <span class="diag-metric-val" style="color:{bar_color(high_val)};">{high_val}%</span>
+                    </div>
                     <div class="diag-status-bar"><div class="diag-status-fill" style="width:{high_val}%; background:{bar_color(high_val)};"></div></div>
                 </div>
 
                 <div class="diag-section">
                     <div class="diag-label">{t('response_latency')}</div>
-                    <div class="diag-metric-row"><span class="diag-metric-name">Receptiveness</span><span class="diag-metric-val" style="color:{bar_color_pos(receptivity_val)};">{receptivity_val}%</span></div>
+                    <div class="diag-metric-row">
+                        <span class="diag-metric-name">Receptiveness</span>
+                        <span class="diag-metric-val" style="color:{bar_color_pos(receptivity_val)};">{receptivity_val}%</span>
+                    </div>
                     <div class="diag-status-bar"><div class="diag-status-fill" style="width:{receptivity_val}%; background:{bar_color_pos(receptivity_val)};"></div></div>
-                    <div class="diag-metric-row" style="margin-top:6px;"><span class="diag-metric-name">Rating</span><span class="diag-metric-val" style="color:{bar_color_pos(rating_val)};">{rating_val}%</span></div>
+                    <div class="diag-metric-row" style="margin-top:6px;">
+                        <span class="diag-metric-name">Rating</span>
+                        <span class="diag-metric-val" style="color:{bar_color_pos(rating_val)};">{rating_val}%</span>
+                    </div>
                     <div class="diag-status-bar"><div class="diag-status-fill" style="width:{rating_val}%; background:{bar_color_pos(rating_val)};"></div></div>
                 </div>
 
                 <div class="diag-section">
                     <div class="diag-label">{t('compliance_trend')}</div>
-                    <div class="diag-metric-row"><span class="diag-metric-name">Compromise Extent</span><span class="diag-metric-val" style="color:{bar_color_pos(compliance_val)};">{compliance_val}%</span></div>
+                    <div class="diag-metric-row">
+                        <span class="diag-metric-name">Compromise Extent</span>
+                        <span class="diag-metric-val" style="color:{bar_color_pos(compliance_val)};">{compliance_val}%</span>
+                    </div>
                     <div class="diag-status-bar"><div class="diag-status-fill" style="width:{compliance_val}%; background:{bar_color_pos(compliance_val)};"></div></div>
                 </div>
 
@@ -2065,7 +2071,7 @@ Dificultad: Nivel {dif_nivel_s}/4."""
             </div>
             """, unsafe_allow_html=True)
 
-        # ── LLAMADA A LA IA DEL SUJETO ──
+        # ── LLAMADA IA DEL SUJETO ──
         if st.session_state.mensajes and st.session_state.mensajes[-1]["role"] == "user":
             if GROQ_API_KEY:
                 with st.spinner(t("ai_engine")):
