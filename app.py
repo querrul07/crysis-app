@@ -729,7 +729,7 @@ if st.session_state.pantalla_actual != "menu":
     col_top1, col_top2 = st.columns([8, 1])
     with col_top1:
         pantalla = st.session_state.pantalla_actual
-                nombres_pantalla = {"estadisticas": "ESTADÍSTICAS", "personal": "AGENTES", "expedientes": "EXPEDIENTES",
+        nombres_pantalla = {"estadisticas": "ESTADÍSTICAS", "personal": "AGENTES", "expedientes": "EXPEDIENTES",
                             "simulador": "SIMULADOR", "sintesis": "SÍNTESIS IA", "admin": "ADMINISTRACIÓN", "cuenta": "CUENTA"}
         back_label = f"/ {nombres_pantalla.get(pantalla, pantalla.upper())}" if pantalla != "menu" else ""
         st.markdown(f"""
@@ -747,6 +747,8 @@ if st.session_state.pantalla_actual != "menu":
         if st.button("SALIR", key="btn_logout", type="secondary"):
             st.session_state.usuario_actual = None; st.session_state.login_step = 1; st.session_state.pantalla_actual = "menu"; st.rerun()
 
+def ir_a(p):
+    st.session_state.pantalla_actual = p; st.rerun()
 # ─────────────────────────────────────────
 # MENÚ PRINCIPAL — TARJETAS CON COLOR, SIN BOTONES, SIN RECARGAR SESIÓN
 # ─────────────────────────────────────────
