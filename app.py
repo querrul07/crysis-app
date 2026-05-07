@@ -762,7 +762,7 @@ if st.session_state.pantalla_actual == "menu":
     </div>
     """, unsafe_allow_html=True)
 
-    # Métricas reales (exactamente igual que antes)
+    # Métricas reales
     total_ops    = len(historial_visible)
     media_global = int(sum(s["Nota"] for s in historial_visible) / total_ops) if total_ops > 0 else 0
     mes_actual   = datetime.now().strftime("%Y-%m")
@@ -780,7 +780,6 @@ if st.session_state.pantalla_actual == "menu":
     mrr = sum(_precios.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
               for e in st.session_state.empleados)
 
-    # Tarjetas con su color característico
     tarjetas = [
         ("estadisticas", "ANÁLISIS DE RENDIMIENTO",  f"RENDIMIENTO MEDIO {media_global}%",         "#4F8EF7"),
         ("simulador",    "SIMULADOR TÁCTICO",         f"OPERACIONES ACTIVAS ESTE MES {ops_mes}",     "#00D4A0"),
@@ -791,62 +790,57 @@ if st.session_state.pantalla_actual == "menu":
     if u["Nombre"] == COMANDANTE_SUPREMO:
         tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR", "#F59E0B"))
 
-    # Mostrar en grid 3×2
+    # Grid de 3 columnas
     for fila in range(0, len(tarjetas), 3):
         cols = st.columns(3)
         for i, (destino, titulo, metrica, color) in enumerate(tarjetas[fila:fila+3]):
             with cols[i]:
+                # Tarjeta HTML
                 st.markdown(f"""
-                <a href="?menu={destino}" style="text-decoration: none;">
+                <div class="card-wrapper">
                     <div class="dashboard-card colored-card">
                         <div class="dashboard-card-content">
                             <div class="dashboard-card-title">{titulo}</div>
                             <div class="dashboard-card-metric" style="color:{color};">{metrica}</div>
                         </div>
                     </div>
-                </a>
                 """, unsafe_allow_html=True)
+                # Botón invisible (label=" " para que no esté vacío del todo)
+                if st.button(" ", key=f"btn_{destino}"):
+                    st.session_state.pantalla_actual = destino
+                    st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
 
-    # Estilos para las tarjetas (solo se inyectan en el menú)
+    # CSS para ocultar el botón y posicionarlo sobre la tarjeta
     st.markdown("""
     <style>
-    .colored-card {
+    .card-wrapper {
         position: relative;
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        background: linear-gradient(135deg, #0B0E1A 0%, #0F1425 100%);
-        border: 1px solid var(--border);
-        border-radius: 2px;
-        padding: 24px;
-        transition: all 0.2s ease;
-        height: 140px;
-        cursor: pointer;
-        overflow: hidden;
         margin-bottom: 20px;
     }
-    .colored-card:hover {
-        border-color: var(--border2);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-        transform: translateY(-3px);
+    .card-wrapper button {
+        position: absolute !important;
+        inset: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        opacity: 0 !important;
+        z-index: 10 !important;
+        background: transparent !important;
+        border: none !important;
+        border-radius: 0 !important;
+        cursor: pointer !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
-    .colored-card::before {
-        content: '';
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: var(--border);
-        transition: background 0.2s ease;
-        flex-shrink: 0;
-    }
-    .colored-card:hover::before {
-        background: var(--blue);
+    .card-wrapper button span,
+    .card-wrapper button p,
+    .card-wrapper button [data-testid="stButtonLabel"] {
+        display: none !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
     st.stop()
-
 # ESTADÍSTICAS
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "estadisticas":
