@@ -714,7 +714,7 @@ else:
     agentes_de_mi_empresa = [u["Nombre"]]
 
 mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items()
-                  if v.get("Creador") == empresa_actual or u["Nombre"] == COMANDANTE_SUPREMO}
+                  if v.get("Creador") == empresa_actual}
 TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **mis_escenarios}
 
 # ─────────────────────────────────────────
