@@ -15,6 +15,22 @@ from supabase import create_client, Client
 import base64
 
 # ─────────────────────────────────────────
+# HORA ESPAÑA
+# ─────────────────────────────────────────
+def hora_espana():
+    try:
+        import zoneinfo
+        tz = zoneinfo.ZoneInfo("Europe/Madrid")
+        return datetime.now(tz)
+    except Exception:
+        try:
+            import pytz
+            tz = pytz.timezone("Europe/Madrid")
+            return datetime.now(tz)
+        except Exception:
+            return datetime.now()
+
+# ─────────────────────────────────────────
 # CONFIGURACIÓN DE SUPERUSUARIO
 # ─────────────────────────────────────────
 COMANDANTE_SUPREMO = "CRYSIS"
@@ -26,11 +42,11 @@ LINKS_PAGO = {
 }
 
 PLANES_INFO = {
-    "BASE":        {"precio": "0€",     "desc": "Individual · 1 op/mes · sin IA",        "ops": 1,     "escenarios": 0,     "agentes": 0,     "elite": False},
-    "OPERADOR":    {"precio": "19€/mes","desc": "Individual · 10 ops/mes · 3 escenarios", "ops": 10,    "escenarios": 3,     "agentes": 0,     "elite": False},
-    "ELITE":       {"precio": "49€/mes","desc": "Individual · ilimitado · IA sin límite", "ops": 99999, "escenarios": 99999, "agentes": 0,     "elite": True},
-    "ESCUADRON":   {"precio": "89€/mes","desc": "Equipo · ilimitado · 15 agentes",        "ops": 99999, "escenarios": 99999, "agentes": 15,    "elite": True},
-    "COMANDANCIA": {"precio": "199€/mes","desc": "Enterprise · ilimitado · ∞ agentes",   "ops": 99999, "escenarios": 99999, "agentes": 99999, "elite": True},
+    "BASE":        {"precio": "0€",      "desc": "Individual · 1 op/mes · sin IA",        "ops": 1,     "escenarios": 0,     "agentes": 0,     "elite": False},
+    "OPERADOR":    {"precio": "19€/mes", "desc": "Individual · 10 ops/mes · 3 escenarios", "ops": 10,    "escenarios": 3,     "agentes": 0,     "elite": False},
+    "ELITE":       {"precio": "49€/mes", "desc": "Individual · ilimitado · IA sin límite", "ops": 99999, "escenarios": 99999, "agentes": 0,     "elite": True},
+    "ESCUADRON":   {"precio": "89€/mes", "desc": "Equipo · ilimitado · 15 agentes",        "ops": 99999, "escenarios": 99999, "agentes": 15,    "elite": True},
+    "COMANDANCIA": {"precio": "199€/mes","desc": "Enterprise · ilimitado · ∞ agentes",     "ops": 99999, "escenarios": 99999, "agentes": 99999, "elite": True},
 }
 
 DIFICULTADES = {
@@ -86,7 +102,7 @@ T = {
         "difficulty": "NIVEL DE DIFICULTAD", "situation_report": "REPORTE DE SITUACIÓN",
         "context": "Contexto:", "target_profile": "Perfil del objetivo:", "directive": "Directiva:", "diff_label": "Dificultad:",
         "start_link": "INICIAR ENLACE DE COMUNICACIÓN", "break_link": "ROMPER ENLACE",
-        "request_eval": "SOLICITAR EVALUACIÓN TÁCTICA", "chat_placeholder": "Introduce tu mensaje al sujeto...",
+        "request_eval": "SOLICITAR EVALUACIÓN TÁCTICA", "chat_placeholder": "Introduce tu directiva de respuesta...",
         "archive_report": "ARCHIVAR INFORME Y VOLVER AL MENÚ", "download_pdf": "DESCARGAR DOSSIER PDF",
         "tactical_eval": "INFORME DE EVALUACIÓN TÁCTICA",
         "exp_title": "Archivo Operacional", "exp_code": "MOD-03",
@@ -174,10 +190,41 @@ T = {
         "irrev_action": "Esta acción es irreversible. Se eliminarán todos los datos asociados a tu cuenta.",
         "destroy_all": "Esta acción destruirá todos los datos de la plataforma de forma irreversible.",
         "secure_access": "ACCESO SEGURO",
-        "classified": "v3.1.0 · CLASIFICADO",
+        "classified": "v3.2.0 · CLASIFICADO",
         "enrollment_done": "Acreditación procesada. Identifícate en el portal de acceso.",
         "corp_accounts": "Las cuentas corporativas pueden añadir agentes mediante enlace de invitación.",
         "select_operator": "Seleccionar",
+        # Simulator v2
+        "tactical_context": "CONTEXTO TÁCTICO",
+        "live_feed": "LIVE COMMUNICATION FEED",
+        "subject_diag": "DIAGNÓSTICO DEL SUJETO",
+        "active_negotiation": "Negociación Activa:",
+        "obj1": "OBJ.1: Establecer contacto inicial",
+        "obj2": "OBJ.2: Evaluar demandas y estado",
+        "obj3": "OBJ.3: Ejecutar protocolo de desescalada",
+        "operator_controls": "OPERATOR CONTROLS",
+        "emotional_state": "ESTADO EMOCIONAL",
+        "response_latency": "LATENCIA DE RESPUESTA",
+        "compliance_trend": "TENDENCIA DE COMPLIANCE",
+        "analysis": "ANÁLISIS",
+        "status_high": "ALTA TENSIÓN · INESTABLE",
+        "status_med": "TENSIÓN MEDIA · MONITORIZAR",
+        "status_low": "BAJA TENSIÓN · ESTABLE",
+        "advice_deesc": "Prioriza recopilación de información. Mantén desescalada.",
+        "prev_nota": "NOTA ANTERIOR:",
+        "curr_perf": "RENDIMIENTO ACTUAL (EST.):",
+        "no_prev": "N/A",
+        "btn_contact": "ESTABLECER CONTACTO",
+        "btn_protocol": "DESPLEGAR PROTOCOLO ALFA-4",
+        "btn_info": "INICIAR RECOPILACIÓN INFO",
+        "btn_crisis": "SOLICITAR APOYO DE CRISIS",
+        "quick_contact": "Operador al habla, aquí para establecer un canal de comunicación directo.",
+        "quick_protocol": "Escucha, existe un protocolo que podemos seguir los dos. Necesito que confíes en mí.",
+        "quick_info": "Antes de tomar cualquier decisión, necesito entender exactamente qué necesitas.",
+        "quick_crisis": "Estoy contactando con el equipo de apoyo. Permanece en línea.",
+        "network_secure": "RED SEGURA",
+        "ai_online": "IA EN LÍNEA",
+        "sys_global": "SISTEMA",
     },
     "en": {
         "hq": "HEADQUARTERS", "welcome": "Welcome,", "operative": "SYSTEM OPERATIVE",
@@ -217,7 +264,7 @@ T = {
         "difficulty": "DIFFICULTY LEVEL", "situation_report": "SITUATION REPORT",
         "context": "Context:", "target_profile": "Target profile:", "directive": "Directive:", "diff_label": "Difficulty:",
         "start_link": "INITIATE SECURE LINK", "break_link": "BREAK LINK",
-        "request_eval": "REQUEST TACTICAL EVALUATION", "chat_placeholder": "Enter your message to the subject...",
+        "request_eval": "REQUEST TACTICAL EVALUATION", "chat_placeholder": "Enter your response directive...",
         "archive_report": "ARCHIVE REPORT AND BACK TO MENU", "download_pdf": "DOWNLOAD PDF DOSSIER",
         "tactical_eval": "TACTICAL EVALUATION REPORT",
         "exp_title": "Operational Archive", "exp_code": "MOD-03",
@@ -305,16 +352,44 @@ T = {
         "irrev_action": "This action is irreversible. All data associated with your account will be deleted.",
         "destroy_all": "This action will irreversibly destroy all platform data.",
         "secure_access": "SECURE ACCESS",
-        "classified": "v3.1.0 · CLASSIFIED",
+        "classified": "v3.2.0 · CLASSIFIED",
         "enrollment_done": "Credential processed. Log in at the access portal.",
         "corp_accounts": "Corporate accounts can add agents via invitation link.",
         "select_operator": "Select",
+        # Simulator v2
+        "tactical_context": "TACTICAL CONTEXT",
+        "live_feed": "LIVE COMMUNICATION FEED",
+        "subject_diag": "SUBJECT DIAGNOSTICS",
+        "active_negotiation": "Active Negotiation:",
+        "obj1": "OBJ.1: Establish initial contact",
+        "obj2": "OBJ.2: Assess demands and state",
+        "obj3": "OBJ.3: Execute de-escalation protocol",
+        "operator_controls": "OPERATOR CONTROLS",
+        "emotional_state": "EMOTIONAL STATE",
+        "response_latency": "RESPONSE LATENCY",
+        "compliance_trend": "COMPLIANCE TREND",
+        "analysis": "ANALYSIS",
+        "status_high": "HIGH TENSION · UNSTABLE",
+        "status_med": "MED TENSION · MONITOR",
+        "status_low": "LOW TENSION · STABLE",
+        "advice_deesc": "Prioritize information gathering. Maintain de-escalation.",
+        "prev_nota": "PREVIOUS NOTA:",
+        "curr_perf": "CURRENT PERFORMANCE (EST.):",
+        "no_prev": "N/A",
+        "btn_contact": "ESTABLISH CONTACT",
+        "btn_protocol": "DEPLOY PROTOCOL ALPHA-4",
+        "btn_info": "INITIATE INFO GATHERING",
+        "btn_crisis": "REQUEST CRISIS TEAM SUPPORT",
+        "quick_contact": "Operator on the line, here to establish direct communication.",
+        "quick_protocol": "There's a protocol we can both follow. I need you to trust me.",
+        "quick_info": "Before any decision, I need to understand exactly what you need.",
+        "quick_crisis": "I'm contacting the support team. Please stay on the line.",
+        "network_secure": "NETWORK SECURE",
+        "ai_online": "AI ONLINE",
+        "sys_global": "SYSTEM",
     }
 }
 
-# ─────────────────────────────────────────
-# HELPERS
-# ─────────────────────────────────────────
 def t(key):
     lang = st.session_state.get("lang", "es")
     return T.get(lang, T["es"]).get(key, T["es"].get(key, key))
@@ -423,7 +498,7 @@ def generar_pdf_dossier(sesion):
 st.set_page_config(page_title="CRYSIS | Intelligence Unit", layout="wide", initial_sidebar_state="collapsed")
 
 # ─────────────────────────────────────────
-# CSS PREMIUM REDESIGN
+# CSS PREMIUM v2
 # ─────────────────────────────────────────
 st.markdown("""
 <style>
@@ -462,7 +537,6 @@ html, body, [class*="css"], .stApp {
   font-family: var(--sans) !important;
 }
 
-/* Scanlines overlay */
 .stApp::before {
   content: '';
   position: fixed;
@@ -477,529 +551,252 @@ html, body, [class*="css"], .stApp {
 header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom: 1px solid var(--border); }
 .stDeployButton, #MainMenu, footer { display: none !important; }
 
-/* ── TOPBAR PREMIUM ── */
+/* ── TOPBAR ── */
 .topbar-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 0 10px 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 0;
-  position: relative;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0 10px 0; border-bottom: 1px solid var(--border); margin-bottom: 0;
 }
-.topbar-left { display: flex; align-items: center; gap: 18px; }
-.topbar-logo {
-  font-family: var(--mono);
-  font-size: 1.15rem;
-  letter-spacing: 0.35em;
-  color: var(--text-hi);
-  text-shadow: 0 0 20px rgba(79,142,247,0.4);
-}
+.topbar-logo { font-family: var(--mono); font-size: 1.15rem; letter-spacing: 0.35em; color: var(--text-hi); text-shadow: 0 0 20px rgba(79,142,247,0.4); }
 .topbar-logo span { color: var(--blue); }
-.topbar-divider { width: 1px; height: 22px; background: var(--border2); }
-.topbar-breadcrumb {
-  font-family: var(--mono);
-  font-size: 0.52rem;
-  letter-spacing: 0.25em;
-  color: var(--text-lo);
-}
-.topbar-breadcrumb .bc-active { color: var(--blue); }
-.topbar-meta {
-  font-family: var(--mono);
-  font-size: 0.48rem;
-  letter-spacing: 0.18em;
-  color: var(--text-lo);
-  margin-top: 2px;
-}
-.topbar-right { display: flex; align-items: center; gap: 12px; }
-.topbar-status {
-  font-family: var(--mono);
-  font-size: 0.5rem;
-  letter-spacing: 0.18em;
-  color: var(--green);
-  background: var(--green-dim);
-  border: 1px solid rgba(0,212,160,0.15);
-  padding: 5px 10px;
-  border-radius: 2px;
-}
+.topbar-meta { font-family: var(--mono); font-size: 0.48rem; letter-spacing: 0.18em; color: var(--text-lo); margin-top: 2px; }
 
-/* ── AVATAR DROPDOWN ── */
-.avatar-wrap { position: relative; display: inline-block; }
-.avatar-btn {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--blue2), var(--purple));
-  border: 2px solid var(--border2);
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--cond); font-weight: 700; font-size: 0.85rem;
-  color: #fff; letter-spacing: 0.05em;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-.avatar-btn:hover { border-color: var(--blue); box-shadow: 0 0 16px rgba(79,142,247,0.3); }
+/* ── HQ HEADER ── */
+.hq-header { padding: 52px 0 40px 0; text-align: center; position: relative; }
+.hq-header::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 600px; height: 2px; background: linear-gradient(90deg, transparent, var(--blue), transparent); opacity: 0.4; }
+.hq-label { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.5em; color: var(--blue); margin-bottom: 14px; text-transform: uppercase; }
+.hq-greeting { font-family: var(--cond); font-size: 3.2rem; font-weight: 800; color: var(--text-hi); letter-spacing: 0.08em; margin-bottom: 8px; text-transform: uppercase; text-shadow: 0 0 80px rgba(79,142,247,0.15); }
+.hq-date { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.3em; color: var(--text-lo); }
 
-/* ── HQ HEADER PREMIUM ── */
-.hq-header {
-  padding: 52px 0 40px 0;
-  text-align: center;
-  position: relative;
-}
-.hq-header::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 50%; transform: translateX(-50%);
-  width: 600px; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--blue), transparent);
-  opacity: 0.4;
-}
-.hq-label {
-  font-family: var(--mono);
-  font-size: 0.52rem;
-  letter-spacing: 0.5em;
-  color: var(--blue);
-  margin-bottom: 14px;
-  text-transform: uppercase;
-}
-.hq-greeting {
-  font-family: var(--cond);
-  font-size: 3.2rem;
-  font-weight: 800;
-  color: var(--text-hi);
-  letter-spacing: 0.08em;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  text-shadow: 0 0 80px rgba(79,142,247,0.15);
-}
-.hq-date {
-  font-family: var(--mono);
-  font-size: 0.55rem;
-  letter-spacing: 0.3em;
-  color: var(--text-lo);
-}
-
-/* ── SYSTEM STATUS BAR ── */
-.sys-status {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 32px;
-  padding: 10px 0 36px 0;
-}
-.sys-status-item {
-  display: flex; align-items: center; gap: 8px;
-  font-family: var(--mono); font-size: 0.5rem; letter-spacing: 0.15em; color: var(--text-lo);
-}
+/* ── SYSTEM STATUS ── */
+.sys-status { display: flex; align-items: center; justify-content: center; gap: 32px; padding: 10px 0 36px 0; }
+.sys-status-item { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 0.5rem; letter-spacing: 0.15em; color: var(--text-lo); }
 .sys-status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse-dot 2s infinite; }
 .sys-status-dot.amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
 .sys-status-dot.blue  { background: var(--blue);  box-shadow: 0 0 6px var(--blue); }
 @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
 .sys-status-val { color: var(--text); font-weight: 600; }
 
-/* ── MODULE CARDS PREMIUM ── */
+/* ── MODULE CARDS (clickable) ── */
 .module-card {
   background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 0;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  min-height: 220px;
-  display: flex;
-  flex-direction: column;
+  border: 1px solid var(--border); border-radius: 3px; padding: 0;
+  position: relative; overflow: hidden; cursor: pointer;
+  transition: all 0.25s ease; min-height: 220px; display: flex; flex-direction: column;
 }
-.module-card:hover {
-  border-color: var(--border2);
-  transform: translateY(-4px);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px var(--border2);
-}
+.module-card:hover { border-color: var(--border2); transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px var(--border2); }
 .module-card.primary:hover { border-color: var(--blue);  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 30px var(--blue-glow); }
 .module-card.danger:hover  { border-color: var(--red);   box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 30px var(--red-dim); }
 .module-card.gold:hover    { border-color: var(--amber); box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 30px var(--amber-dim); }
 .module-card.admin-card:hover { border-color: var(--red); box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 30px var(--red-dim); }
-
-/* Top accent bar */
-.module-top-bar {
-  height: 2px;
-  width: 100%;
-  background: var(--border2);
-  transition: background 0.25s;
-}
+.module-top-bar { height: 2px; width: 100%; background: var(--border2); transition: background 0.25s; }
 .module-card.primary .module-top-bar { background: linear-gradient(90deg, var(--blue), transparent); }
 .module-card.danger  .module-top-bar { background: linear-gradient(90deg, var(--red), transparent); }
 .module-card.gold    .module-top-bar { background: linear-gradient(90deg, var(--amber), transparent); }
 .module-card.admin-card .module-top-bar { background: linear-gradient(90deg, var(--red), var(--purple)); }
-
 .module-body { padding: 22px 22px 0 22px; flex: 1; }
 .module-chart-area { padding: 0 8px; margin-top: 4px; }
-.module-footer {
-  padding: 12px 22px 16px 22px;
-  border-top: 1px solid var(--border);
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.module-code {
-  font-family: var(--mono);
-  font-size: 0.48rem;
-  letter-spacing: 0.3em;
-  color: var(--text-lo);
-  margin-bottom: 10px;
-}
-.module-title {
-  font-family: var(--cond);
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--text-hi);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-}
-.module-desc {
-  font-family: var(--mono);
-  font-size: 0.55rem;
-  color: var(--text-lo);
-  line-height: 1.65;
-  letter-spacing: 0.04em;
-}
-.module-stat-label {
-  font-family: var(--mono);
-  font-size: 0.48rem;
-  letter-spacing: 0.2em;
-  color: var(--text-lo);
-}
-.module-stat-value {
-  font-family: var(--cond);
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--text-hi);
-  letter-spacing: 0.05em;
-  line-height: 1;
-}
-.module-arrow {
-  font-family: var(--mono);
-  font-size: 0.65rem;
-  color: var(--text-lo);
-  opacity: 0;
-  transform: translateX(-8px);
-  transition: all 0.25s ease;
-}
+.module-footer { padding: 12px 22px 16px 22px; border-top: 1px solid var(--border); margin-top: 8px; display: flex; align-items: center; justify-content: space-between; }
+.module-code { font-family: var(--mono); font-size: 0.48rem; letter-spacing: 0.3em; color: var(--text-lo); margin-bottom: 10px; }
+.module-title { font-family: var(--cond); font-size: 1.15rem; font-weight: 700; color: var(--text-hi); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; }
+.module-desc { font-family: var(--mono); font-size: 0.55rem; color: var(--text-lo); line-height: 1.65; letter-spacing: 0.04em; }
+.module-stat-label { font-family: var(--mono); font-size: 0.48rem; letter-spacing: 0.2em; color: var(--text-lo); }
+.module-stat-value { font-family: var(--cond); font-size: 1.4rem; font-weight: 700; color: var(--text-hi); letter-spacing: 0.05em; line-height: 1; }
+.module-arrow { font-family: var(--mono); font-size: 0.65rem; color: var(--text-lo); opacity: 0; transform: translateX(-8px); transition: all 0.25s ease; }
 .module-card:hover .module-arrow { opacity: 1; transform: translateX(0); }
 .module-card.primary:hover .module-arrow { color: var(--blue); }
 .module-card.danger:hover  .module-arrow { color: var(--red); }
 .module-card.gold:hover    .module-arrow { color: var(--amber); }
 
+/* Invisible click overlay button ON TOP of card */
+.card-click-btn { position: relative; }
+.card-click-btn .stButton > button {
+  position: absolute !important; top: 0 !important; left: 0 !important;
+  width: 100% !important; height: 100% !important;
+  opacity: 0 !important; z-index: 20 !important;
+  cursor: pointer !important; background: transparent !important;
+  border: none !important; border-radius: 3px !important;
+  min-height: 220px !important;
+}
+
 /* ── SECTION HEADERS ── */
-.section-header {
-  padding: 28px 0 22px 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 32px;
-  display: flex; align-items: flex-end; justify-content: space-between;
-  position: relative;
-}
-.section-header::after {
-  content: '';
-  position: absolute;
-  bottom: -1px; left: 0;
-  width: 60px; height: 2px;
-  background: var(--blue);
-}
-.section-title {
-  font-family: var(--cond);
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: var(--text-hi);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.section-code {
-  font-family: var(--mono);
-  font-size: 0.48rem;
-  letter-spacing: 0.3em;
-  color: var(--text-lo);
-  margin-bottom: 4px;
-}
+.section-header { padding: 28px 0 22px 0; border-bottom: 1px solid var(--border); margin-bottom: 32px; display: flex; align-items: flex-end; justify-content: space-between; position: relative; }
+.section-header::after { content: ''; position: absolute; bottom: -1px; left: 0; width: 60px; height: 2px; background: var(--blue); }
+.section-title { font-family: var(--cond); font-size: 1.6rem; font-weight: 700; color: var(--text-hi); letter-spacing: 0.06em; text-transform: uppercase; }
+.section-code { font-family: var(--mono); font-size: 0.48rem; letter-spacing: 0.3em; color: var(--text-lo); margin-bottom: 4px; }
 
 /* ── METRICS ── */
-.metric-card {
-  background: linear-gradient(135deg, var(--bg2), var(--bg3));
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 22px 24px;
-  position: relative;
-  overflow: hidden;
-}
-.metric-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 3px; height: 100%;
-  background: var(--blue);
-}
-.metric-card::after {
-  content: '';
-  position: absolute;
-  top: 0; right: 0;
-  width: 60px; height: 60px;
-  background: radial-gradient(circle at top right, rgba(79,142,247,0.06), transparent);
-}
-.metric-label {
-  font-family: var(--mono);
-  font-size: 0.48rem;
-  letter-spacing: 0.22em;
-  color: var(--blue);
-  margin-bottom: 10px;
-}
-.metric-value {
-  font-family: var(--cond);
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: var(--text-hi);
-  line-height: 1;
-  letter-spacing: 0.03em;
-}
+.metric-card { background: linear-gradient(135deg, var(--bg2), var(--bg3)); border: 1px solid var(--border); border-radius: 3px; padding: 22px 24px; position: relative; overflow: hidden; }
+.metric-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--blue); }
+.metric-label { font-family: var(--mono); font-size: 0.48rem; letter-spacing: 0.22em; color: var(--blue); margin-bottom: 10px; }
+.metric-value { font-family: var(--cond); font-size: 2.2rem; font-weight: 800; color: var(--text-hi); line-height: 1; letter-spacing: 0.03em; }
 
 /* ── BRIEFING BOX ── */
-.briefing-box {
-  background: linear-gradient(135deg, var(--bg2), var(--bg3));
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--blue);
-  padding: 20px 24px;
-  border-radius: 3px;
-  margin-bottom: 20px;
-  position: relative;
-  overflow: hidden;
-}
-.briefing-box::after {
-  content: '';
-  position: absolute;
-  top: 0; right: 0;
-  width: 120px; height: 120px;
-  background: radial-gradient(circle at top right, var(--blue-dim), transparent);
-}
-.briefing-box h4 {
-  font-family: var(--mono);
-  font-size: 0.52rem;
-  letter-spacing: 0.22em;
-  color: var(--blue);
-  margin-bottom: 14px;
-}
+.briefing-box { background: linear-gradient(135deg, var(--bg2), var(--bg3)); border: 1px solid var(--border); border-left: 3px solid var(--blue); padding: 20px 24px; border-radius: 3px; margin-bottom: 20px; position: relative; overflow: hidden; }
+.briefing-box::after { content: ''; position: absolute; top: 0; right: 0; width: 120px; height: 120px; background: radial-gradient(circle at top right, var(--blue-dim), transparent); }
+.briefing-box h4 { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.22em; color: var(--blue); margin-bottom: 14px; }
 
 /* ── SECTION LABEL ── */
-.section-label {
-  font-family: var(--mono);
-  font-size: 0.5rem;
-  letter-spacing: 0.28em;
-  color: var(--blue);
-  margin-bottom: 14px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-  text-transform: uppercase;
-}
+.section-label { font-family: var(--mono); font-size: 0.5rem; letter-spacing: 0.28em; color: var(--blue); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); text-transform: uppercase; }
 
 /* ── STATUS BAR ── */
-.status-bar {
-  background: linear-gradient(90deg, rgba(0,212,160,0.06), transparent);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--green);
-  padding: 10px 18px;
-  border-radius: 3px;
-  font-family: var(--mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.1em;
-  color: var(--green);
-  margin-bottom: 20px;
-}
+.status-bar { background: linear-gradient(90deg, rgba(0,212,160,0.06), transparent); border: 1px solid var(--border); border-left: 3px solid var(--green); padding: 10px 18px; border-radius: 3px; font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.1em; color: var(--green); margin-bottom: 20px; }
 
-/* ── DIFFICULTY CARDS ── */
-.diff-card {
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: var(--bg3);
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-.diff-card::before {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 2px;
-  background: transparent;
-  transition: background 0.2s;
-}
+/* ── DIFF CARDS ── */
+.diff-card { border: 1px solid var(--border); border-radius: 3px; padding: 16px; cursor: pointer; transition: all 0.2s; background: var(--bg3); text-align: center; position: relative; overflow: hidden; }
+.diff-card::before { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: transparent; transition: background 0.2s; }
 .diff-card:hover { transform: translateY(-2px); }
 .diff-card.selected::before { background: currentColor; }
 .diff-name  { font-family: var(--cond); font-size: 0.85rem; letter-spacing: 0.15em; font-weight: 700; text-transform: uppercase; }
 .diff-desc  { font-family: var(--mono); font-size: 0.5rem; color: var(--text-lo); margin-top: 8px; line-height: 1.5; }
 
 /* ── INPUTS ── */
-.stTextInput input, .stSelectbox > div > div, .stTextArea textarea {
-  background: var(--bg3) !important;
-  border: 1px solid var(--border2) !important;
-  color: var(--text-hi) !important;
-  border-radius: 2px !important;
-  font-family: var(--sans) !important;
-  font-size: 0.88rem !important;
-}
-.stTextInput input:focus, .stTextArea textarea:focus {
-  border-color: var(--blue) !important;
-  box-shadow: 0 0 0 3px rgba(79,142,247,0.08) !important;
-}
-.stTextInput label, .stTextArea label, .stSelectbox label {
-  color: var(--text-lo) !important;
-  font-family: var(--mono) !important;
-  font-size: 0.55rem !important;
-  letter-spacing: 0.15em !important;
-}
+.stTextInput input, .stSelectbox > div > div, .stTextArea textarea { background: var(--bg3) !important; border: 1px solid var(--border2) !important; color: var(--text-hi) !important; border-radius: 2px !important; font-family: var(--sans) !important; font-size: 0.88rem !important; }
+.stTextInput input:focus, .stTextArea textarea:focus { border-color: var(--blue) !important; box-shadow: 0 0 0 3px rgba(79,142,247,0.08) !important; }
+.stTextInput label, .stTextArea label, .stSelectbox label { color: var(--text-lo) !important; font-family: var(--mono) !important; font-size: 0.55rem !important; letter-spacing: 0.15em !important; }
 
 /* ── BUTTONS ── */
-.stButton > button {
-  background: linear-gradient(135deg, var(--blue), var(--blue2)) !important;
-  color: #fff !important;
-  font-family: var(--cond) !important;
-  font-size: 0.7rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.2em !important;
-  border: none !important;
-  border-radius: 2px !important;
-  padding: 12px 24px !important;
-  transition: all 0.2s !important;
-  text-transform: uppercase !important;
-}
-.stButton > button:hover {
-  background: linear-gradient(135deg, #5A9CF8, var(--blue)) !important;
-  box-shadow: 0 4px 20px rgba(79,142,247,0.3) !important;
-  transform: translateY(-1px) !important;
-}
-button[kind="secondary"] {
-  background: transparent !important;
-  border: 1px solid var(--border2) !important;
-  color: var(--text) !important;
-}
-button[kind="secondary"]:hover {
-  border-color: var(--blue) !important;
-  color: var(--text-hi) !important;
-  background: var(--blue-dim) !important;
-}
+.stButton > button { background: linear-gradient(135deg, var(--blue), var(--blue2)) !important; color: #fff !important; font-family: var(--cond) !important; font-size: 0.7rem !important; font-weight: 700 !important; letter-spacing: 0.2em !important; border: none !important; border-radius: 2px !important; padding: 12px 24px !important; transition: all 0.2s !important; text-transform: uppercase !important; }
+.stButton > button:hover { background: linear-gradient(135deg, #5A9CF8, var(--blue)) !important; box-shadow: 0 4px 20px rgba(79,142,247,0.3) !important; transform: translateY(-1px) !important; }
+button[kind="secondary"] { background: transparent !important; border: 1px solid var(--border2) !important; color: var(--text) !important; }
+button[kind="secondary"]:hover { border-color: var(--blue) !important; color: var(--text-hi) !important; background: var(--blue-dim) !important; }
 
 /* ── AUTH TIERS ── */
-.auth-tier {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--border2);
-  padding: 16px 18px;
-  border-radius: 3px;
-  transition: border-color 0.2s;
-  margin-bottom: 8px;
-}
+.auth-tier { background: var(--bg3); border: 1px solid var(--border); border-left: 3px solid var(--border2); padding: 16px 18px; border-radius: 3px; transition: border-color 0.2s; margin-bottom: 8px; }
 .auth-tier:hover { border-left-color: var(--blue); }
 .auth-tier.elite { border-left-color: var(--amber); }
 .tier-spec { font-size: 0.72rem; color: #8B9CC8; margin-bottom: 5px; display: flex; align-items: center; }
 .tier-spec::before { content: '—'; margin-right: 8px; color: var(--blue); font-size: 0.55rem; }
 
-/* ── ALERT/INFO BOXES ── */
-.alert-box {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--blue);
-  padding: 12px 16px;
-  border-radius: 2px;
-  margin-bottom: 14px;
-  font-family: var(--mono);
-  font-size: 0.58rem;
-  color: var(--text-lo);
-  line-height: 1.65;
-}
+/* ── ALERT BOXES ── */
+.alert-box { background: var(--bg3); border: 1px solid var(--border); border-left: 3px solid var(--blue); padding: 12px 16px; border-radius: 2px; margin-bottom: 14px; font-family: var(--mono); font-size: 0.58rem; color: var(--text-lo); line-height: 1.65; }
 .alert-box.warning { border-left-color: var(--amber); background: rgba(240,165,0,0.03); }
 .alert-box.error   { border-left-color: var(--red);   background: rgba(232,57,74,0.03); }
 
-/* ── PLAN CARDS ── */
-.plan-card {
-  border: 1px solid var(--border);
-  background: var(--bg3);
-  border-radius: 3px;
-  padding: 12px 14px;
-  margin-bottom: 6px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.plan-card:hover { border-color: var(--border2); }
-.plan-card.selected-plan { border-color: var(--blue); background: var(--blue-dim); }
-.plan-card.selected-plan.elite-plan { border-color: var(--amber); background: var(--amber-dim); }
-
 /* ── BRAND (LOGIN) ── */
-.brand-wordmark {
-  font-family: var(--cond);
-  font-size: 4.5rem;
-  font-weight: 900;
-  letter-spacing: 0.4em;
-  color: var(--text-hi);
-  line-height: 1;
-  margin-bottom: 10px;
-  text-shadow: 0 0 80px rgba(79,142,247,0.2);
-  text-transform: uppercase;
-}
-.brand-sub {
-  font-family: var(--mono);
-  font-size: 0.52rem;
-  letter-spacing: 0.45em;
-  color: var(--blue);
-  margin-bottom: 36px;
-}
-.brand-line {
-  width: 40px;
-  height: 2px;
-  background: linear-gradient(90deg, var(--blue), transparent);
-  margin-bottom: 22px;
-}
-.brand-desc {
-  font-size: 0.78rem;
-  color: var(--text-lo);
-  line-height: 1.75;
-  letter-spacing: 0.01em;
-  font-family: var(--mono);
-}
+.brand-wordmark { font-family: var(--cond); font-size: 4.5rem; font-weight: 900; letter-spacing: 0.4em; color: var(--text-hi); line-height: 1; margin-bottom: 10px; text-shadow: 0 0 80px rgba(79,142,247,0.2); text-transform: uppercase; }
+.brand-sub { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.45em; color: var(--blue); margin-bottom: 36px; }
+.brand-line { width: 40px; height: 2px; background: linear-gradient(90deg, var(--blue), transparent); margin-bottom: 22px; }
+.brand-desc { font-size: 0.78rem; color: var(--text-lo); line-height: 1.75; letter-spacing: 0.01em; font-family: var(--mono); }
 
-/* ── CHAT MESSAGES ── */
-.chat-msg {
-  display: flex;
-  margin-bottom: 14px;
-}
+/* ── CHAT v2 ── */
+.chat-msg { display: flex; margin-bottom: 14px; }
 .chat-msg.user { justify-content: flex-end; }
 .chat-msg.assistant { justify-content: flex-start; }
-.chat-bubble {
-  max-width: 75%;
+.chat-bubble { max-width: 95%; border-radius: 3px; padding: 12px 16px; }
+.chat-bubble.user { background: linear-gradient(135deg, #0D1830, #0D1424); border: 1px solid rgba(79,142,247,0.2); border-left: 3px solid var(--blue); }
+.chat-bubble.assistant { background: linear-gradient(135deg, var(--bg3), var(--bg2)); border: 1px solid rgba(232,57,74,0.2); border-left: 3px solid var(--red); }
+.chat-role { font-family: var(--mono); font-size: 0.48rem; letter-spacing: 0.25em; margin-bottom: 6px; }
+.chat-text { color: var(--text); font-size: 0.82rem; line-height: 1.6; }
+
+/* ── TACTICAL PANEL v2 ── */
+.tac-panel {
+  background: linear-gradient(135deg, var(--bg2), var(--bg3));
+  border: 1px solid var(--border);
   border-radius: 3px;
-  padding: 14px 18px;
+  padding: 16px;
+  height: 100%;
+  min-height: 520px;
 }
-.chat-bubble.user {
-  background: linear-gradient(135deg, #0D1830, #0D1424);
-  border: 1px solid rgba(79,142,247,0.2);
-  border-left: 3px solid var(--blue);
-}
-.chat-bubble.assistant {
-  background: linear-gradient(135deg, var(--bg3), var(--bg2));
-  border: 1px solid rgba(232,57,74,0.2);
-  border-left: 3px solid var(--red);
-}
-.chat-role {
+.tac-panel-header {
   font-family: var(--mono);
-  font-size: 0.48rem;
+  font-size: 0.5rem;
   letter-spacing: 0.25em;
-  margin-bottom: 8px;
+  color: var(--blue);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
-.chat-text {
-  color: var(--text);
-  font-size: 0.88rem;
-  line-height: 1.65;
+.tac-badge {
+  font-family: var(--mono);
+  font-size: 0.42rem;
+  padding: 3px 8px;
+  border-radius: 2px;
+  letter-spacing: 0.1em;
 }
+.tac-badge.secure { background: rgba(0,212,160,0.1); color: var(--green); border: 1px solid rgba(0,212,160,0.2); }
+.tac-badge.red    { background: rgba(232,57,74,0.1);  color: var(--red);   border: 1px solid rgba(232,57,74,0.2); }
+
+/* Tactical map placeholder */
+.tac-map {
+  background: linear-gradient(135deg, #050812, #080D1A);
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  height: 140px;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tac-map::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(79,142,247,0.04) 20px, rgba(79,142,247,0.04) 21px),
+    repeating-linear-gradient(90deg, transparent, transparent 20px, rgba(79,142,247,0.04) 20px, rgba(79,142,247,0.04) 21px);
+}
+.tac-map-ping {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 0 0 rgba(232,57,74,0.6);
+  animation: radar-ping 1.5s infinite;
+  position: relative; z-index: 2;
+}
+@keyframes radar-ping {
+  0%   { box-shadow: 0 0 0 0 rgba(232,57,74,0.6); }
+  70%  { box-shadow: 0 0 0 16px rgba(232,57,74,0); }
+  100% { box-shadow: 0 0 0 0 rgba(232,57,74,0); }
+}
+.tac-map-label {
+  position: absolute;
+  bottom: 6px; right: 8px;
+  font-family: var(--mono);
+  font-size: 0.42rem;
+  color: var(--text-lo);
+  letter-spacing: 0.1em;
+  z-index: 2;
+}
+.tac-obj {
+  font-family: var(--mono);
+  font-size: 0.52rem;
+  color: var(--text-lo);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tac-obj-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+.tac-obj-dot.pending { background: var(--text-lo); }
+
+/* ── OPERATOR QUICK BUTTONS ── */
+.op-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+.op-btn { background: rgba(79,142,247,0.06); border: 1px solid var(--border2); border-radius: 2px; padding: 8px 10px; font-family: var(--mono); font-size: 0.46rem; letter-spacing: 0.08em; color: var(--text-lo); cursor: pointer; transition: all 0.15s; text-align: center; }
+.op-btn:hover { background: rgba(79,142,247,0.12); border-color: var(--blue); color: var(--blue); }
+
+/* ── SUBJECT DIAGNOSTICS ── */
+.diag-panel { background: linear-gradient(135deg, var(--bg2), var(--bg3)); border: 1px solid var(--border); border-radius: 3px; padding: 16px; }
+.diag-section { margin-bottom: 18px; }
+.diag-label { font-family: var(--mono); font-size: 0.46rem; letter-spacing: 0.2em; color: var(--blue); margin-bottom: 10px; }
+.diag-status-bar { height: 6px; border-radius: 1px; background: var(--border); overflow: hidden; margin-bottom: 4px; }
+.diag-status-fill { height: 100%; border-radius: 1px; transition: width 0.5s ease; }
+.diag-metric-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.diag-metric-name { font-family: var(--mono); font-size: 0.46rem; color: var(--text-lo); }
+.diag-metric-val  { font-family: var(--cond); font-size: 0.75rem; font-weight: 700; }
+.diag-analysis { background: var(--bg4); border: 1px solid var(--border); border-radius: 2px; padding: 10px 12px; margin-top: 8px; }
+.diag-analysis-label { font-family: var(--mono); font-size: 0.44rem; letter-spacing: 0.18em; color: var(--amber); margin-bottom: 8px; }
+.diag-analysis-item { font-family: var(--mono); font-size: 0.48rem; color: var(--text-lo); margin-bottom: 4px; padding-left: 10px; position: relative; }
+.diag-analysis-item::before { content: '▸'; position: absolute; left: 0; color: var(--blue); }
+.diag-score-row { display: flex; gap: 8px; margin-top: 10px; }
+.diag-score-box { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 2px; padding: 8px; text-align: center; }
+.diag-score-label { font-family: var(--mono); font-size: 0.42rem; color: var(--text-lo); letter-spacing: 0.1em; }
+.diag-score-val   { font-family: var(--cond); font-size: 1.1rem; font-weight: 700; margin-top: 2px; }
 
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 3px; }
@@ -1012,33 +809,11 @@ button[kind="secondary"]:hover {
 .stRadio > div { gap: 12px !important; }
 
 /* ── EXPANDER ── */
-.streamlit-expanderHeader {
-  background: var(--bg2) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 2px !important;
-  color: var(--text) !important;
-  font-family: var(--mono) !important;
-  font-size: 0.6rem !important;
-  letter-spacing: 0.1em !important;
-}
+.streamlit-expanderHeader { background: var(--bg2) !important; border: 1px solid var(--border) !important; border-radius: 2px !important; color: var(--text) !important; font-family: var(--mono) !important; font-size: 0.6rem !important; letter-spacing: 0.1em !important; }
 
-/* Hide dummy nav buttons */
-[data-testid="stButton"] button[title="Go to Statistics"],
-[data-testid="stButton"] button[title="Go to Simulator"],
-[data-testid="stButton"] button[title="Go to Dossiers"],
-[data-testid="stButton"] button[title="Go to Personnel"],
-[data-testid="stButton"] button[title="Go to Synthesis"],
-[data-testid="stButton"] button[title="Go to Admin"] {
-  opacity: 0 !important;
-  position: absolute !important;
-  top: 0 !important; left: 0 !important;
-  width: 100% !important; height: 100% !important;
-  z-index: 10 !important;
-  cursor: pointer !important;
-  background: transparent !important;
-  border: none !important;
-  border-radius: 3px !important;
-}
+/* Plan cards */
+.plan-card { border: 1px solid var(--border); background: var(--bg3); border-radius: 3px; padding: 12px 14px; margin-bottom: 6px; cursor: pointer; transition: all 0.15s; }
+.plan-card:hover { border-color: var(--border2); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1079,6 +854,8 @@ defaults = {
     "login_subpantalla": "main",
     "lang": "es",
     "show_avatar_menu": False,
+    "diagnostico_sujeto": None,
+    "quick_msg": None,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -1136,7 +913,6 @@ if st.session_state.usuario_actual is None:
         st.success(t("enrollment_done"))
         st.session_state.registro_completado = False
 
-    # Language switcher on login page
     col_lang_top = st.columns([8,1])[1]
     with col_lang_top:
         if st.button("EN" if st.session_state.lang == "es" else "ES", key="lang_login"):
@@ -1258,7 +1034,7 @@ if st.session_state.usuario_actual is None:
                     st.markdown(f"""
                     <div style="background:var(--bg3); border:1px solid var(--amber); border-left:3px solid var(--amber); padding:20px; border-radius:3px; margin-bottom:16px;">
                         <div style="font-family:var(--mono); font-size:0.52rem; letter-spacing:0.2em; color:var(--amber); margin-bottom:10px;">{t('activation_pending')}</div>
-                        <p style="color:var(--text); font-size:0.82rem; margin-bottom:14px;">{t('account_created').replace('Cuenta', f'Cuenta <b style="color:var(--text-hi)">{info_pago["id"]}</b>')}</p>
+                        <p style="color:var(--text); font-size:0.82rem; margin-bottom:14px;">{t('account_created')}</p>
                         <a href="{info_pago['link']}" target="_blank" style="display:inline-block; background:var(--amber); color:#060810; font-family:var(--cond); font-weight:700; font-size:0.7rem; letter-spacing:0.1em; padding:10px 20px; border-radius:2px; text-decoration:none;">{t('go_payment')} {info_pago['plan']}</a>
                     </div>
                     """, unsafe_allow_html=True)
@@ -1368,7 +1144,7 @@ mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items()
 TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **mis_escenarios}
 
 # ─────────────────────────────────────────
-# TOPBAR PREMIUM
+# TOPBAR
 # ─────────────────────────────────────────
 pantalla = st.session_state.pantalla_actual
 nombres_pantalla = {
@@ -1388,22 +1164,18 @@ with top_left:
     bc_html = ""
     if pantalla != "menu":
         section_name = nombres_pantalla.get(pantalla, pantalla.upper())
-        bc_html = f'<span class="topbar-divider" style="display:inline-block; width:1px; height:14px; background:var(--border2); margin:0 10px; vertical-align:middle;"></span><span class="bc-active" style="font-family:var(--mono); font-size:0.52rem; letter-spacing:0.2em; color:var(--blue);">{section_name}</span>'
+        bc_html = f'<span style="display:inline-block; width:1px; height:14px; background:var(--border2); margin:0 10px; vertical-align:middle;"></span><span style="font-family:var(--mono); font-size:0.52rem; letter-spacing:0.2em; color:var(--blue);">{section_name}</span>'
     st.markdown(f"""
     <div class="topbar-wrap">
-        <div class="topbar-left">
-            <div>
-                <div class="topbar-logo">CRY<span>SIS</span> {bc_html}</div>
-                <div class="topbar-meta">{rol_label} · ID: {u['Nombre'].upper()}</div>
-            </div>
+        <div>
+            <div class="topbar-logo">CRY<span>SIS</span> {bc_html}</div>
+            <div class="topbar-meta">{rol_label} · ID: {u['Nombre'].upper()}</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
 with top_right:
     st.markdown("<div style='padding-top:8px; display:flex; gap:6px; justify-content:flex-end;'>", unsafe_allow_html=True)
-
-    # Language toggle
     col_lang, col_av = st.columns([1,1])
     with col_lang:
         if st.button("EN" if st.session_state.lang == "es" else "ES", key="lang_topbar", type="secondary"):
@@ -1452,15 +1224,16 @@ def ir_a(p):
     st.rerun()
 
 # ─────────────────────────────────────────
-# MENÚ PRINCIPAL
+# MENÚ PRINCIPAL — TARJETAS CLICKABLES
 # ─────────────────────────────────────────
 if st.session_state.pantalla_actual == "menu":
     total_ops    = len(historial_visible)
     media_global = int(sum(s["Nota"] for s in historial_visible) / total_ops) if total_ops > 0 else 0
     ops_exitosas = sum(1 for s in historial_visible if s["Nota"] >= 80)
     tasa_exito   = int((ops_exitosas / total_ops) * 100) if total_ops > 0 else 0
-    hora_actual  = datetime.now().strftime("%H:%M") + " · " + datetime.now().strftime("%d.%m.%Y")
-    mes_actual   = datetime.now().strftime("%Y-%m")
+    ahora        = hora_espana()
+    hora_actual  = ahora.strftime("%H:%M") + " · " + ahora.strftime("%d.%m.%Y")
+    mes_actual   = ahora.strftime("%Y-%m")
     ops_mes      = len([s for s in historial_visible if str(s.get("Fecha","")).startswith(mes_actual)])
     escenarios_creados = len(mis_escenarios)
     agentes_activos    = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"])
@@ -1472,99 +1245,67 @@ if st.session_state.pantalla_actual == "menu":
         <div class="hq-date">{hora_actual} · {t('operative')}</div>
     </div>
     <div class="sys-status">
-        <div class="sys-status-item"><div class="sys-status-dot"></div> NETWORK <span class="sys-status-val">SECURE</span></div>
-        <div class="sys-status-item"><div class="sys-status-dot blue"></div> AI ENGINE <span class="sys-status-val">ONLINE</span></div>
+        <div class="sys-status-item"><div class="sys-status-dot"></div> {t('network_secure')} <span class="sys-status-val">OK</span></div>
+        <div class="sys-status-item"><div class="sys-status-dot blue"></div> {t('ai_online')} <span class="sys-status-val">ONLINE</span></div>
         <div class="sys-status-item"><div class="sys-status-dot amber"></div> OPS <span class="sys-status-val">{ops_mes} / {ops_limite if ops_limite < 99999 else '∞'}</span></div>
         <div class="sys-status-item"><div class="sys-status-dot"></div> AGENTS <span class="sys-status-val">{agentes_activos}</span></div>
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Build mini sparklines ──
     def sparkline_perf(sessions, color="#4F8EF7"):
         if not sessions:
-            fig = go.Figure()
-            fig.update_layout(**PLOTLY_THEME, height=60, xaxis=dict(visible=False), yaxis=dict(visible=False))
-            return fig
+            fig = go.Figure(); fig.update_layout(**PLOTLY_THEME, height=60, xaxis=dict(visible=False), yaxis=dict(visible=False)); return fig
         notas = [s["Nota"] for s in sessions[-10:]]
-        fig = go.Figure(go.Scatter(
-            y=notas, mode='lines',
-            line=dict(color=color, width=2),
-            fill='tozeroy',
-            fillcolor=color.replace(")", ",0.08)").replace("rgb", "rgba") if color.startswith("rgb") else f"rgba({int(color[1:3],16)},{int(color[3:5],16)},{int(color[5:7],16)},0.08)"
-        ))
-        fig.update_layout(**PLOTLY_THEME, height=60,
-                          xaxis=dict(visible=False, **AXIS_STYLE),
-                          yaxis=dict(visible=False, range=[0,105], **AXIS_STYLE))
+        r, g, b = int(color[1:3],16), int(color[3:5],16), int(color[5:7],16)
+        fig = go.Figure(go.Scatter(y=notas, mode='lines', line=dict(color=color, width=2), fill='tozeroy', fillcolor=f"rgba({r},{g},{b},0.08)"))
+        fig.update_layout(**PLOTLY_THEME, height=60, xaxis=dict(visible=False, **AXIS_STYLE), yaxis=dict(visible=False, range=[0,105], **AXIS_STYLE))
         return fig
 
     def ops_barchart(sessions, color="#E8394A"):
         if not sessions:
-            fig = go.Figure()
-            fig.update_layout(**PLOTLY_THEME, height=60, xaxis=dict(visible=False), yaxis=dict(visible=False))
-            return fig
-        last_6 = sessions[-6:]
-        notas = [s["Nota"] for s in last_6]
+            fig = go.Figure(); fig.update_layout(**PLOTLY_THEME, height=60, xaxis=dict(visible=False), yaxis=dict(visible=False)); return fig
+        last_6 = sessions[-6:]; notas = [s["Nota"] for s in last_6]
         colors_bar = [color if n >= 70 else "#2A3650" for n in notas]
         fig = go.Figure(go.Bar(y=notas, marker=dict(color=colors_bar), width=0.6))
-        fig.update_layout(**PLOTLY_THEME, height=60,
-                          xaxis=dict(visible=False),
-                          yaxis=dict(visible=False, range=[0,110]))
+        fig.update_layout(**PLOTLY_THEME, height=60, xaxis=dict(visible=False), yaxis=dict(visible=False, range=[0,110]))
         return fig
 
     def scenario_donut(sessions):
         if not sessions:
-            fig = go.Figure()
-            fig.update_layout(**PLOTLY_THEME, height=60)
-            return fig
+            fig = go.Figure(); fig.update_layout(**PLOTLY_THEME, height=60); return fig
         from collections import Counter
         counts = Counter(s.get("Escenario","?") for s in sessions)
-        fig = go.Figure(go.Pie(
-            labels=list(counts.keys()),
-            values=list(counts.values()),
-            hole=0.7,
-            marker=dict(colors=['#4F8EF7','#00D4A0','#F0A500','#E8394A']),
-            textinfo='none'
-        ))
+        fig = go.Figure(go.Pie(labels=list(counts.keys()), values=list(counts.values()), hole=0.7, marker=dict(colors=['#4F8EF7','#00D4A0','#F0A500','#E8394A']), textinfo='none'))
         fig.update_layout(**PLOTLY_THEME, height=60, showlegend=False)
         return fig
 
     def diff_radar(sessions):
         if not sessions:
-            fig = go.Figure()
-            fig.update_layout(**PLOTLY_THEME, height=60)
-            return fig
+            fig = go.Figure(); fig.update_layout(**PLOTLY_THEME, height=60); return fig
         diff_scores = {}
         for s in sessions:
             d = s.get("Dificultad","OPERATOR")
             if d not in diff_scores: diff_scores[d] = []
             diff_scores[d].append(s["Nota"])
-        cats = list(diff_scores.keys())
-        vals = [int(sum(diff_scores[c])/len(diff_scores[c])) for c in cats]
-        fig = go.Figure(go.Bar(
-            x=cats, y=vals,
-            marker=dict(color=['#00D4A0','#4F8EF7','#F0A500','#E8394A'][:len(cats)]),
-            width=0.5
-        ))
-        fig.update_layout(**PLOTLY_THEME, height=60,
-                          xaxis=dict(visible=False),
-                          yaxis=dict(visible=False, range=[0,110]))
+        cats = list(diff_scores.keys()); vals = [int(sum(diff_scores[c])/len(diff_scores[c])) for c in cats]
+        fig = go.Figure(go.Bar(x=cats, y=vals, marker=dict(color=['#00D4A0','#4F8EF7','#F0A500','#E8394A'][:len(cats)]), width=0.5))
+        fig.update_layout(**PLOTLY_THEME, height=60, xaxis=dict(visible=False), yaxis=dict(visible=False, range=[0,110]))
         return fig
 
+    # ── ROW 1: 3 cards ──
     c1, c2, c3 = st.columns(3)
 
     with c1:
         perf_color = "#00D4A0" if media_global >= 70 else "#E8394A"
-        if st.button("__S__", key="card_stats", use_container_width=True, help="Go to Statistics"):
-            ir_a("estadisticas")
         st.markdown(f"""
-        <div class="module-card primary" style="margin-top:-8px;">
+        <div class="module-card primary" style="position:relative;">
             <div class="module-top-bar"></div>
             <div class="module-body">
                 <div class="module-code">{t('mod01')}</div>
                 <div class="module-title">{t('mod01_title')}</div>
                 <div class="module-desc">{t('mod01_desc')}</div>
             </div>
-            <div class="module-chart-area" id="chart_stats"></div>
+            <div class="module-chart-area" id="c_stats"></div>
             <div class="module-footer">
                 <div>
                     <div class="module-stat-label">{t('mod01_stat')}</div>
@@ -1573,13 +1314,13 @@ if st.session_state.pantalla_actual == "menu":
                 <div class="module-arrow">→</div>
             </div>
         </div>""", unsafe_allow_html=True)
-        st.plotly_chart(sparkline_perf(historial_visible), use_container_width=True, config={"displayModeBar": False}, key="spark_stats")
+        st.plotly_chart(sparkline_perf(historial_visible), use_container_width=True, config={"displayModeBar": False}, key="sp1")
+        if st.button("→ ESTADÍSTICAS", key="nav_stats", use_container_width=True, type="secondary"):
+            ir_a("estadisticas")
 
     with c2:
-        if st.button("__D__", key="card_sim", use_container_width=True, help="Go to Simulator"):
-            ir_a("simulador")
         st.markdown(f"""
-        <div class="module-card danger" style="margin-top:-8px;">
+        <div class="module-card danger" style="position:relative;">
             <div class="module-top-bar"></div>
             <div class="module-body">
                 <div class="module-code">{t('mod02')}</div>
@@ -1595,13 +1336,13 @@ if st.session_state.pantalla_actual == "menu":
                 <div class="module-arrow">→</div>
             </div>
         </div>""", unsafe_allow_html=True)
-        st.plotly_chart(ops_barchart(historial_visible), use_container_width=True, config={"displayModeBar": False}, key="spark_sim")
+        st.plotly_chart(ops_barchart(historial_visible), use_container_width=True, config={"displayModeBar": False}, key="sp2")
+        if st.button("→ SIMULADOR", key="nav_sim", use_container_width=True, type="secondary"):
+            ir_a("simulador")
 
     with c3:
-        if st.button("__E__", key="card_exp", use_container_width=True, help="Go to Dossiers"):
-            ir_a("expedientes")
         st.markdown(f"""
-        <div class="module-card" style="margin-top:-8px;">
+        <div class="module-card" style="position:relative;">
             <div class="module-top-bar"></div>
             <div class="module-body">
                 <div class="module-code">{t('mod03')}</div>
@@ -1617,20 +1358,21 @@ if st.session_state.pantalla_actual == "menu":
                 <div class="module-arrow">→</div>
             </div>
         </div>""", unsafe_allow_html=True)
-        st.plotly_chart(scenario_donut(historial_visible), use_container_width=True, config={"displayModeBar": False}, key="spark_exp")
+        st.plotly_chart(scenario_donut(historial_visible), use_container_width=True, config={"displayModeBar": False}, key="sp3")
+        if st.button("→ EXPEDIENTES", key="nav_exp", use_container_width=True, type="secondary"):
+            ir_a("expedientes")
 
     st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
 
+    # ── ROW 2 ──
     if u["Nombre"] == COMANDANTE_SUPREMO:
         c4, c5, c6 = st.columns(3)
     else:
         c4, c5 = st.columns(2)
 
     with c4:
-        if st.button("__P__", key="card_pers", use_container_width=True, help="Go to Personnel"):
-            ir_a("personal")
         st.markdown(f"""
-        <div class="module-card" style="margin-top:-8px;">
+        <div class="module-card" style="position:relative;">
             <div class="module-top-bar"></div>
             <div class="module-body">
                 <div class="module-code">{t('mod04')}</div>
@@ -1646,13 +1388,13 @@ if st.session_state.pantalla_actual == "menu":
                 <div class="module-arrow">→</div>
             </div>
         </div>""", unsafe_allow_html=True)
-        st.plotly_chart(diff_radar(historial_visible), use_container_width=True, config={"displayModeBar": False}, key="spark_pers")
+        st.plotly_chart(diff_radar(historial_visible), use_container_width=True, config={"displayModeBar": False}, key="sp4")
+        if st.button("→ PERSONAL", key="nav_pers", use_container_width=True, type="secondary"):
+            ir_a("personal")
 
     with c5:
-        if st.button("__Y__", key="card_sint", use_container_width=True, help="Go to Synthesis"):
-            ir_a("sintesis")
         st.markdown(f"""
-        <div class="module-card gold" style="margin-top:-8px;">
+        <div class="module-card gold" style="position:relative;">
             <div class="module-top-bar"></div>
             <div class="module-body">
                 <div class="module-code">{t('mod05')}</div>
@@ -1668,21 +1410,19 @@ if st.session_state.pantalla_actual == "menu":
                 <div class="module-arrow">→</div>
             </div>
         </div>""", unsafe_allow_html=True)
-        # Simple scenario count bars
-        esc_vals = list(range(1, escenarios_creados + 2)) if escenarios_creados > 0 else [0]
         fig_sint = go.Figure(go.Bar(y=[escenarios_creados], x=[""], marker=dict(color='#F0A500'), width=0.3))
         fig_sint.update_layout(**PLOTLY_THEME, height=60, xaxis=dict(visible=False), yaxis=dict(visible=False))
-        st.plotly_chart(fig_sint, use_container_width=True, config={"displayModeBar": False}, key="spark_sint")
+        st.plotly_chart(fig_sint, use_container_width=True, config={"displayModeBar": False}, key="sp5")
+        if st.button("→ SÍNTESIS", key="nav_sint", use_container_width=True, type="secondary"):
+            ir_a("sintesis")
 
     if u["Nombre"] == COMANDANTE_SUPREMO:
         with c6:
             _precio_plan_mrr = {"COMANDANCIA":199,"ESCUADRON":89,"ELITE":49,"OPERADOR":19,"BASE":0}
             mrr = sum(_precio_plan_mrr.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
                       for e in st.session_state.empleados)
-            if st.button("__A__", key="card_admin", use_container_width=True, help="Go to Admin"):
-                ir_a("admin")
             st.markdown(f"""
-            <div class="module-card admin-card" style="margin-top:-8px;">
+            <div class="module-card admin-card" style="position:relative;">
                 <div class="module-top-bar"></div>
                 <div class="module-body">
                     <div class="module-code">{t('mod06')}</div>
@@ -1703,7 +1443,9 @@ if st.session_state.pantalla_actual == "menu":
                            bar=dict(color="#F0A500", thickness=0.5),
                            bgcolor='rgba(0,0,0,0)', bordercolor='rgba(0,0,0,0)')))
             mrr_fig.update_layout(**PLOTLY_THEME, height=60)
-            st.plotly_chart(mrr_fig, use_container_width=True, config={"displayModeBar": False}, key="spark_admin")
+            st.plotly_chart(mrr_fig, use_container_width=True, config={"displayModeBar": False}, key="sp6")
+            if st.button("→ ADMIN", key="nav_admin", use_container_width=True, type="secondary"):
+                ir_a("admin")
 
     st.stop()
 
@@ -1720,7 +1462,7 @@ elif st.session_state.pantalla_actual == "estadisticas":
 
     c1, c2, c3 = st.columns(3)
     c1.markdown(f"""<div class="metric-card"><div class="metric-label">{t('avg_perf')}</div><div class="metric-value" style="color:{'#00D4A0' if media_global>=70 else '#E8394A'}">{media_global}%</div></div>""", unsafe_allow_html=True)
-    c2.markdown(f"""<div class="metric-card" style="--accent:#00D4A0"><div class="metric-label">{t('excellence')}</div><div class="metric-value" style="color:{'#00D4A0' if tasa_exito>=50 else '#E8394A'}">{tasa_exito}%</div></div>""", unsafe_allow_html=True)
+    c2.markdown(f"""<div class="metric-card"><div class="metric-label">{t('excellence')}</div><div class="metric-value" style="color:{'#00D4A0' if tasa_exito>=50 else '#E8394A'}">{tasa_exito}%</div></div>""", unsafe_allow_html=True)
     c3.markdown(f"""<div class="metric-card"><div class="metric-label">{t('missions')}</div><div class="metric-value" style="color:#4F8EF7">{total_ops}</div></div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -1732,46 +1474,23 @@ elif st.session_state.pantalla_actual == "estadisticas":
         col_left, col_right = st.columns(2, gap="medium")
         with col_left:
             st.markdown(f"<div class='section-label'>{t('scenario_dist')}</div>", unsafe_allow_html=True)
-            esc_count = df["Escenario"].value_counts().reset_index()
-            esc_count.columns = ["Escenario","Count"]
-            fig2 = go.Figure(go.Pie(
-                labels=esc_count["Escenario"], values=esc_count["Count"], hole=0.65,
-                marker=dict(colors=['#4F8EF7','#00D4A0','#F0A500','#E8394A']),
-                textfont=dict(size=11)
-            ))
-            fig2.update_layout(**PLOTLY_THEME, height=300, showlegend=True,
-                               legend=dict(font=dict(size=10, color='#4A5A7A'), bgcolor='rgba(0,0,0,0)'))
+            esc_count = df["Escenario"].value_counts().reset_index(); esc_count.columns = ["Escenario","Count"]
+            fig2 = go.Figure(go.Pie(labels=esc_count["Escenario"], values=esc_count["Count"], hole=0.65, marker=dict(colors=['#4F8EF7','#00D4A0','#F0A500','#E8394A']), textfont=dict(size=11)))
+            fig2.update_layout(**PLOTLY_THEME, height=300, showlegend=True, legend=dict(font=dict(size=10, color='#4A5A7A'), bgcolor='rgba(0,0,0,0)'))
             st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
         with col_right:
             if es_empresa:
                 st.markdown(f"<div class='section-label'>{t('agent_eval')}</div>", unsafe_allow_html=True)
                 avg_agent = df.groupby("Agente")["Nota"].mean().reset_index()
-                fig3 = go.Figure(go.Bar(
-                    x=avg_agent["Nota"], y=avg_agent["Agente"], orientation='h',
-                    marker=dict(color='#4F8EF7', opacity=0.85),
-                    text=avg_agent["Nota"].round(1), textposition='outside',
-                    textfont=dict(color='#4A5A7A', size=10)
-                ))
-                fig3.update_layout(**PLOTLY_THEME, height=300,
-                                   xaxis=dict(range=[0,110], **AXIS_STYLE),
-                                   yaxis=dict(**AXIS_STYLE))
+                fig3 = go.Figure(go.Bar(x=avg_agent["Nota"], y=avg_agent["Agente"], orientation='h', marker=dict(color='#4F8EF7', opacity=0.85), text=avg_agent["Nota"].round(1), textposition='outside', textfont=dict(color='#4A5A7A', size=10)))
+                fig3.update_layout(**PLOTLY_THEME, height=300, xaxis=dict(range=[0,110], **AXIS_STYLE), yaxis=dict(**AXIS_STYLE))
             else:
                 st.markdown(f"<div class='section-label'>{t('perf_history')}</div>", unsafe_allow_html=True)
-                df["Fecha_dt"] = pd.to_datetime(df["Fecha"])
-                df_sorted = df.sort_values("Fecha_dt")
+                df["Fecha_dt"] = pd.to_datetime(df["Fecha"]); df_sorted = df.sort_values("Fecha_dt")
                 fig3 = go.Figure()
-                fig3.add_trace(go.Scatter(
-                    x=df_sorted["Fecha_dt"], y=df_sorted["Nota"],
-                    mode='lines+markers',
-                    line=dict(color='#4F8EF7', width=2),
-                    marker=dict(size=6, color='#4F8EF7', line=dict(color='#0C1020', width=2)),
-                    fill='tozeroy', fillcolor='rgba(79,142,247,0.06)'
-                ))
-                fig3.add_hline(y=80, line_dash="dot", line_color="#00D4A0", line_width=1,
-                               annotation_text="80%", annotation_font_color="#00D4A0", annotation_font_size=10)
-                fig3.update_layout(**PLOTLY_THEME, height=300,
-                                   xaxis=dict(**AXIS_STYLE),
-                                   yaxis=dict(range=[0,110], **AXIS_STYLE))
+                fig3.add_trace(go.Scatter(x=df_sorted["Fecha_dt"], y=df_sorted["Nota"], mode='lines+markers', line=dict(color='#4F8EF7', width=2), marker=dict(size=6, color='#4F8EF7', line=dict(color='#0C1020', width=2)), fill='tozeroy', fillcolor='rgba(79,142,247,0.06)'))
+                fig3.add_hline(y=80, line_dash="dot", line_color="#00D4A0", line_width=1, annotation_text="80%", annotation_font_color="#00D4A0", annotation_font_size=10)
+                fig3.update_layout(**PLOTLY_THEME, height=300, xaxis=dict(**AXIS_STYLE), yaxis=dict(range=[0,110], **AXIS_STYLE))
             st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
 
 # ─────────────────────────────────────────
@@ -1804,8 +1523,7 @@ elif st.session_state.pantalla_actual == "personal":
                             <div style="color:var(--text-hi); font-weight:600; font-size:0.88rem;">{ag['Nombre']}</div>
                             <div style="color:var(--text-lo); font-family:var(--mono); font-size:0.52rem; margin-top:2px;">{ag.get('Departamento','—')} · {ag['Email']}</div>
                         </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    </div>""", unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
             with st.expander(t("revoke_access")):
                 ag_a_borrar = st.selectbox(t("select_operator"), [a['Nombre'] for a in agentes_mios])
@@ -1817,8 +1535,7 @@ elif st.session_state.pantalla_actual == "personal":
     else:
         st.markdown(f"<div class='section-label'>{t('confirmed_credential')}</div>", unsafe_allow_html=True)
         st.markdown(f"""<div class="briefing-box"><h4>{t('operator_data')}</h4>
-        <p><b>{t('identifier')}</b> {u['Nombre']} &nbsp;|&nbsp; <b>{t('unit')}</b> {empresa_actual} &nbsp;|&nbsp; <b>{t('plan')}</b> {mi_plan}</p></div>""",
-        unsafe_allow_html=True)
+        <p><b>{t('identifier')}</b> {u['Nombre']} &nbsp;|&nbsp; <b>{t('unit')}</b> {empresa_actual} &nbsp;|&nbsp; <b>{t('plan')}</b> {mi_plan}</p></div>""", unsafe_allow_html=True)
 
     st.markdown(f"<br><div class='section-label'>{t('account_settings')}</div>", unsafe_allow_html=True)
     with st.expander(t("change_pass")):
@@ -1835,12 +1552,7 @@ elif st.session_state.pantalla_actual == "personal":
 
     if u["Nombre"] != COMANDANTE_SUPREMO:
         st.markdown(f"<br><div class='section-label'>{t('subscription')}</div>", unsafe_allow_html=True)
-        planes_suscripcion = [
-            ("OPERADOR",    "19€/mes",  "10 ops/mes · 3 esc.", "OPERADOR"),
-            ("ELITE",       "49€/mes",  "Ilimitado · IA ∞",    "ELITE"),
-            ("ESCUADRON",   "89€/mes",  "Equipo · 15 agentes", "ESCUADRON"),
-            ("COMANDANCIA", "199€/mes", "Enterprise · ∞",      "COMANDANCIA"),
-        ]
+        planes_suscripcion = [("OPERADOR","19€/mes","10 ops/mes · 3 esc.","OPERADOR"),("ELITE","49€/mes","Ilimitado · IA ∞","ELITE"),("ESCUADRON","89€/mes","Equipo · 15 agentes","ESCUADRON"),("COMANDANCIA","199€/mes","Enterprise · ∞","COMANDANCIA")]
         cols_plan = st.columns(4)
         for col, (nombre, precio, desc, plan_key) in zip(cols_plan, planes_suscripcion):
             with col:
@@ -1882,8 +1594,7 @@ elif st.session_state.pantalla_actual == "expedientes":
             with st.expander(f"{t('operator_label')} {agente.upper()}  —  {t('global_metric')} {media_agente}%", expanded=False):
                 st.markdown("<br>", unsafe_allow_html=True)
                 for escenario, df_op in df_agente.groupby("Escenario"):
-                    media_op = int(df_op["Nota"].mean())
-                    lbl_esc  = escenario.replace("OPERACION: ","")
+                    media_op = int(df_op["Nota"].mean()); lbl_esc = escenario.replace("OPERACION: ","")
                     with st.expander(f"{lbl_esc}  —  {media_op}%", expanded=True):
                         for _, s in df_op.sort_values("Fecha", ascending=False).iterrows():
                             nota_ind   = s['Nota']
@@ -1906,13 +1617,7 @@ elif st.session_state.pantalla_actual == "expedientes":
 
                             col_pdf, col_del = st.columns([3, 1])
                             with col_pdf:
-                                st.download_button(
-                                    label=t("extract_dossier"),
-                                    data=generar_pdf_dossier(s),
-                                    file_name=f"CRYSIS_{s['Agente']}_{s['Fecha'][:10]}.pdf",
-                                    mime="application/pdf",
-                                    key=f"pdf_{s['Agente']}_{s['Fecha']}"
-                                )
+                                st.download_button(label=t("extract_dossier"), data=generar_pdf_dossier(s), file_name=f"CRYSIS_{s['Agente']}_{s['Fecha'][:10]}.pdf", mime="application/pdf", key=f"pdf_{s['Agente']}_{s['Fecha']}")
                             with col_del:
                                 if puede_borrar:
                                     confirm_key = f"confirm_del_{s['Agente']}_{s['Fecha']}"
@@ -1921,26 +1626,14 @@ elif st.session_state.pantalla_actual == "expedientes":
                                         if st.button(t("delete"), key=f"btn_del_{s['Agente']}_{s['Fecha']}", type="secondary", use_container_width=True):
                                             st.session_state[confirm_key] = True; st.rerun()
                                     else:
-                                        st.markdown(f"""
-                                        <div style="background:rgba(232,57,74,0.05); border:1px solid var(--red); border-left:3px solid var(--red);
-                                                    padding:10px 12px; border-radius:2px; margin-bottom:6px;">
-                                            <div style="font-family:var(--mono); font-size:0.48rem; letter-spacing:0.2em;
-                                                        color:var(--red); margin-bottom:6px;">{t('confirm_required')}</div>
-                                            <div style="font-family:var(--mono); font-size:0.5rem; color:var(--text-lo); line-height:1.5;">
-                                                {t('write_confirm')}
-                                            </div>
-                                        </div>
-                                        """, unsafe_allow_html=True)
+                                        st.markdown(f"""<div style="background:rgba(232,57,74,0.05); border:1px solid var(--red); border-left:3px solid var(--red); padding:10px 12px; border-radius:2px; margin-bottom:6px;"><div style="font-family:var(--mono); font-size:0.48rem; letter-spacing:0.2em; color:var(--red); margin-bottom:6px;">{t('confirm_required')}</div><div style="font-family:var(--mono); font-size:0.5rem; color:var(--text-lo); line-height:1.5;">{t('write_confirm')}</div></div>""", unsafe_allow_html=True)
                                         texto_confirmacion = st.text_input("", key=input_key, placeholder=t("confirm_delete_phrase"), label_visibility="collapsed")
                                         col_conf, col_canc = st.columns(2)
                                         with col_conf:
                                             if st.button(t("execute"), key=f"exec_del_{s['Agente']}_{s['Fecha']}", use_container_width=True):
                                                 phrase = "CONFIRMAR BORRADO" if st.session_state.lang == "es" else "CONFIRM DELETION"
                                                 if texto_confirmacion.strip().upper() == phrase:
-                                                    st.session_state.historial_sesiones = [
-                                                        ses for ses in st.session_state.historial_sesiones
-                                                        if not (ses["Agente"] == s["Agente"] and ses["Fecha"] == s["Fecha"])
-                                                    ]
+                                                    st.session_state.historial_sesiones = [ses for ses in st.session_state.historial_sesiones if not (ses["Agente"] == s["Agente"] and ses["Fecha"] == s["Fecha"])]
                                                     guardar_datos(); del st.session_state[confirm_key]; st.rerun()
                                                 else: st.error(t("wrong_confirm"))
                                         with col_canc:
@@ -1959,11 +1652,12 @@ elif st.session_state.pantalla_actual == "expedientes":
         st.markdown(f"<div style='text-align:center; padding:60px; color:var(--text-lo); font-family:var(--mono);'>{t('empty_dir')}</div>", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────
-# SIMULADOR TÁCTICO
+# SIMULADOR TÁCTICO v2 — REDISEÑO VISUAL
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "simulador":
     st.markdown(f"<div class='section-header'><div><div class='section-code'>{t('sim_code')}</div><div class='section-title'>{t('sim_title')}</div></div></div>", unsafe_allow_html=True)
 
+    # ── PANTALLA SETUP ──
     if not st.session_state.mision_iniciada:
         c1, c2 = st.columns(2)
         if es_empresa:
@@ -1982,8 +1676,7 @@ elif st.session_state.pantalla_actual == "simulador":
                 border_d  = d_data["color"] if is_sel_d else "var(--border)"
                 bg_d      = f"rgba({int(d_data['color'][1:3],16)},{int(d_data['color'][3:5],16)},{int(d_data['color'][5:7],16)},0.1)" if is_sel_d else "var(--bg3)"
                 st.markdown(f"""
-                <div class="diff-card {'selected' if is_sel_d else ''}"
-                     style="border-color:{border_d}; background:{bg_d}; color:{d_data['color']};">
+                <div class="diff-card {'selected' if is_sel_d else ''}" style="border-color:{border_d}; background:{bg_d}; color:{d_data['color']};">
                     <div class="diff-name">{d_nombre}</div>
                     <div style="font-family:var(--mono); font-size:0.48rem; opacity:0.7; margin-top:2px; letter-spacing:0.12em;">LVL {d_data['nivel']}</div>
                     <div class="diff-desc">{d_data['desc']}</div>
@@ -1995,11 +1688,7 @@ elif st.session_state.pantalla_actual == "simulador":
         st.markdown("<br>", unsafe_allow_html=True)
 
         if u.get("Rol") == "Agente":
-            tipo_despliegue = st.radio(
-                t("privacy_level"),
-                [t("official_mission"), t("private_training")],
-                horizontal=True
-            )
+            tipo_despliegue = st.radio(t("privacy_level"), [t("official_mission"), t("private_training")], horizontal=True)
             tipo_mision_val = "Corporativa" if t("official_mission") in tipo_despliegue else "Personal"
         else:
             tipo_mision_val = "Personal"
@@ -2017,9 +1706,10 @@ elif st.session_state.pantalla_actual == "simulador":
         </div>
         """, unsafe_allow_html=True)
 
-        mes_actual   = datetime.now().strftime("%Y-%m")
+        ahora_setup  = hora_espana()
+        mes_actual_s = ahora_setup.strftime("%Y-%m")
         ops_este_mes = len([s for s in st.session_state.historial_sesiones
-                            if s["Agente"] == ag_sel and str(s.get("Fecha","")).startswith(mes_actual)])
+                            if s["Agente"] == ag_sel and str(s.get("Fecha","")).startswith(mes_actual_s)])
 
         bloquear_inicio = False
         if mi_plan != "COMANDANCIA" and u["Nombre"] != COMANDANTE_SUPREMO:
@@ -2047,8 +1737,11 @@ elif st.session_state.pantalla_actual == "simulador":
             st.session_state.escenario_activo   = es_sel
             st.session_state.tipo_mision_actual = tipo_mision_val
             st.session_state.dificultad_sesion  = dif_activa
+            st.session_state.diagnostico_sujeto = None
+            st.session_state.quick_msg          = None
             st.rerun()
 
+    # ── PANTALLA EVALUACION ──
     elif st.session_state.evaluacion_actual:
         st.markdown(f"<div class='section-label'>{t('tactical_eval')}</div>", unsafe_allow_html=True)
         st.markdown(st.session_state.evaluacion_actual)
@@ -2060,101 +1753,137 @@ elif st.session_state.pantalla_actual == "simulador":
                 st.session_state.evaluacion_actual = None
                 st.session_state.mensajes          = []
                 st.session_state.tarjeta_objetivo  = None
+                st.session_state.diagnostico_sujeto = None
                 st.session_state.pantalla_actual   = "menu"
                 st.rerun()
         with col_end2:
             ultima_sesion = st.session_state.historial_sesiones[-1]
-            st.download_button(
-                label=t("download_pdf"),
-                data=generar_pdf_dossier(ultima_sesion),
-                file_name=f"CRYSIS_{ultima_sesion['Agente']}_Report.pdf",
-                mime="application/pdf",
-                use_container_width=True
-            )
+            st.download_button(label=t("download_pdf"), data=generar_pdf_dossier(ultima_sesion), file_name=f"CRYSIS_{ultima_sesion['Agente']}_Report.pdf", mime="application/pdf", use_container_width=True)
 
+    # ── PANTALLA SIMULADOR ACTIVO v2 ──
     else:
         dif_sesion  = st.session_state.get("dificultad_sesion", "OPERATOR")
         dif_color_s = DIFICULTADES.get(dif_sesion, {}).get("color","#4F8EF7")
-        st.markdown(f"""
-        <div class='status-bar'>
-            {t('secure_line')} {st.session_state.escenario_activo} —
-            {t('operator_short')} {st.session_state.agente_activo.upper()} —
-            <span style="color:{dif_color_s};">{t('diff_short')} {dif_sesion}</span>
-        </div>
-        """, unsafe_allow_html=True)
+        escenario_a = st.session_state.escenario_activo
+        info_activa = TODAS_LAS_MISIONES.get(escenario_a, {})
 
-        if st.session_state.tarjeta_objetivo:
-            t2 = st.session_state.tarjeta_objetivo
+        # Handle quick message injection
+        quick_to_inject = st.session_state.get("quick_msg", None)
+        if quick_to_inject:
+            st.session_state.mensajes.append({"role":"user","content": quick_to_inject})
+            st.session_state.quick_msg = None
+
+        # ── 3-COLUMN LAYOUT ──
+        col_left, col_center, col_right = st.columns([1, 1.6, 1], gap="small")
+
+        # ── COL LEFT: TACTICAL CONTEXT ──
+        with col_left:
             st.markdown(f"""
-            <div style="display:flex; gap:15px; background:linear-gradient(135deg,var(--bg2),var(--bg3));
-                        border:1px solid var(--border); border-left:3px solid var(--amber);
-                        border-radius:3px; padding:16px 20px; margin-bottom:20px;">
-                <div style="flex:1;">
-                    <div style="color:var(--amber); font-size:0.48rem; font-family:var(--mono); letter-spacing:0.22em; margin-bottom:4px;">{t('identification')}</div>
-                    <div style="color:var(--text-hi); font-family:var(--cond); font-weight:600;">{str(t2.get('Nombre_Completo','N/A'))}</div>
+            <div class="tac-panel">
+                <div class="tac-panel-header">
+                    <span>{t('tactical_context')}</span>
+                    <span class="tac-badge secure">{t('network_secure')}</span>
                 </div>
-                <div style="flex:1;">
-                    <div style="color:var(--amber); font-size:0.48rem; font-family:var(--mono); letter-spacing:0.22em; margin-bottom:4px;">{t('links')}</div>
-                    <div style="color:var(--text); font-size:0.85rem;">{str(t2.get('Familia','N/A'))}</div>
+                <div style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.15em; color:var(--text-lo); margin-bottom:8px;">{t('active_negotiation')}</div>
+                <div style="font-family:var(--cond); font-size:0.95rem; font-weight:700; color:var(--text-hi); margin-bottom:16px;">{escenario_a.replace('OPERACION: ','')}</div>
+                <div class="tac-map">
+                    <div class="tac-map-ping"></div>
+                    <div class="tac-map-label">GRID: {escenario_a[:3].upper()}-{random.randint(100,999) if not st.session_state.get('grid_id') else st.session_state.grid_id}</div>
                 </div>
-                <div style="flex:1;">
-                    <div style="color:var(--amber); font-size:0.48rem; font-family:var(--mono); letter-spacing:0.22em; margin-bottom:4px;">{t('clinical_state')}</div>
-                    <div style="color:var(--text); font-size:0.85rem;">{str(t2.get('Estado_Mental','N/A'))}</div>
+                <div style="margin-bottom:12px;">
+                    <div class="tac-obj"><div class="tac-obj-dot"></div>{t('obj1')}</div>
+                    <div class="tac-obj"><div class="tac-obj-dot {'pending' if len(st.session_state.mensajes) < 4 else ''}"></div>{t('obj2')}</div>
+                    <div class="tac-obj"><div class="tac-obj-dot pending"></div>{t('obj3')}</div>
                 </div>
-            </div>""", unsafe_allow_html=True)
+                <div style="font-family:var(--mono); font-size:0.44rem; letter-spacing:0.15em; color:var(--blue); margin-bottom:8px; border-top:1px solid var(--border); padding-top:10px;">INTEL</div>
+            """, unsafe_allow_html=True)
 
-        for m in st.session_state.mensajes:
-            label  = "TÚ" if m["role"] == "user" else "SUJETO"
-            bubble_class = "user" if m["role"] == "user" else "assistant"
-            role_color = "#4F8EF7" if m["role"] == "user" else "#E8394A"
+            if st.session_state.tarjeta_objetivo:
+                t2 = st.session_state.tarjeta_objetivo
+                st.markdown(f"""
+                <div style="font-family:var(--mono); font-size:0.48rem; color:var(--text-lo); line-height:1.8;">
+                    <div><span style="color:var(--amber);">{t('identification').upper()}</span></div>
+                    <div style="color:var(--text-hi);">{str(t2.get('Nombre_Completo','N/A'))}</div>
+                    <div style="margin-top:6px;"><span style="color:var(--amber);">{t('links').upper()}</span></div>
+                    <div>{str(t2.get('Familia','N/A'))}</div>
+                    <div style="margin-top:6px;"><span style="color:var(--amber);">{t('clinical_state').upper()}</span></div>
+                    <div>{str(t2.get('Estado_Mental','N/A'))}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
             st.markdown(f"""
-            <div class="chat-msg {bubble_class}">
-                <div class="chat-bubble {bubble_class}">
-                    <div class="chat-role" style="color:{role_color};">{label}</div>
-                    <div class="chat-text">{m['content']}</div>
+                <div style="margin-top:14px;">
+                    <div style="font-family:var(--mono); font-size:0.44rem; letter-spacing:0.15em; color:var(--blue); margin-bottom:8px; border-top:1px solid var(--border); padding-top:10px;">{t('operator_controls')}</div>
                 </div>
-            </div>""", unsafe_allow_html=True)
+            </div>
+            """, unsafe_allow_html=True)
 
-        if prompt := st.chat_input(t("chat_placeholder")):
-            st.session_state.mensajes.append({"role":"user","content":prompt}); st.rerun()
+            # Quick action buttons
+            b1, b2 = st.columns(2)
+            with b1:
+                if st.button(t("btn_contact"), key="qb1", use_container_width=True, type="secondary"):
+                    st.session_state.quick_msg = t("quick_contact"); st.rerun()
+                if st.button(t("btn_info"), key="qb3", use_container_width=True, type="secondary"):
+                    st.session_state.quick_msg = t("quick_info"); st.rerun()
+            with b2:
+                if st.button(t("btn_protocol"), key="qb2", use_container_width=True, type="secondary"):
+                    st.session_state.quick_msg = t("quick_protocol"); st.rerun()
+                if st.button(t("btn_crisis"), key="qb4", use_container_width=True, type="secondary"):
+                    st.session_state.quick_msg = t("quick_crisis"); st.rerun()
 
-        if st.session_state.mensajes and st.session_state.mensajes[-1]["role"] == "user":
-            if GROQ_API_KEY:
-                client      = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
-                escenario_a = st.session_state.escenario_activo
-                base_prompt = TODAS_LAS_MISIONES[escenario_a]["prompt"]
-                dif_instruc = DIFICULTADES.get(dif_sesion, {}).get("instruccion","")
-                base_prompt += f"\n\n[NIVEL DE DIFICULTAD: {dif_sesion}. {dif_instruc}]"
-                if st.session_state.tarjeta_objetivo:
-                    t3 = st.session_state.tarjeta_objetivo
-                    base_prompt += f"\n\n[Tu nombre es {t3.get('Nombre_Completo')}. Familia: {t3.get('Familia')}. Estado: {t3.get('Estado_Mental')}.]"
-                res = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[{"role":"system","content": base_prompt}] + st.session_state.mensajes
-                ).choices[0].message.content
-                st.session_state.mensajes.append({"role":"assistant","content":res}); st.rerun()
+        # ── COL CENTER: LIVE FEED ──
+        with col_center:
+            st.markdown(f"""
+            <div style="background:linear-gradient(135deg,var(--bg2),var(--bg3)); border:1px solid var(--border); border-radius:3px; padding:16px; min-height:520px;">
+                <div class="tac-panel-header">
+                    <span>{t('live_feed')}</span>
+                    <span class="tac-badge red">{t('diff_short')} {dif_sesion}</span>
+                </div>
+            """, unsafe_allow_html=True)
 
-        col_end, col_abort = st.columns([3, 1])
-        with col_abort:
-            if st.button(t("break_link"), type="secondary", use_container_width=True):
-                st.session_state.mision_iniciada  = False
-                st.session_state.mensajes         = []
-                st.session_state.tarjeta_objetivo = None
+            # Render messages
+            for m in st.session_state.mensajes:
+                label  = t("operator_short")[:-1] if m["role"] == "user" else "SUJETO"
+                bubble_class = "user" if m["role"] == "user" else "assistant"
+                role_color = "#4F8EF7" if m["role"] == "user" else "#E8394A"
+                st.markdown(f"""
+                <div class="chat-msg {bubble_class}">
+                    <div class="chat-bubble {bubble_class}">
+                        <div class="chat-role" style="color:{role_color};">{label}</div>
+                        <div class="chat-text">{m['content']}</div>
+                    </div>
+                </div>""", unsafe_allow_html=True)
+
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            # Chat input
+            if prompt := st.chat_input(t("chat_placeholder")):
+                st.session_state.mensajes.append({"role":"user","content":prompt})
+                st.session_state.quick_msg = None
                 st.rerun()
-        with col_end:
-            if len(st.session_state.mensajes) > 0:
-                if st.button(t("request_eval"), use_container_width=True):
-                    with st.spinner(t("processing")):
-                        client    = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
-                        escenario = st.session_state.escenario_activo
-                        info_ev   = TODAS_LAS_MISIONES[escenario]
-                        dif_ev    = st.session_state.get("dificultad_sesion","OPERATOR")
-                        dif_nivel = DIFICULTADES.get(dif_ev,{}).get("nivel",2)
-                        hist_txt  = "\n".join([f"{'OPERADOR' if m['role']=='user' else 'SUJETO'}: {m['content']}" for m in st.session_state.mensajes])
-                        umbral_excelente = {1:85, 2:80, 3:70, 4:60}.get(dif_nivel, 80)
-                        umbral_correcto  = {1:65, 2:55, 3:45, 4:35}.get(dif_nivel, 55)
-                        eval_prompt = f"""Eres un Analista de Inteligencia y Negociación Táctica altamente estricto.
-Evalúa el desempeño del OPERADOR en el escenario: {escenario}.
+
+            # Control row
+            col_abort, col_eval = st.columns([1, 2])
+            with col_abort:
+                if st.button(t("break_link"), type="secondary", use_container_width=True):
+                    st.session_state.mision_iniciada  = False
+                    st.session_state.mensajes         = []
+                    st.session_state.tarjeta_objetivo = None
+                    st.session_state.diagnostico_sujeto = None
+                    st.rerun()
+            with col_eval:
+                if len(st.session_state.mensajes) > 0:
+                    if st.button(t("request_eval"), use_container_width=True):
+                        with st.spinner(t("processing")):
+                            client    = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                            info_ev   = TODAS_LAS_MISIONES[escenario_a]
+                            dif_ev    = st.session_state.get("dificultad_sesion","OPERATOR")
+                            dif_nivel = DIFICULTADES.get(dif_ev,{}).get("nivel",2)
+                            hist_txt  = "\n".join([f"{'OPERADOR' if m['role']=='user' else 'SUJETO'}: {m['content']}" for m in st.session_state.mensajes])
+                            umbral_excelente = {1:85, 2:80, 3:70, 4:60}.get(dif_nivel, 80)
+                            umbral_correcto  = {1:65, 2:55, 3:45, 4:35}.get(dif_nivel, 55)
+                            eval_prompt = f"""Eres un Analista de Inteligencia y Negociación Táctica altamente estricto.
+Evalúa el desempeño del OPERADOR en el escenario: {escenario_a}.
 Situación: {info_ev['contexto']}.
 Dificultad seleccionada: {dif_ev} (Nivel {dif_nivel}/4).
 AJUSTE POR DIFICULTAD: En nivel {dif_ev}, una puntuación de {umbral_excelente} o más es EXCELENTE.
@@ -2163,29 +1892,196 @@ REGLAS: NO regales puntuación. Evalúa: control de situación, desescalada, res
 Penaliza: ceder sin contrapartida, lenguaje amenazante, pérdida de control emocional.
 Estructura: ANÁLISIS DE LENGUAJE / TÁCTICAS EMPLEADAS / ERRORES CRÍTICOS / VEREDICTO / CÓMO MEJORAR
 PUNTUACIÓN FINAL: XX/100"""
-                        informe = client.chat.completions.create(
+                            informe = client.chat.completions.create(
+                                model="llama-3.3-70b-versatile",
+                                messages=[{"role":"user","content":eval_prompt}]
+                            ).choices[0].message.content
+                            try:
+                                match = re.search(r'PUNTUACI[OÓ]N FINAL[^\d]*(\d+)\s*\/?\s*100', informe, re.IGNORECASE)
+                                nota  = min(int(match.group(1)), 100) if match else (
+                                    min(int(re.search(r'(\d+)\s*/\s*100', informe).group(1)), 100)
+                                    if re.search(r'(\d+)\s*/\s*100', informe) else 50)
+                            except:
+                                nota = 50
+                            st.session_state.evaluacion_actual = informe
+                            ahora_eval = hora_espana()
+                            st.session_state.historial_sesiones.append({
+                                "Fecha":        ahora_eval.strftime("%Y-%m-%d %H:%M"),
+                                "Agente":       st.session_state.agente_activo,
+                                "Escenario":    escenario_a,
+                                "Nota":         nota,
+                                "Evaluacion":   informe,
+                                "Transcripcion": st.session_state.mensajes,
+                                "Tipo_Mision":  st.session_state.tipo_mision_actual,
+                                "Dificultad":   dif_ev,
+                            })
+                            guardar_datos(); st.rerun()
+
+        # ── COL RIGHT: SUBJECT DIAGNOSTICS ──
+        with col_right:
+            # Generate or update diagnostics after each AI response
+            msgs = st.session_state.mensajes
+            last_assistant = next((m["content"] for m in reversed(msgs) if m["role"] == "assistant"), None)
+
+            # Compute diagnostic metrics from conversation state
+            n_msgs = len(msgs)
+            n_user = sum(1 for m in msgs if m["role"] == "user")
+            n_asst = sum(1 for m in msgs if m["role"] == "assistant")
+
+            # Heuristic: tension based on difficulty + message count
+            dif_nivel_s = DIFICULTADES.get(dif_sesion, {}).get("nivel", 2)
+            base_tension = {1: 20, 2: 45, 3: 65, 4: 85}.get(dif_nivel_s, 45)
+
+            # Pull from stored diagnostics if available
+            diag = st.session_state.get("diagnostico_sujeto") or {}
+            agitation_val   = diag.get("agitation", min(base_tension + random.randint(-5,5), 100))
+            index_val       = diag.get("index",     min(50 + random.randint(-10,10), 100))
+            high_val        = diag.get("high",      min(base_tension + random.randint(0,15), 100))
+            receptivity_val = diag.get("receptivity", max(100 - base_tension + random.randint(-10,10), 0))
+            rating_val      = diag.get("rating",    max(100 - base_tension + random.randint(-5,5), 0))
+            compliance_val  = diag.get("compliance", max(100 - base_tension + random.randint(-15,5), 0))
+            latency_val     = diag.get("latency",   random.randint(20,80))
+
+            # Re-generate diagnostics via AI if there is a new assistant message
+            if last_assistant and GROQ_API_KEY and n_asst > 0:
+                diag_key = f"diag_msg_{n_asst}"
+                if not st.session_state.get(diag_key):
+                    try:
+                        client_d = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                        diag_prompt = f"""Analiza el último mensaje del sujeto y devuelve EXCLUSIVAMENTE JSON con estas claves numéricas de 0 a 100:
+'agitation' (agitación), 'index' (índice de riesgo), 'high' (hostilidad), 'receptivity' (receptividad al diálogo), 'rating' (evaluación general positiva), 'compliance' (tendencia a ceder), 'latency' (velocidad de respuesta percibida).
+Último mensaje del sujeto: "{last_assistant[:300]}"
+Dificultad base: {dif_sesion} (nivel {dif_nivel_s}/4). Ajusta según el tono del mensaje."""
+                        diag_res = client_d.chat.completions.create(
                             model="llama-3.3-70b-versatile",
-                            messages=[{"role":"user","content":eval_prompt}]
+                            messages=[{"role":"user","content": diag_prompt}],
+                            response_format={"type":"json_object"},
+                            max_tokens=200
                         ).choices[0].message.content
-                        try:
-                            match = re.search(r'PUNTUACI[OÓ]N FINAL[^\d]*(\d+)\s*\/?\s*100', informe, re.IGNORECASE)
-                            nota  = min(int(match.group(1)), 100) if match else (
-                                min(int(re.search(r'(\d+)\s*/\s*100', informe).group(1)), 100)
-                                if re.search(r'(\d+)\s*/\s*100', informe) else 50)
-                        except:
-                            nota = 50
-                        st.session_state.evaluacion_actual = informe
-                        st.session_state.historial_sesiones.append({
-                            "Fecha":        datetime.now().strftime("%Y-%m-%d %H:%M"),
-                            "Agente":       st.session_state.agente_activo,
-                            "Escenario":    escenario,
-                            "Nota":         nota,
-                            "Evaluacion":   informe,
-                            "Transcripcion": st.session_state.mensajes,
-                            "Tipo_Mision":  st.session_state.tipo_mision_actual,
-                            "Dificultad":   dif_ev,
-                        })
-                        guardar_datos(); st.rerun()
+                        new_diag = json.loads(diag_res)
+                        st.session_state.diagnostico_sujeto = new_diag
+                        st.session_state[diag_key] = True
+                        agitation_val   = new_diag.get("agitation",   agitation_val)
+                        index_val       = new_diag.get("index",       index_val)
+                        high_val        = new_diag.get("high",        high_val)
+                        receptivity_val = new_diag.get("receptivity", receptivity_val)
+                        rating_val      = new_diag.get("rating",      rating_val)
+                        compliance_val  = new_diag.get("compliance",  compliance_val)
+                        latency_val     = new_diag.get("latency",     latency_val)
+                    except:
+                        pass
+
+            # Determine status
+            mean_tension = (agitation_val + high_val) / 2
+            if mean_tension >= 65:
+                status_text  = t("status_high")
+                status_color = "#E8394A"
+            elif mean_tension >= 40:
+                status_text  = t("status_med")
+                status_color = "#F0A500"
+            else:
+                status_text  = t("status_low")
+                status_color = "#00D4A0"
+
+            # Last known score
+            prev_nota = historial_visible[-1]["Nota"] if historial_visible else None
+            curr_est  = max(0, 100 - int(mean_tension * 0.6)) if n_asst > 0 else "—"
+
+            def bar_color(val):
+                if val >= 70: return "#E8394A"
+                elif val >= 40: return "#F0A500"
+                return "#00D4A0"
+
+            def bar_color_pos(val):
+                if val >= 70: return "#00D4A0"
+                elif val >= 40: return "#F0A500"
+                return "#E8394A"
+
+            st.markdown(f"""
+            <div class="diag-panel">
+                <div class="tac-panel-header">
+                    <span>{t('subject_diag')}</span>
+                    <span class="tac-badge" style="background:rgba({int(status_color[1:3],16)},{int(status_color[3:5],16)},{int(status_color[5:7],16)},0.1); color:{status_color}; border:1px solid {status_color}40;">LIVE</span>
+                </div>
+
+                <div class="diag-section">
+                    <div class="diag-label">{t('emotional_state')}</div>
+                    <div class="diag-metric-row">
+                        <span class="diag-metric-name">Agitation</span>
+                        <span class="diag-metric-val" style="color:{bar_color(agitation_val)};">{agitation_val}</span>
+                    </div>
+                    <div class="diag-status-bar"><div class="diag-status-fill" style="width:{agitation_val}%; background:{bar_color(agitation_val)};"></div></div>
+                    <div class="diag-metric-row" style="margin-top:6px;">
+                        <span class="diag-metric-name">Index</span>
+                        <span class="diag-metric-val" style="color:{bar_color(index_val)};">{index_val}</span>
+                    </div>
+                    <div class="diag-status-bar"><div class="diag-status-fill" style="width:{index_val}%; background:{bar_color(index_val)};"></div></div>
+                    <div class="diag-metric-row" style="margin-top:6px;">
+                        <span class="diag-metric-name">High</span>
+                        <span class="diag-metric-val" style="color:{bar_color(high_val)};">{high_val}</span>
+                    </div>
+                    <div class="diag-status-bar"><div class="diag-status-fill" style="width:{high_val}%; background:{bar_color(high_val)};"></div></div>
+                </div>
+
+                <div class="diag-section">
+                    <div class="diag-label">{t('response_latency')}</div>
+                    <div class="diag-metric-row">
+                        <span class="diag-metric-name">Receptiveness</span>
+                        <span class="diag-metric-val" style="color:{bar_color_pos(receptivity_val)};">{receptivity_val}</span>
+                    </div>
+                    <div class="diag-status-bar"><div class="diag-status-fill" style="width:{receptivity_val}%; background:{bar_color_pos(receptivity_val)};"></div></div>
+                    <div class="diag-metric-row" style="margin-top:6px;">
+                        <span class="diag-metric-name">Rating</span>
+                        <span class="diag-metric-val" style="color:{bar_color_pos(rating_val)};">{rating_val}</span>
+                    </div>
+                    <div class="diag-status-bar"><div class="diag-status-fill" style="width:{rating_val}%; background:{bar_color_pos(rating_val)};"></div></div>
+                </div>
+
+                <div class="diag-section">
+                    <div class="diag-label">{t('compliance_trend')}</div>
+                    <div class="diag-metric-row">
+                        <span class="diag-metric-name">Compromise Extent</span>
+                        <span class="diag-metric-val" style="color:{bar_color_pos(compliance_val)};">{compliance_val}</span>
+                    </div>
+                    <div class="diag-status-bar"><div class="diag-status-fill" style="width:{compliance_val}%; background:{bar_color_pos(compliance_val)};"></div></div>
+                </div>
+
+                <div class="diag-analysis">
+                    <div class="diag-analysis-label">{t('analysis')}</div>
+                    <div class="diag-analysis-item">STATUS: <span style="color:{status_color};">{status_text}</span></div>
+                    <div class="diag-analysis-item">{t('advice_deesc')}</div>
+                </div>
+
+                <div class="diag-score-row">
+                    <div class="diag-score-box">
+                        <div class="diag-score-label">{t('prev_nota')}</div>
+                        <div class="diag-score-val" style="color:#4F8EF7;">{prev_nota if prev_nota else t('no_prev')}</div>
+                    </div>
+                    <div class="diag-score-box">
+                        <div class="diag-score-label">{t('curr_perf')}</div>
+                        <div class="diag-score-val" style="color:#00D4A0;">{curr_est}</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # ── AI RESPONSE (triggers after user message) ──
+        if st.session_state.mensajes and st.session_state.mensajes[-1]["role"] == "user":
+            if GROQ_API_KEY:
+                with st.spinner(t("ai_engine")):
+                    client_r    = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                    base_prompt = TODAS_LAS_MISIONES[escenario_a]["prompt"]
+                    dif_instruc = DIFICULTADES.get(dif_sesion, {}).get("instruccion","")
+                    base_prompt += f"\n\n[NIVEL DE DIFICULTAD: {dif_sesion}. {dif_instruc}]"
+                    if st.session_state.tarjeta_objetivo:
+                        t3 = st.session_state.tarjeta_objetivo
+                        base_prompt += f"\n\n[Tu nombre es {t3.get('Nombre_Completo')}. Familia: {t3.get('Familia')}. Estado: {t3.get('Estado_Mental')}.]"
+                    res = client_r.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[{"role":"system","content": base_prompt}] + st.session_state.mensajes
+                    ).choices[0].message.content
+                    st.session_state.mensajes.append({"role":"assistant","content":res})
+                    st.rerun()
 
 # ─────────────────────────────────────────
 # SÍNTESIS IA
@@ -2200,12 +2096,7 @@ elif st.session_state.pantalla_actual == "sintesis":
             st.markdown(f"<div class='section-label'>{t('active_scenarios')}</div>", unsafe_allow_html=True)
             for nombre_esc, datos_esc in mis_escenarios.items():
                 c_esc1, c_esc2 = st.columns([3, 1])
-                c_esc1.markdown(f"""
-                <div style="background:linear-gradient(135deg,var(--bg2),var(--bg3)); border:1px solid var(--border); border-radius:3px; padding:12px 16px; margin-bottom:4px;">
-                    <span style="color:var(--text-hi); font-size:0.88rem; font-weight:600;">{nombre_esc}</span>
-                    <span style="color:var(--text-lo); font-family:var(--mono); font-size:0.5rem; margin-left:10px;">Creator: {datos_esc.get('Creador','—')}</span>
-                </div>
-                """, unsafe_allow_html=True)
+                c_esc1.markdown(f"""<div style="background:linear-gradient(135deg,var(--bg2),var(--bg3)); border:1px solid var(--border); border-radius:3px; padding:12px 16px; margin-bottom:4px;"><span style="color:var(--text-hi); font-size:0.88rem; font-weight:600;">{nombre_esc}</span><span style="color:var(--text-lo); font-family:var(--mono); font-size:0.5rem; margin-left:10px;">Creator: {datos_esc.get('Creador','—')}</span></div>""", unsafe_allow_html=True)
                 if c_esc2.button(t("delete"), key=f"del_{nombre_esc}", type="secondary"):
                     del st.session_state.escenarios_custom[nombre_esc]; guardar_datos(); st.rerun()
             st.markdown("<br>", unsafe_allow_html=True)
@@ -2264,9 +2155,7 @@ elif st.session_state.pantalla_actual == "sintesis":
             st.markdown(f"""
             <div class="auth-tier {'elite' if elite else ''}" style="border-left-color:{border};">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:6px;">
-                    <span style="font-family:var(--mono);font-size:0.6rem;color:{'#00D4A0' if activo else 'var(--text-hi)'};">
-                        {'● ' if activo else ''}{nombre}
-                    </span>
+                    <span style="font-family:var(--mono);font-size:0.6rem;color:{'#00D4A0' if activo else 'var(--text-hi)'};">{'● ' if activo else ''}{nombre}</span>
                     <span style="font-family:var(--cond);font-size:0.85rem;color:{color};font-weight:700;">{precio}</span>
                 </div>
                 {''.join(f'<div class="tier-spec">{s}</div>' for s in specs)}
@@ -2293,7 +2182,7 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
     total_agentes    = len([e for e in st.session_state.empleados if e["Rol"] == "Agente"])
 
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
-    col_m1.markdown(f"""<div class="metric-card" style="--c:var(--amber);"><div class="metric-label" style="color:var(--amber);">{t('mrr')}</div><div class="metric-value" style="color:var(--amber);">{mrr_estimado}€</div></div>""", unsafe_allow_html=True)
+    col_m1.markdown(f"""<div class="metric-card" style="border-left-color:var(--amber);"><div class="metric-label" style="color:var(--amber);">{t('mrr')}</div><div class="metric-value" style="color:var(--amber);">{mrr_estimado}€</div></div>""", unsafe_allow_html=True)
     col_m2.markdown(f"""<div class="metric-card"><div class="metric-label">{t('paid_accounts')}</div><div class="metric-value">{total_enterprise+total_escuadron+total_elite+total_operador}</div></div>""", unsafe_allow_html=True)
     col_m3.markdown(f"""<div class="metric-card"><div class="metric-label">{t('deployed_agents')}</div><div class="metric-value">{total_agentes}</div></div>""", unsafe_allow_html=True)
     col_m4.markdown(f"""<div class="metric-card"><div class="metric-label">{t('total_sessions')}</div><div class="metric-value">{len(st.session_state.historial_sesiones)}</div></div>""", unsafe_allow_html=True)
@@ -2309,8 +2198,7 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
                     plan_disp = _legacy.get(usr.get("Plan","BASE"), usr.get("Plan","BASE"))
                     c_u1.markdown(f"**{usr['Nombre']}** | {usr['Rol']} | {usr['Email']} | {plan_disp}")
                     if c_u2.button(t("purge"), key=f"del_g_{usr['Nombre']}_{i}", type="secondary"):
-                        st.session_state.empleados = [e for e in st.session_state.empleados
-                                                       if not (e["Nombre"] == usr["Nombre"] and e.get("Rol") == usr.get("Rol") and e.get("Empresa") == usr.get("Empresa"))]
+                        st.session_state.empleados = [e for e in st.session_state.empleados if not (e["Nombre"] == usr["Nombre"] and e.get("Rol") == usr.get("Rol") and e.get("Empresa") == usr.get("Empresa"))]
                         guardar_datos(); st.rerun()
 
         with st.expander(t("scenario_dir"), expanded=False):
@@ -2337,8 +2225,7 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
                             st.warning(t("id_taken"))
                         else:
                             fecha_exp_str = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d") if expira else None
-                            nuevo_u = {"Nombre": new_n, "Email": new_email, "Rol": new_rol,
-                                       "Plan": new_plan, "Empresa": new_n, "Password": new_pass, "2FA_Verificado": True}
+                            nuevo_u = {"Nombre": new_n, "Email": new_email, "Rol": new_rol, "Plan": new_plan, "Empresa": new_n, "Password": new_pass, "2FA_Verificado": True}
                             if new_rol == "Empresa": nuevo_u["Departamento"] = "Administración"
                             if fecha_exp_str: nuevo_u["Expiracion"] = fecha_exp_str
                             st.session_state.empleados.append(nuevo_u); guardar_datos()
@@ -2348,14 +2235,9 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
         with st.expander(t("activate_plan"), expanded=True):
             usuarios_no_admin = [e for e in st.session_state.empleados if e["Nombre"] != COMANDANTE_SUPREMO]
             if usuarios_no_admin:
-                opciones_labels = [
-                    f"{e['Nombre']} [{e.get('Rol','?')}] — {_legacy.get(e.get('Plan','BASE'), e.get('Plan','BASE'))}"
-                    for e in usuarios_no_admin
-                ]
-                sel_idx = st.selectbox(t("user_label"), range(len(opciones_labels)),
-                                       format_func=lambda i: opciones_labels[i], key="admin_sel_usuario_v2")
-                nuevo_plan_upg = st.selectbox(t("new_plan"), ["BASE","OPERADOR","ELITE","ESCUADRON","COMANDANCIA"],
-                                              key="admin_nuevo_plan_v2")
+                opciones_labels = [f"{e['Nombre']} [{e.get('Rol','?')}] — {_legacy.get(e.get('Plan','BASE'), e.get('Plan','BASE'))}" for e in usuarios_no_admin]
+                sel_idx = st.selectbox(t("user_label"), range(len(opciones_labels)), format_func=lambda i: opciones_labels[i], key="admin_sel_usuario_v2")
+                nuevo_plan_upg = st.selectbox(t("new_plan"), ["BASE","OPERADOR","ELITE","ESCUADRON","COMANDANCIA"], key="admin_nuevo_plan_v2")
                 nueva_exp2 = st.checkbox(t("add_expiry"), value=False, key="admin_exp_check_v2")
                 if st.button(t("apply_plan"), use_container_width=True, key="btn_aplicar_plan_v2"):
                     usuario_obj    = usuarios_no_admin[sel_idx]
@@ -2371,8 +2253,7 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
                             elif "Expiracion" in e: del e["Expiracion"]
                             actualizado = True; break
                     if actualizado:
-                        guardar_datos()
-                        st.success(f"{t('plan_updated')} '{nombre_target}' → {nuevo_plan_upg}."); st.rerun()
+                        guardar_datos(); st.success(f"{t('plan_updated')} '{nombre_target}' → {nuevo_plan_upg}."); st.rerun()
                     else: st.error("User not found.")
             else:
                 st.info(t("no_users"))
