@@ -769,7 +769,7 @@ def ir_a(p):
     st.session_state.pantalla_actual = p; st.rerun()
 
 # ─────────────────────────────────────────
-# MENÚ PRINCIPAL — NUEVO DISEÑO HÍBRIDO D+B SIN EMOJIS
+# MENÚ PRINCIPAL — HÍBRIDO D+B (CORREGIDO)
 # ─────────────────────────────────────────
 if st.session_state.pantalla_actual == "menu":
     ahora = datetime.now()
@@ -818,34 +818,31 @@ if st.session_state.pantalla_actual == "menu":
         cols = st.columns(3)
         for i, (destino, titulo, metrica) in enumerate(tarjetas[fila:fila+3]):
             with cols[i]:
-                # Contenedor HTML de la tarjeta
+                # Contenedor relativo que abarcará la tarjeta y el botón invisible
                 st.markdown(f"""
-                <div class="dashboard-card" id="card-{destino}">
-                    <div class="dashboard-card-content">
-                        <div class="dashboard-card-title">{titulo}</div>
-                        <div class="dashboard-card-metric">{metrica}</div>
+                <div class="card-wrapper">
+                    <div class="dashboard-card">
+                        <div class="dashboard-card-content">
+                            <div class="dashboard-card-title">{titulo}</div>
+                            <div class="dashboard-card-metric">{metrica}</div>
+                        </div>
                     </div>
-                </div>
                 """, unsafe_allow_html=True)
-                # Botón invisible que cubre la tarjeta
-                st.button("", key=f"btn_{destino}", on_click=ir_a, args=(destino,),
-                          label_visibility="collapsed", disabled=False,
-                          help="", type="primary",
-                          kwargs={})
+                # Botón invisible que cubre el contenedor
+                if st.button("", key=f"btn_{destino}", help=titulo, label_visibility="collapsed"):
+                    st.session_state.pantalla_actual = destino
+                    st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)  # cierra card-wrapper
 
-    # CSS adicional para posicionar los botones invisibles sobre las tarjetas
+    # CSS para posicionar el botón sobre la tarjeta
     st.markdown("""
     <style>
-    /* Posicionamiento absoluto sobre la tarjeta correspondiente */
-    div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] {
+    .card-wrapper {
         position: relative;
     }
-    button[data-testid="baseButton-secondary"], 
-    button[data-testid="baseButton-primary"] {
+    .card-wrapper div[data-testid="stButton"] button {
         position: absolute !important;
         inset: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
         opacity: 0 !important;
         z-index: 10 !important;
         cursor: pointer !important;
@@ -857,7 +854,6 @@ if st.session_state.pantalla_actual == "menu":
     """, unsafe_allow_html=True)
 
     st.stop()
-
 # ─────────────────────────────────────────
 # ESTADÍSTICAS
 # ─────────────────────────────────────────
