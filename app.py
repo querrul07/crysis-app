@@ -780,7 +780,7 @@ if st.session_state.pantalla_actual == "menu":
     mrr = sum(_precios.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
               for e in st.session_state.empleados)
 
-    # Tarjetas: destino, título, métrica, color hex
+    # Tarjetas con color (destino, título, métrica, color)
     tarjetas = [
         ("estadisticas", "ANÁLISIS DE RENDIMIENTO",  f"RENDIMIENTO MEDIO {media_global}%",         "#4F8EF7"),
         ("simulador",    "SIMULADOR TÁCTICO",         f"OPERACIONES ACTIVAS ESTE MES {ops_mes}",     "#00D4A0"),
@@ -796,91 +796,50 @@ if st.session_state.pantalla_actual == "menu":
         cols = st.columns(3)
         for i, (destino, titulo, metrica, color) in enumerate(tarjetas[fila:fila+3]):
             with cols[i]:
-                # Contenedor visual de la tarjeta (círculo + texto)
-                st.markdown(f"""
-                <div class="card-container" style="--card-color: {color};">
-                    <div class="card-visual">
-                        <div class="card-circle"></div>
-                        <div class="card-body">
-                            <div class="card-title">{titulo}</div>
-                            <div class="card-metric" style="color: {color};">{metrica}</div>
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                # Botón invisible que cubre el contenedor
-                if st.button(" ", key=f"btn_{destino}"):
+                # Envoltorio con el color personalizado
+                st.markdown(f'<div class="card-wrapper" style="--card-color: {color};">', unsafe_allow_html=True)
+                if st.button(f"**{titulo}**\n\n{metrica}", key=f"btn_{destino}", use_container_width=True):
                     st.session_state.pantalla_actual = destino
                     st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
 
-    # CSS para tarjetas con colores personalizados y botón invisible
+    # CSS para el diseño de tarjeta (círculo, borde, gradiente, hover)
     st.markdown("""
     <style>
-    .card-container {
+    .card-wrapper {
         position: relative;
         margin-bottom: 20px;
+        padding-left: 28px;       /* espacio para el círculo */
     }
-    .card-visual {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        background: linear-gradient(135deg, #0B0E1A 0%, #0F1425 100%);
-        border: 1px solid var(--border);
-        border-left: 4px solid var(--card-color, #4F8EF7);
-        border-radius: 2px;
-        padding: 20px;
-        transition: all 0.2s ease;
-        height: 130px;
+    .card-wrapper button {
+        background: linear-gradient(135deg, #0B0E1A 0%, #0F1425 100%) !important;
+        border: 1px solid var(--border) !important;
+        border-left: 4px solid var(--card-color) !important;
+        border-radius: 2px !important;
+        padding: 18px 16px !important;
+        text-align: left !important;
+        white-space: normal !important;
+        word-wrap: break-word !important;
+        transition: all 0.2s ease !important;
+        position: relative;
+        z-index: 1;
     }
-    .card-visual:hover {
-        border-color: var(--border2);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-        transform: translateY(-3px);
+    .card-wrapper button:hover {
+        border-color: var(--border2) !important;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
+        transform: translateY(-3px) !important;
     }
-    .card-circle {
+    /* Círculo de color a la izquierda */
+    .card-wrapper::before {
+        content: '';
+        position: absolute;
+        left: 8px;
+        top: 24px;
         width: 12px;
         height: 12px;
         border-radius: 50%;
-        background: var(--card-color, #4F8EF7);
-        flex-shrink: 0;
-    }
-    .card-body {
-        flex: 1;
-    }
-    .card-title {
-        font-family: 'Share Tech Mono', monospace;
-        font-size: 0.85rem;
-        font-weight: 600;
-        letter-spacing: 0.1em;
-        color: #E2EAF8;
-        text-transform: uppercase;
-        margin-bottom: 8px;
-    }
-    .card-metric {
-        font-family: 'Share Tech Mono', monospace;
-        font-size: 1rem;
-        font-weight: 600;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-    }
-    /* Botón invisible encima de la tarjeta */
-    .card-container button {
-        position: absolute !important;
-        inset: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        opacity: 0 !important;
-        z-index: 10 !important;
-        background: transparent !important;
-        border: none !important;
-        border-radius: 0 !important;
-        cursor: pointer !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-    .card-container button span,
-    .card-container button p {
-        display: none !important;
+        background: var(--card-color);
+        z-index: 2;
     }
     </style>
     """, unsafe_allow_html=True)
