@@ -1051,21 +1051,44 @@ elif st.session_state.pantalla_actual == "cuenta":
     <p><b>Email:</b> {u.get('Email','—')}</p>
     </div>""", unsafe_allow_html=True)
 
-    st.markdown("<br><div class='section-label'>AJUSTES DE CUENTA</div>", unsafe_allow_html=True)
-    with st.expander("CAMBIAR CONTRASEÑA"):
+    # --- Cambiar Correo Electrónico ---
+    st.markdown("<br><div class='section-label'>CAMBIAR CORREO ELECTRÓNICO</div>", unsafe_allow_html=True)
+    with st.expander("ACTUALIZAR DIRECCIÓN DE CORREO"):
+        nuevo_email = st.text_input("Nuevo Correo Electrónico", key="nuevo_email_cuenta")
+        if st.button("GUARDAR NUEVO CORREO", key="btn_guardar_email"):
+            if not nuevo_email:
+                st.warning("Introduce una dirección de correo válida.")
+            elif nuevo_email == u.get("Email", ""):
+                st.info("El nuevo correo es idéntico al actual.")
+            else:
+                # Actualizar en la lista de empleados
+                for e in st.session_state.empleados:
+                    if e["Nombre"] == u["Nombre"] and e.get("Empresa") == u.get("Empresa"):
+                        e["Email"] = nuevo_email
+                # Actualizar en el usuario actual
+                st.session_state.usuario_actual["Email"] = nuevo_email
+                guardar_datos()
+                st.success(f"Correo actualizado a: {nuevo_email}")
+
+    # --- Cambiar Contraseña ---
+    st.markdown("<br><div class='section-label'>CAMBIAR CONTRASEÑA</div>", unsafe_allow_html=True)
+    with st.expander("ACTUALIZAR CLAVE DE ACCESO"):
         nueva_pass = st.text_input("Nueva Contraseña", type="password", key="nueva_pass_cuenta")
         confirmar  = st.text_input("Confirmar Contraseña", type="password", key="confirmar_pass_cuenta")
-        if st.button("ACTUALIZAR CONTRASEÑA", key="btn_cambiar_cuenta"):
+        if st.button("ACTUALIZAR CONTRASEÑA", key="btn_cambiar_pass"):
             if not nueva_pass:
-                st.warning("Introduce una contraseña válida.")
+                st.warning("Introduce una contraseña.")
             elif nueva_pass != confirmar:
                 st.error("Las contraseñas no coinciden.")
             else:
                 for e in st.session_state.empleados:
-                    if e["Nombre"] == u["Nombre"]: e["Password"] = nueva_pass
+                    if e["Nombre"] == u["Nombre"] and e.get("Empresa") == u.get("Empresa"):
+                        e["Password"] = nueva_pass
                 st.session_state.usuario_actual["Password"] = nueva_pass
-                guardar_datos(); st.success("Contraseña actualizada correctamente.")
+                guardar_datos()
+                st.success("Contraseña actualizada correctamente.")
 
+    # --- Gestión de Suscripción (si no eres comandante supremo) ---
     if u["Nombre"] != COMANDANTE_SUPREMO:
         st.markdown("<br><div class='section-label'>GESTIÓN DE SUSCRIPCIÓN</div>", unsafe_allow_html=True)
         planes_suscripcion = [
@@ -1092,6 +1115,7 @@ elif st.session_state.pantalla_actual == "cuenta":
                     link = LINKS_PAGO.get(plan_key, "#")
                     st.markdown(f'<a href="{link}" target="_blank"><button style="background:#4F8EF7;color:#060810;font-family:var(--mono);font-weight:700;border:none;padding:10px;border-radius:2px;cursor:pointer;width:100%;font-size:0.6rem;letter-spacing:0.1em;">ACTIVAR</button></a>', unsafe_allow_html=True)
 
+    # --- Zona de Peligro (Eliminar cuenta) ---
     st.markdown("<br><div class='section-label'>ZONA DE RIESGO</div>", unsafe_allow_html=True)
     st.markdown("""<div class="alert-box error">Esta acción es irreversible. Se eliminarán todos los datos asociados a tu cuenta.</div>""", unsafe_allow_html=True)
     if st.button("ELIMINAR MI CUENTA DEFINITIVAMENTE", type="primary", key="btn_eliminar_cuenta"):
@@ -1099,7 +1123,9 @@ elif st.session_state.pantalla_actual == "cuenta":
             st.session_state.empleados = [e for e in st.session_state.empleados if e.get("Empresa") != u["Nombre"]]
         else:
             st.session_state.empleados = [e for e in st.session_state.empleados if e["Nombre"] != u["Nombre"]]
-        st.session_state.usuario_actual = None; guardar_datos(); st.rerun()
+        st.session_state.usuario_actual = None
+        guardar_datos()
+        st.rerun()
 
 # ─────────────────────────────────────────
 # SIMULADOR TÁCTICO
