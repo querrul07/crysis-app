@@ -780,7 +780,7 @@ if st.session_state.pantalla_actual == "menu":
     mrr = sum(_precios.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
               for e in st.session_state.empleados)
 
-    # Tarjetas con color (destino, título, métrica, color)
+    # Tarjetas: destino, título, métrica, color hex
     tarjetas = [
         ("estadisticas", "ANÁLISIS DE RENDIMIENTO",  f"RENDIMIENTO MEDIO {media_global}%",         "#4F8EF7"),
         ("simulador",    "SIMULADOR TÁCTICO",         f"OPERACIONES ACTIVAS ESTE MES {ops_mes}",     "#00D4A0"),
@@ -791,19 +791,18 @@ if st.session_state.pantalla_actual == "menu":
     if u["Nombre"] == COMANDANTE_SUPREMO:
         tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR", "#F59E0B"))
 
-    # Grid de 3 columnas
+    # Grid 3×2 con tarjetas botón envueltas en div + color personalizado
     for fila in range(0, len(tarjetas), 3):
         cols = st.columns(3)
         for i, (destino, titulo, metrica, color) in enumerate(tarjetas[fila:fila+3]):
             with cols[i]:
-                # Envoltorio con el color personalizado
                 st.markdown(f'<div class="card-wrapper" style="--card-color: {color};">', unsafe_allow_html=True)
                 if st.button(f"**{titulo}**\n\n{metrica}", key=f"btn_{destino}", use_container_width=True):
                     st.session_state.pantalla_actual = destino
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
-    # CSS para el diseño de tarjeta (círculo, borde, gradiente, hover)
+    # CSS con hover iluminado del color de cada tarjeta
     st.markdown("""
     <style>
     .card-wrapper {
@@ -814,7 +813,7 @@ if st.session_state.pantalla_actual == "menu":
     .card-wrapper button {
         background: linear-gradient(135deg, #0B0E1A 0%, #0F1425 100%) !important;
         border: 1px solid var(--border) !important;
-        border-left: 4px solid var(--card-color) !important;
+        border-left: 4px solid var(--card-color, #4F8EF7) !important;
         border-radius: 2px !important;
         padding: 18px 16px !important;
         text-align: left !important;
@@ -824,10 +823,12 @@ if st.session_state.pantalla_actual == "menu":
         position: relative;
         z-index: 1;
     }
-    .card-wrapper button:hover {
-        border-color: var(--border2) !important;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
+    /* Hover: ilumina con el color de la tarjeta */
+    .card-wrapper:hover button {
+        border-color: var(--card-color) !important;
+        box-shadow: 0 0 18px var(--card-color), 0 8px 24px rgba(0,0,0,0.4) !important;
         transform: translateY(-3px) !important;
+        background: linear-gradient(135deg, #0F1428 0%, #111830 100%) !important;
     }
     /* Círculo de color a la izquierda */
     .card-wrapper::before {
@@ -840,6 +841,10 @@ if st.session_state.pantalla_actual == "menu":
         border-radius: 50%;
         background: var(--card-color);
         z-index: 2;
+        transition: box-shadow 0.2s ease;
+    }
+    .card-wrapper:hover::before {
+        box-shadow: 0 0 12px var(--card-color);
     }
     </style>
     """, unsafe_allow_html=True)
