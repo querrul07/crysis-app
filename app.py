@@ -1063,38 +1063,42 @@ elif st.session_state.pantalla_actual == "simulador":
                         st.session_state.tarjeta_objetivo = json.loads(res)
                     except:
                         st.session_state.tarjeta_objetivo = {"Nombre_Completo":"Desconocido","Familia":"Clasificado","Estado_Mental":"Inestable"}
-            st.session_state.mision_iniciada   = True
-            st.session_state.mensajes          = []
-            st.session_state.agente_activo     = ag_sel
-            st.session_state.escenario_activo  = es_sel
-            st.session_state.tipo_mision_actual = tipo_mision_val
-            st.session_state.dificultad_sesion  = dif_activa
-st.session_state.imagen_seed        = random.randint(1000, 9999)
-st.session_state.imagenes_activas   = False  # el usuario las activa manualmente
-st.rerun()
-
-    elif st.session_state.evaluacion_actual:
-        st.markdown("<div class='section-label'>INFORME DE EVALUACION TACTICA</div>", unsafe_allow_html=True)
-        st.markdown(st.session_state.evaluacion_actual)
-        st.markdown("<br>", unsafe_allow_html=True)
-        col_end1, col_end2 = st.columns(2)
-        with col_end1:
-            if st.button("ARCHIVAR INFORME Y VOLVER AL MENU", use_container_width=True):
-                st.session_state.mision_iniciada  = False
-                st.session_state.evaluacion_actual = None
-                st.session_state.mensajes          = []
-                st.session_state.tarjeta_objetivo  = None
-                st.session_state.pantalla_actual   = "menu"
+            st.session_state.mision_iniciada      = True
+                st.session_state.mensajes             = []
+                st.session_state.agente_activo        = ag_sel
+                st.session_state.escenario_activo     = es_sel
+                st.session_state.tipo_mision_actual   = tipo_mision_val
+                st.session_state.dificultad_sesion    = dif_activa
+                st.session_state.imagen_seed          = random.randint(1000, 9999)
+                st.session_state.imagenes_activas     = False # el usuario las activa manualmente
                 st.rerun()
-        with col_end2:
-            ultima_sesion = st.session_state.historial_sesiones[-1]
-            st.download_button(
-                label="DESCARGAR DOSSIER PDF",
-                data=generar_pdf_dossier(ultima_sesion),
-                file_name=f"CRYSIS_{ultima_sesion['Agente']}_Report.pdf",
-                mime="application/pdf",
-                use_container_width=True
-            )
+
+        # 👇 EL ELIF VUELVE AL MARGEN DEL IF PRINCIPAL (4 espacios) 👇
+        elif st.session_state.evaluacion_actual:
+            st.markdown("<div class='section-label'>INFORME DE EVALUACION TACTICA</div>", unsafe_allow_html=True)
+            st.markdown(st.session_state.evaluacion_actual)
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            col_end1, col_end2 = st.columns(2)
+            
+            with col_end1:
+                if st.button("ARCHIVAR INFORME Y VOLVER AL MENU", use_container_width=True):
+                    st.session_state.mision_iniciada = False
+                    st.session_state.evaluacion_actual = None
+                    st.session_state.mensajes = []
+                    st.session_state.tarjeta_objetivo = None
+                    st.session_state.pantalla_actual = "menu"
+                    st.rerun()
+                    
+            with col_end2:
+                ultima_sesion = st.session_state.historial_sesiones[-1]
+                st.download_button(
+                    label="DESCARGAR DOSSIER PDF",
+                    data=generar_pdf_dossier(ultima_sesion),
+                    file_name=f"CRYSIS_{ultima_sesion['Agente']}_Report.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
 
     else:
         dif_sesion = st.session_state.get("dificultad_sesion", "OPERATOR")
