@@ -124,6 +124,32 @@ def generar_pdf_dossier(sesion):
             pdf.multi_cell(0,6,sanitizar_texto(msg["content"])); pdf.ln(2)
     out = pdf.output(dest='S')
     return out.encode('latin-1') if isinstance(out, str) else out
+def generar_url_imagen(prompt_contexto, seed, width=800, height=450):
+    """Construye la URL de Pollinations con el prompt táctico."""
+    import urllib.parse
+    prompt_base = (
+        f"military intelligence reconnaissance photograph, tactical scenario, "
+        f"{prompt_contexto}, "
+        f"classified satellite imagery style, grayscale with green tint, "
+        f"high detail, cinematic, no text, no watermark, photorealistic"
+    )
+    prompt_encoded = urllib.parse.quote(prompt_base)
+    return (
+        f"https://image.pollinations.ai/prompt/{prompt_encoded}"
+        f"?width={width}&height={height}&nologo=true&seed={seed}&model=flux"
+    )
+
+def construir_prompt_imagen(escenario, tarjeta_objetivo, contexto_extra=""):
+    """Genera un prompt coherente con la misión activa."""
+    escenario_prompts = {
+        "OPERACION: FRONTERA":   "military border zone, watchtowers, barbed wire fences, military vehicles, snowy mountains",
+        "OPERACION: BLACKOUT":   "urban server room, electrical infrastructure, dark city, power grid failure, emergency lighting",
+        "OPERACION: EXTRACCION": "bank building exterior, urban street, police perimeter, hostage situation, city center",
+    }
+    base = escenario_prompts.get(escenario, "classified tactical location, urban environment, high tension scenario")
+    if tarjeta_objetivo:
+        base += f", {contexto_extra}" if contexto_extra else ""
+    return base
 
 # ─────────────────────────────────────────
 # CONFIG Y CSS
@@ -1042,8 +1068,10 @@ elif st.session_state.pantalla_actual == "simulador":
             st.session_state.agente_activo     = ag_sel
             st.session_state.escenario_activo  = es_sel
             st.session_state.tipo_mision_actual = tipo_mision_val
-            st.session_state.dificultad_sesion = dif_activa
-            st.rerun()
+            st.session_state.dificultad_sesion  = dif_activa
+st.session_state.imagen_seed        = random.randint(1000, 9999)
+st.session_state.imagenes_activas   = False  # el usuario las activa manualmente
+st.rerun()
 
     elif st.session_state.evaluacion_actual:
         st.markdown("<div class='section-label'>INFORME DE EVALUACION TACTICA</div>", unsafe_allow_html=True)
@@ -1086,7 +1114,142 @@ elif st.session_state.pantalla_actual == "simulador":
                 <div style="flex:1;"><div style="color:#F0A500; font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">VINCULOS</div><div style="color:#B8C4DC; font-size:0.88rem;">{str(t.get('Familia','N/A'))}</div></div>
                 <div style="flex:1;"><div style="color:#F0A500; font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">ESTADO CLINICO</div><div style="color:#B8C4DC; font-size:0.88rem;">{str(t.get('Estado_Mental','N/A'))}</div></div>
             </div>""", unsafe_allow_html=True)
+# ── CONTROLES INFERIORES ────────────────────────────────
+        col_toggle, col_end, col_abort = st.columns([2, 3, 1])
 
+        with col_toggle:
+            if mi_plan != "BASE":
+                imagenes_on = st.toggle(
+                    "IMÁGENES TÁCTICAS",
+                    value=st.session_state.get("imagenes_activas", False),
+                    key="toggle_imagenes",
+                    help="Activa la generación de imágenes de reconocimiento durante el chat"
+                )
+                if imagenes_on != st.session_state.get("imagenes_activas", False):
+                    st.session_state.imagenes_activas = imagenes_on
+                    st.rerun()
+            else:
+                st.markdown(
+                    "<div style='font-family:var(--mono); font-size:0.5rem; "
+                    "letter-spacing:0.15em; color:#3A4A6A; padding-top:14px;'>"
+                    "IMÁGENES · PLAN DE PAGO</div>",
+                    unsafe_allow_html=True
+                )
+
+        with col_abort:
+            if st.button("ROMPER ENLACE", type="secondary", use_container_width=True):
+                st.session_state.mision_iniciada   = False
+                st.session_state.mensajes          = []
+                st.session_state.tarjeta_objetivo  = None
+                st.session_state.imagenes_activas  = False
+                st.rerun()
+
+        with col_end:
+            if len(st.session_state.mensajes) > 0:
+                if st.button("SOLICITAR EVALUACION TACTICA", use_container_width=True):
+                    with st.spinner("Procesando auditoria lingüística..."):
+                        client    = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                        escenario = st.session_state.escenario_activo
+                        info_ev   = TODAS_LAS_MISIONES[escenario]
+                        dif_ev    = st.session_state.get("dificultad_sesion", "OPERATOR")
+                        dif_nivel = DIFICULTADES.get(dif_ev, {}).get("nivel", 2)
+                        hist_txt  = "\n".join([
+                            f"{'OPERADOR' if m['role']=='user' else 'SUJETO'}: {m['content']}"
+                            for m in st.session_state.mensajes
+                        ])
+                        umbral_excelente = {1:85, 2:80, 3:70, 4:60}.get(dif_nivel, 80)
+                        umbral_correcto  = {1:65, 2:55, 3:45, 4:35}.get(dif_nivel, 55)
+                        eval_prompt = f"""Eres un Analista de Inteligencia y Negociación Táctica altamente estricto.
+Evalúa el desempeño del OPERADOR en el escenario: {escenario}.
+Situación: {info_ev['contexto']}.
+Dificultad seleccionada: {dif_ev} (Nivel {dif_nivel}/4).
+
+AJUSTE POR DIFICULTAD:
+- En nivel {dif_ev}, una puntuación de {umbral_excelente} o más es EXCELENTE.
+- Una puntuación de {umbral_correcto}-{umbral_excelente-1} es CORRECTA pero mejorable.
+- Por debajo de {umbral_correcto} es INSUFICIENTE.
+
+TRANSCRIPCION:
+{hist_txt}
+
+REGLAS:
+1. NO regales puntuación por cortesía básica.
+2. Evalúa: control, técnicas de desescalada, resistencia a manipulación, lenguaje estratégico.
+3. Penaliza: ceder sin contrapartida, lenguaje amenazante, pérdida de control emocional.
+
+Estructura: ANALISIS DE LENGUAJE / TACTICAS EMPLEADAS / ERRORES CRITICOS / VEREDICTO / COMO MEJORAR
+
+PUNTUACION FINAL: XX/100"""
+                        informe = client.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=[{"role":"user","content":eval_prompt}]
+                        ).choices[0].message.content
+                        try:
+                            match = re.search(r'PUNTUACI[OÓ]N FINAL[^\d]*(\d+)\s*\/?\s*100', informe, re.IGNORECASE)
+                            nota  = min(int(match.group(1)), 100) if match else (
+                                min(int(re.search(r'(\d+)\s*/\s*100', informe).group(1)), 100)
+                                if re.search(r'(\d+)\s*/\s*100', informe) else 50)
+                        except:
+                            nota = 50
+                        st.session_state.evaluacion_actual = informe
+                        st.session_state.historial_sesiones.append({
+                            "Fecha":         datetime.now().strftime("%Y-%m-%d %H:%M"),
+                            "Agente":        st.session_state.agente_activo,
+                            "Escenario":     escenario,
+                            "Nota":          nota,
+                            "Evaluacion":    informe,
+                            "Transcripcion": st.session_state.mensajes,
+                            "Tipo_Mision":   st.session_state.tipo_mision_actual,
+                            "Dificultad":    dif_ev,
+                        })
+                        guardar_datos(); st.rerun()
+
+        # ── IMAGEN BAJO DEMANDA ─────────────────────────────────
+        if (st.session_state.get("imagenes_activas", False)
+                and mi_plan != "BASE"
+                and st.session_state.mensajes):
+
+            ultimo_msg = st.session_state.mensajes[-1]
+
+            # Detectar si el último mensaje del usuario pide una imagen
+            keywords_imagen = [
+                "imagen", "foto", "satélite", "satelite", "fotografía", "fotografia",
+                "reconocimiento", "visual", "muéstrame", "muestrame", "ver", "mapa",
+                "plano", "vista", "captura", "snapshot", "intel visual"
+            ]
+            es_peticion_imagen = (
+                ultimo_msg["role"] == "user"
+                and any(k in ultimo_msg["content"].lower() for k in keywords_imagen)
+            )
+
+            if es_peticion_imagen:
+                # Extraer contexto adicional del mensaje del usuario
+                contexto_extra = ultimo_msg["content"][:120]
+                url_demanda = generar_url_imagen(
+                    construir_prompt_imagen(
+                        st.session_state.escenario_activo,
+                        st.session_state.tarjeta_objetivo,
+                        contexto_extra=contexto_extra
+                    ),
+                    seed=st.session_state.get("imagen_seed", 42) + len(st.session_state.mensajes),
+                )
+                st.markdown("""
+                <div style="border:1px solid #18213A; border-left:3px solid #4F8EF7;
+                            background:#0B0E1A; padding:10px 14px; margin-top:12px; margin-bottom:6px;">
+                    <div style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.3em;
+                                color:#4F8EF7; margin-bottom:8px;">
+                        ▸ INTELIGENCIA VISUAL — SOLICITUD PROCESADA
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.image(url_demanda, use_container_width=True)
+                st.markdown(
+                    "<div style='font-family:var(--mono); font-size:0.48rem; "
+                    "letter-spacing:0.2em; color:#18213A; margin-bottom:16px;'>"
+                    f"REF: SAT-{st.session_state.get('imagen_seed',42) + len(st.session_state.mensajes)}"
+                    f" · {datetime.now().strftime('%H:%M:%S')} · CLASIFICADO</div>",
+                    unsafe_allow_html=True
+                )
         for m in st.session_state.mensajes:
             label  = "TU" if m["role"] == "user" else "SUJETO"
             bg     = "#0D1424" if m["role"] == "user" else "#0B0E1A"
@@ -1117,13 +1280,142 @@ elif st.session_state.pantalla_actual == "simulador":
                 ).choices[0].message.content
                 st.session_state.mensajes.append({"role":"assistant","content":res}); st.rerun()
 
-        col_end, col_abort = st.columns([3, 1])
+       # ── CONTROLES INFERIORES ────────────────────────────────
+        col_toggle, col_end, col_abort = st.columns([2, 3, 1])
+
+        with col_toggle:
+            if mi_plan != "BASE":
+                imagenes_on = st.toggle(
+                    "IMÁGENES TÁCTICAS",
+                    value=st.session_state.get("imagenes_activas", False),
+                    key="toggle_imagenes",
+                    help="Activa la generación de imágenes de reconocimiento durante el chat"
+                )
+                if imagenes_on != st.session_state.get("imagenes_activas", False):
+                    st.session_state.imagenes_activas = imagenes_on
+                    st.rerun()
+            else:
+                st.markdown(
+                    "<div style='font-family:var(--mono); font-size:0.5rem; "
+                    "letter-spacing:0.15em; color:#3A4A6A; padding-top:14px;'>"
+                    "IMÁGENES · PLAN DE PAGO</div>",
+                    unsafe_allow_html=True
+                )
+
         with col_abort:
             if st.button("ROMPER ENLACE", type="secondary", use_container_width=True):
-                st.session_state.mision_iniciada  = False
-                st.session_state.mensajes         = []
-                st.session_state.tarjeta_objetivo = None
+                st.session_state.mision_iniciada   = False
+                st.session_state.mensajes          = []
+                st.session_state.tarjeta_objetivo  = None
+                st.session_state.imagenes_activas  = False
                 st.rerun()
+
+        with col_end:
+            if len(st.session_state.mensajes) > 0:
+                if st.button("SOLICITAR EVALUACION TACTICA", use_container_width=True):
+                    with st.spinner("Procesando auditoria lingüística..."):
+                        client    = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                        escenario = st.session_state.escenario_activo
+                        info_ev   = TODAS_LAS_MISIONES[escenario]
+                        dif_ev    = st.session_state.get("dificultad_sesion", "OPERATOR")
+                        dif_nivel = DIFICULTADES.get(dif_ev, {}).get("nivel", 2)
+                        hist_txt  = "\n".join([
+                            f"{'OPERADOR' if m['role']=='user' else 'SUJETO'}: {m['content']}"
+                            for m in st.session_state.mensajes
+                        ])
+                        umbral_excelente = {1:85, 2:80, 3:70, 4:60}.get(dif_nivel, 80)
+                        umbral_correcto  = {1:65, 2:55, 3:45, 4:35}.get(dif_nivel, 55)
+                        eval_prompt = f"""Eres un Analista de Inteligencia y Negociación Táctica altamente estricto.
+Evalúa el desempeño del OPERADOR en el escenario: {escenario}.
+Situación: {info_ev['contexto']}.
+Dificultad seleccionada: {dif_ev} (Nivel {dif_nivel}/4).
+
+AJUSTE POR DIFICULTAD:
+- En nivel {dif_ev}, una puntuación de {umbral_excelente} o más es EXCELENTE.
+- Una puntuación de {umbral_correcto}-{umbral_excelente-1} es CORRECTA pero mejorable.
+- Por debajo de {umbral_correcto} es INSUFICIENTE.
+
+TRANSCRIPCION:
+{hist_txt}
+
+REGLAS:
+1. NO regales puntuación por cortesía básica.
+2. Evalúa: control, técnicas de desescalada, resistencia a manipulación, lenguaje estratégico.
+3. Penaliza: ceder sin contrapartida, lenguaje amenazante, pérdida de control emocional.
+
+Estructura: ANALISIS DE LENGUAJE / TACTICAS EMPLEADAS / ERRORES CRITICOS / VEREDICTO / COMO MEJORAR
+
+PUNTUACION FINAL: XX/100"""
+                        informe = client.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=[{"role":"user","content":eval_prompt}]
+                        ).choices[0].message.content
+                        try:
+                            match = re.search(r'PUNTUACI[OÓ]N FINAL[^\d]*(\d+)\s*\/?\s*100', informe, re.IGNORECASE)
+                            nota  = min(int(match.group(1)), 100) if match else (
+                                min(int(re.search(r'(\d+)\s*/\s*100', informe).group(1)), 100)
+                                if re.search(r'(\d+)\s*/\s*100', informe) else 50)
+                        except:
+                            nota = 50
+                        st.session_state.evaluacion_actual = informe
+                        st.session_state.historial_sesiones.append({
+                            "Fecha":         datetime.now().strftime("%Y-%m-%d %H:%M"),
+                            "Agente":        st.session_state.agente_activo,
+                            "Escenario":     escenario,
+                            "Nota":          nota,
+                            "Evaluacion":    informe,
+                            "Transcripcion": st.session_state.mensajes,
+                            "Tipo_Mision":   st.session_state.tipo_mision_actual,
+                            "Dificultad":    dif_ev,
+                        })
+                        guardar_datos(); st.rerun()
+
+        # ── IMAGEN BAJO DEMANDA ─────────────────────────────────
+        if (st.session_state.get("imagenes_activas", False)
+                and mi_plan != "BASE"
+                and st.session_state.mensajes):
+
+            ultimo_msg = st.session_state.mensajes[-1]
+
+            # Detectar si el último mensaje del usuario pide una imagen
+            keywords_imagen = [
+                "imagen", "foto", "satélite", "satelite", "fotografía", "fotografia",
+                "reconocimiento", "visual", "muéstrame", "muestrame", "ver", "mapa",
+                "plano", "vista", "captura", "snapshot", "intel visual"
+            ]
+            es_peticion_imagen = (
+                ultimo_msg["role"] == "user"
+                and any(k in ultimo_msg["content"].lower() for k in keywords_imagen)
+            )
+
+            if es_peticion_imagen:
+                # Extraer contexto adicional del mensaje del usuario
+                contexto_extra = ultimo_msg["content"][:120]
+                url_demanda = generar_url_imagen(
+                    construir_prompt_imagen(
+                        st.session_state.escenario_activo,
+                        st.session_state.tarjeta_objetivo,
+                        contexto_extra=contexto_extra
+                    ),
+                    seed=st.session_state.get("imagen_seed", 42) + len(st.session_state.mensajes),
+                )
+                st.markdown("""
+                <div style="border:1px solid #18213A; border-left:3px solid #4F8EF7;
+                            background:#0B0E1A; padding:10px 14px; margin-top:12px; margin-bottom:6px;">
+                    <div style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.3em;
+                                color:#4F8EF7; margin-bottom:8px;">
+                        ▸ INTELIGENCIA VISUAL — SOLICITUD PROCESADA
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.image(url_demanda, use_container_width=True)
+                st.markdown(
+                    "<div style='font-family:var(--mono); font-size:0.48rem; "
+                    "letter-spacing:0.2em; color:#18213A; margin-bottom:16px;'>"
+                    f"REF: SAT-{st.session_state.get('imagen_seed',42) + len(st.session_state.mensajes)}"
+                    f" · {datetime.now().strftime('%H:%M:%S')} · CLASIFICADO</div>",
+                    unsafe_allow_html=True
+                )
         with col_end:
             if len(st.session_state.mensajes) > 0:
                 if st.button("SOLICITAR EVALUACION TACTICA", use_container_width=True):
