@@ -234,63 +234,74 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
     padding-top: 14px;
 }
 
-/* ── NUEVAS TARJETAS DEL MENÚ (estilo visual mejorado) ── */
+/* ── TARJETAS DEL MENÚ (ESTILO B SIN EMOJIS) ── */
 .dashboard-card {
     position: relative;
-    display: block;
-    background: linear-gradient(135deg, #0B0E1A 0%, #0D1222 100%);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: linear-gradient(135deg, #0B0E1A 0%, #0F1425 100%);
     border: 1px solid var(--border);
-    border-left: 4px solid var(--border);
-    padding: 28px 24px;
+    border-radius: 2px;
+    padding: 24px;
     text-decoration: none !important;
-    border-radius: 0;
     transition: all 0.2s ease;
-    height: 150px;
+    height: 140px;
     cursor: pointer;
+    overflow: hidden;
 }
 .dashboard-card:hover {
-    border-left-color: var(--blue);
-    background: linear-gradient(135deg, #0F1428 0%, #111830 100%);
-    box-shadow: 0 0 20px rgba(79,142,247,0.08);
     border-color: var(--border2);
-    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    transform: translateY(-3px);
+}
+
+/* Indicador geométrico (círculo de color) */
+.dashboard-card::before {
+    content: '';
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+}
+.dashboard-card:hover::before {
+    background: var(--blue);
+}
+
+/* Contenido de la tarjeta */
+.dashboard-card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 .dashboard-card-title {
     font-family: var(--mono);
     font-size: 0.85rem;
+    font-weight: 600;
     letter-spacing: 0.1em;
     color: var(--text-hi);
     text-transform: uppercase;
-    margin-bottom: 16px;
-    line-height: 1.4;
-    font-weight: 600;
+    margin-bottom: 8px;
 }
 .dashboard-card-metric {
     font-family: var(--mono);
-    font-size: 0.65rem;
-    letter-spacing: 0.12em;
-    color: var(--text-lo);
-    text-transform: uppercase;
-    position: absolute;
-    bottom: 20px;
-    left: 24px;
+    font-size: 1.1rem;
     font-weight: 600;
+    color: var(--blue);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
-/* ── BOTONES INVISIBLES PARA HACER CLICKABLE TODA LA TARJETA ── */
-/* Usamos el atributo 'title' que se rellena con el texto del botón */
-button[title="Análisis de Rendimiento"],
-button[title="Simulador Táctico"],
-button[title="Historial de Expedientes"],
-button[title="Gestión de Operadores"],
-button[title="Generación de Escenarios"],
-button[title="Consola Omega"] {
-    opacity: 0 !important;
+/* ── BOTÓN INVISIBLE SOBRE LA TARJETA ── */
+.dashboard-btn {
     position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
+    inset: 0 !important;
     width: 100% !important;
     height: 100% !important;
+    opacity: 0 !important;
     z-index: 10 !important;
     cursor: pointer !important;
     background: transparent !important;
@@ -727,7 +738,7 @@ mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items()
 TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **mis_escenarios}
 
 # ─────────────────────────────────────────
-# TOPBAR (se oculta en el menú)
+# TOPBAR (oculta en el menú)
 # ─────────────────────────────────────────
 if st.session_state.pantalla_actual != "menu":
     rol_label = ("OMNISCIENCIA GLOBAL" if u["Nombre"] == COMANDANTE_SUPREMO
@@ -758,10 +769,9 @@ def ir_a(p):
     st.session_state.pantalla_actual = p; st.rerun()
 
 # ─────────────────────────────────────────
-# MENÚ PRINCIPAL — NUEVO DISEÑO (botón invisible sobre tarjeta)
+# MENÚ PRINCIPAL — NUEVO DISEÑO HÍBRIDO D+B SIN EMOJIS
 # ─────────────────────────────────────────
 if st.session_state.pantalla_actual == "menu":
-    # Encabezado compacto
     ahora = datetime.now()
     fecha_str = ahora.strftime("%H.%M - %d.%m.%Y")
     st.markdown(f"""
@@ -803,43 +813,40 @@ if st.session_state.pantalla_actual == "menu":
     if u["Nombre"] == COMANDANTE_SUPREMO:
         tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR"))
 
-    # Tarjetas en grid 3x2 (o 3x2 con 6 para admin)
+    # Grid de tarjetas (3 columnas)
     for fila in range(0, len(tarjetas), 3):
         cols = st.columns(3)
         for i, (destino, titulo, metrica) in enumerate(tarjetas[fila:fila+3]):
             with cols[i]:
-                # Contenedor relativo para el posicionamiento absoluto del botón
+                # Contenedor HTML de la tarjeta
                 st.markdown(f"""
-                <div class="dashboard-card">
-                    <div class="dashboard-card-title">{titulo}</div>
-                    <div class="dashboard-card-metric">{metrica}</div>
+                <div class="dashboard-card" id="card-{destino}">
+                    <div class="dashboard-card-content">
+                        <div class="dashboard-card-title">{titulo}</div>
+                        <div class="dashboard-card-metric">{metrica}</div>
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
-                # Botón invisible que cubre toda la tarjeta
-                if st.button(titulo, key=f"card_{destino}", help=titulo):
-                    st.session_state.pantalla_actual = destino
-                    st.rerun()
+                # Botón invisible que cubre la tarjeta
+                st.button("", key=f"btn_{destino}", on_click=ir_a, args=(destino,),
+                          label_visibility="collapsed", disabled=False,
+                          help="", type="primary",
+                          kwargs={})
 
-    # CSS para ocultar los botones y posicionarlos sobre las tarjetas
+    # CSS adicional para posicionar los botones invisibles sobre las tarjetas
     st.markdown("""
     <style>
-    /* El contenedor de la columna debe ser relativo */
-    [data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] {
+    /* Posicionamiento absoluto sobre la tarjeta correspondiente */
+    div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] {
         position: relative;
     }
-    /* Botones invisibles encima de la tarjeta */
-    button[title="Análisis de Rendimiento"],
-    button[title="Simulador Táctico"],
-    button[title="Historial de Expedientes"],
-    button[title="Gestión de Operadores"],
-    button[title="Generación de Escenarios"],
-    button[title="Consola Omega"] {
-        opacity: 0 !important;
+    button[data-testid="baseButton-secondary"], 
+    button[data-testid="baseButton-primary"] {
         position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
+        inset: 0 !important;
         width: 100% !important;
         height: 100% !important;
+        opacity: 0 !important;
         z-index: 10 !important;
         cursor: pointer !important;
         background: transparent !important;
