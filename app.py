@@ -13,6 +13,7 @@ import random
 from fpdf import FPDF
 from supabase import create_client, Client
 import base64
+import urllib.parse
 
 # ─────────────────────────────────────────
 # CONFIGURACIÓN DE SUPERUSUARIO
@@ -44,6 +45,82 @@ DIFICULTADES = {
                  "instruccion": "Eres extremadamente hostil e impenetrable. Usas silencios prolongados, amenazas veladas, manipulación psicológica avanzada y contradices absolutamente todo. Ceder es casi imposible. Solo capitulas ante una negociación perfecta y sostenida."},
 }
 
+# ─────────────────────────────────────────
+# CONTEXTO POR PAÍS/REGIÓN PARA IMÁGENES
+# ─────────────────────────────────────────
+ESCENARIO_IMAGEN_CONTEXTO = {
+    "OPERACION: FRONTERA": {
+        "region": "Eastern Europe, Soviet-era architecture, Krasnovia military zone",
+        "estilo": "grayscale with green tint, cold war military aesthetic",
+        "lugares": "military border checkpoint, watchtowers, barbed wire, snow-covered mountains, armored vehicles, Soviet-style bunkers",
+    },
+    "OPERACION: BLACKOUT": {
+        "region": "Western European city, modern urban infrastructure",
+        "estilo": "dark cyberpunk, emergency lighting, power outage aesthetic",
+        "lugares": "server room, electrical grid substation, dark city skyline, emergency generators, control room monitors",
+    },
+    "OPERACION: EXTRACCION": {
+        "region": "Mediterranean city center, Southern European urban environment",
+        "estilo": "tense urban daylight, police cordon, tactical photography",
+        "lugares": "bank building facade, urban street, police perimeter, civilian crowds, tactical vehicles, rooftop snipers",
+    },
+}
+
+# ─────────────────────────────────────────
+# PROMPTS SERVICIOS DE INTELIGENCIA
+# ─────────────────────────────────────────
+INTEL_PROMPTS = {
+    "OPERACION: FRONTERA": """Eres el Analista Jefe de la Unidad de Inteligencia táctica (SIGINT/HUMINT) que apoya al operador en campo.
+Tu misión: dar contexto sobre la situación en la frontera del paralelo 38 con Krasnovia, el perfil del Ministro Volkov, y posibles palancas de negociación.
+
+REGLAS CRÍTICAS:
+- Tienes información PARCIAL e IMPERFECTA. A veces tus datos son incompletos, desactualizados o directamente incorrectos.
+- Cuando no sepas algo, dilo con frases como: "inteligencia no confirmada", "fuente no verificada", "dato de hace 6 meses".
+- Nunca inventes datos con certeza total. El operador debe saber que puede haber errores.
+- Responde SOLO a lo que te pregunten. No des información no solicitada.
+- Tono: militar, conciso, frío. Solo texto directo. Sin emociones ni acotaciones entre paréntesis.
+- Escribe en español correcto.""",
+
+    "OPERACION: BLACKOUT": """Eres el Analista de Ciberinteligencia que apoya al operador en el caso del hacker Shadow.
+Tu misión: aportar datos técnicos sobre el ataque, el perfil psicológico de Shadow, y vulnerabilidades que el operador puede explotar.
+
+REGLAS CRÍTICAS:
+- Tu información sobre Shadow es FRAGMENTADA. Solo tienes datos de operaciones anteriores, no de esta.
+- Algunos datos técnicos pueden estar desactualizados o ser deliberadamente falsos (Shadow es experto en desinformación).
+- Advierte siempre cuando un dato no está verificado.
+- Responde SOLO a lo que te pregunten. Sin información no solicitada.
+- Tono: técnico, seco, conciso. Solo texto directo.
+- Escribe en español correcto.""",
+
+    "OPERACION: EXTRACCION": """Eres el Coordinador de Inteligencia táctica que apoya al negociador en la situación de rehenes.
+Tu misión: aportar datos sobre el secuestrador, el estado de los rehenes, el perímetro policial y posibles motivaciones.
+
+REGLAS CRÍTICAS:
+- Tienes acceso LIMITADO al interior del banco. Tu información llega con retraso y puede estar desactualizada.
+- Los datos psicológicos del secuestrador son inferencias, no certezas.
+- Advierte siempre el nivel de confianza de cada dato: ALTO / MEDIO / BAJO.
+- Responde SOLO a lo que te pregunten.
+- Tono: urgente pero controlado, conciso. Solo texto directo.
+- Escribe en español correcto.""",
+}
+
+INTEL_PROMPT_DEFAULT = """Eres un Analista de Inteligencia táctica que apoya al operador en campo.
+Tu misión: dar contexto sobre la operación activa, perfiles de sujetos y datos relevantes para la negociación.
+
+REGLAS CRÍTICAS:
+- Tu información es PARCIAL e IMPERFECTA. Nunca tienes el cuadro completo.
+- Indica siempre el nivel de confianza: ALTO / MEDIO / BAJO.
+- Cuando no sepas algo, dilo claramente.
+- Responde SOLO a lo que te pregunten.
+- Tono: militar, conciso, frío. Solo texto directo.
+- Escribe en español correcto."""
+
+# Planes con acceso a Servicios de Inteligencia
+PLANES_CON_INTEL = {"ELITE", "ESCUADRON", "COMANDANCIA"}
+
+# ─────────────────────────────────────────
+# SUPABASE
+# ─────────────────────────────────────────
 @st.cache_resource
 def init_supabase():
     url: str = st.secrets["SUPABASE_URL"].strip().rstrip("/")
@@ -92,6 +169,48 @@ def enviar_correo_2fa(destinatario, codigo):
     except:
         return False
 
+# ─────────────────────────────────────────
+# GENERACIÓN DE IMÁGENES — POLLINATIONS
+# ─────────────────────────────────────────
+def generar_url_imagen_intel(escenario, consulta_usuario, seed):
+    """
+    Genera URL de imagen coherente con el país/región del escenario,
+    basada en lo que el operador pidió a inteligencia.
+    Solo disponible desde el canal de Servicios de Inteligencia.
+    """
+    ctx = ESCENARIO_IMAGEN_CONTEXTO.get(escenario, {
+        "region": "classified military zone",
+        "estilo": "grayscale tactical photography",
+        "lugares": "tactical location, classified environment",
+    })
+
+    prompt = (
+        f"intelligence satellite photograph or reconnaissance image, "
+        f"{ctx['region']}, {ctx['lugares']}, "
+        f"related to: {consulta_usuario[:100]}, "
+        f"{ctx['estilo']}, "
+        f"photorealistic, high detail, cinematic lighting, no text, no watermark, no people faces"
+    )
+    prompt_encoded = urllib.parse.quote(prompt)
+    return (
+        f"https://image.pollinations.ai/prompt/{prompt_encoded}"
+        f"?width=800&height=450&nologo=true&seed={seed}&model=flux"
+    )
+
+def es_peticion_imagen_intel(texto):
+    """Detecta si el operador está pidiendo una imagen al canal de inteligencia."""
+    keywords = [
+        "imagen", "foto", "fotografía", "fotografia", "satélite", "satelite",
+        "reconocimiento", "visual", "muéstrame", "muestrame", "ver", "mapa",
+        "plano", "vista", "captura", "snapshot", "intel visual", "imágenes",
+        "fotografía aérea", "vista aérea", "show me", "mostrar"
+    ]
+    texto_lower = texto.lower()
+    return any(k in texto_lower for k in keywords)
+
+# ─────────────────────────────────────────
+# PDF
+# ─────────────────────────────────────────
 def sanitizar_texto(texto):
     if not isinstance(texto, str): texto = str(texto)
     texto = texto.replace('**','').replace('*','-').replace('•','-').replace('✅','[V]').replace('❌','[X]')
@@ -100,21 +219,40 @@ def sanitizar_texto(texto):
 def generar_pdf_dossier(sesion):
     pdf = FPDF()
     pdf.add_page()
+
+    # ── CABECERA ──
     pdf.set_font("Arial",'B',16); pdf.set_text_color(79,142,247)
     pdf.cell(0,10,"CRYSIS | INTELLIGENCE UNIT",ln=True,align='C')
     pdf.set_font("Arial",'B',11); pdf.set_text_color(239,68,68)
     pdf.cell(0,8,"DOSSIER OPERACIONAL CLASIFICADO",ln=True,align='C'); pdf.ln(5)
+
+    # ── DATOS BÁSICOS ──
     pdf.set_font("Arial",'B',10); pdf.set_text_color(0,0,0)
     pdf.cell(45,8,"OPERADOR:",border=1); pdf.set_font("Arial",'',10); pdf.cell(0,8,sanitizar_texto(sesion.get("Agente","N/A").upper()),border=1,ln=True)
     pdf.set_font("Arial",'B',10); pdf.cell(45,8,"FECHA:",border=1); pdf.set_font("Arial",'',10); pdf.cell(0,8,sanitizar_texto(sesion.get("Fecha","N/A")),border=1,ln=True)
     pdf.set_font("Arial",'B',10); pdf.cell(45,8,"PROTOCOLO:",border=1); pdf.set_font("Arial",'',10); pdf.cell(0,8,sanitizar_texto(sesion.get("Escenario","N/A")),border=1,ln=True)
     pdf.set_font("Arial",'B',10); pdf.cell(45,8,"DIFICULTAD:",border=1); pdf.set_font("Arial",'',10); pdf.cell(0,8,sanitizar_texto(sesion.get("Dificultad","N/A")),border=1,ln=True)
     pdf.set_font("Arial",'B',10); pdf.cell(45,8,"EVALUACION FINAL:",border=1); pdf.set_font("Arial",'B',10); pdf.cell(0,8,f"{sesion.get('Nota',0)}/100",border=1,ln=True); pdf.ln(10)
+
+    # ── SECCIÓN 1: INFORME DE EVALUACIÓN TÁCTICA ──
     pdf.set_text_color(0,0,0); pdf.set_font("Arial",'B',12)
     pdf.cell(0,8,"1. INFORME DE EVALUACION TACTICA",ln=True); pdf.set_font("Arial",'',10)
     pdf.multi_cell(0,6,sanitizar_texto(sesion.get("Evaluacion",""))); pdf.ln(5)
+
+    # ── SECCIÓN 2: ANÁLISIS DE USO DE INTELIGENCIA (si existe) ──
+    if sesion.get("Evaluacion_Intel"):
+        pdf.set_font("Arial",'B',12); pdf.set_text_color(240,165,0)
+        pdf.cell(0,8,"2. ANALISIS DE USO DE SERVICIOS DE INTELIGENCIA",ln=True)
+        pdf.set_text_color(0,0,0); pdf.set_font("Arial",'',10)
+        pdf.multi_cell(0,6,sanitizar_texto(sesion.get("Evaluacion_Intel",""))); pdf.ln(5)
+        seccion_trans = "3"
+    else:
+        seccion_trans = "2"
+
+    # ── SECCIÓN 3/2: REGISTRO DE COMUNICACIONES PRINCIPAL ──
     if "Transcripcion" in sesion:
-        pdf.set_font("Arial",'B',12); pdf.cell(0,8,"2. REGISTRO DE COMUNICACIONES",ln=True); pdf.ln(2)
+        pdf.set_font("Arial",'B',12); pdf.set_text_color(0,0,0)
+        pdf.cell(0,8,f"{seccion_trans}. REGISTRO DE COMUNICACIONES — CANAL PRINCIPAL",ln=True); pdf.ln(2)
         for msg in sesion["Transcripcion"]:
             ag = "OPERADOR" if msg["role"] == "user" else "OBJETIVO"
             if msg["role"] == "user": pdf.set_text_color(79,142,247)
@@ -122,35 +260,23 @@ def generar_pdf_dossier(sesion):
             pdf.set_font("Arial",'B',10); pdf.cell(0,6,f"{ag}:",ln=True)
             pdf.set_text_color(50,50,50); pdf.set_font("Arial",'',10)
             pdf.multi_cell(0,6,sanitizar_texto(msg["content"])); pdf.ln(2)
+
+    # ── SECCIÓN 4/3: REGISTRO CANAL INTELIGENCIA (si existe) ──
+    if sesion.get("Transcripcion_Intel"):
+        sig_sec = str(int(seccion_trans) + 1)
+        pdf.add_page()
+        pdf.set_font("Arial",'B',12); pdf.set_text_color(240,165,0)
+        pdf.cell(0,8,f"{sig_sec}. REGISTRO DE COMUNICACIONES — CANAL INTELIGENCIA",ln=True); pdf.ln(2)
+        for msg in sesion["Transcripcion_Intel"]:
+            ag = "OPERADOR" if msg["role"] == "user" else "INTEL"
+            if msg["role"] == "user": pdf.set_text_color(240,165,0)
+            else: pdf.set_text_color(130,90,200)
+            pdf.set_font("Arial",'B',10); pdf.cell(0,6,f"{ag}:",ln=True)
+            pdf.set_text_color(50,50,50); pdf.set_font("Arial",'',10)
+            pdf.multi_cell(0,6,sanitizar_texto(msg["content"])); pdf.ln(2)
+
     out = pdf.output(dest='S')
     return out.encode('latin-1') if isinstance(out, str) else out
-
-def generar_url_imagen(prompt_contexto, seed, width=800, height=450):
-    """Construye la URL de Pollinations con el prompt táctico."""
-    import urllib.parse
-    prompt_base = (
-        f"military intelligence reconnaissance photograph, tactical scenario, "
-        f"{prompt_contexto}, "
-        f"classified satellite imagery style, grayscale with green tint, "
-        f"high detail, cinematic, no text, no watermark, photorealistic"
-    )
-    prompt_encoded = urllib.parse.quote(prompt_base)
-    return (
-        f"https://image.pollinations.ai/prompt/{prompt_encoded}"
-        f"?width={width}&height={height}&nologo=true&seed={seed}&model=flux"
-    )
-
-def construir_prompt_imagen(escenario, tarjeta_objetivo, contexto_extra=""):
-    """Genera un prompt coherente con la misión activa."""
-    escenario_prompts = {
-        "OPERACION: FRONTERA":   "military border zone, watchtowers, barbed wire fences, military vehicles, snowy mountains",
-        "OPERACION: BLACKOUT":   "urban server room, electrical infrastructure, dark city, power grid failure, emergency lighting",
-        "OPERACION: EXTRACCION": "bank building exterior, urban street, police perimeter, hostage situation, city center",
-    }
-    base = escenario_prompts.get(escenario, "classified tactical location, urban environment, high tension scenario")
-    if tarjeta_objetivo:
-        base += f", {contexto_extra}" if contexto_extra else ""
-    return base
 
 # ─────────────────────────────────────────
 # CONFIG Y CSS
@@ -172,6 +298,7 @@ st.markdown("""
   --green:    #00D4A0;
   --red:      #E8394A;
   --amber:    #F0A500;
+  --purple:   #9B59B6;
   --text:     #B8C4DC;
   --text-hi:  #E2EAF8;
   --text-lo:  #3A4A6A;
@@ -279,6 +406,61 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
 .section-label { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.25em; color: var(--blue); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 .status-bar { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--green); padding: 10px 18px; border-radius: 2px; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.12em; color: var(--green); margin-bottom: 20px; }
 
+/* INTEL CHANNEL STYLES */
+.intel-header {
+  background: #0D0A18;
+  border: 1px solid #2A1A4A;
+  border-left: 3px solid #F0A500;
+  border-radius: 2px;
+  padding: 10px 18px;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  color: #F0A500;
+  margin-top: 32px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.intel-dot {
+  width: 7px; height: 7px;
+  background: #F0A500;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse-amber 1.8s infinite;
+}
+@keyframes pulse-amber {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.intel-badge {
+  background: rgba(240,165,0,0.08);
+  border: 1px solid rgba(240,165,0,0.3);
+  border-radius: 2px;
+  padding: 2px 8px;
+  font-family: var(--mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.18em;
+  color: #F0A500;
+  margin-left: auto;
+}
+.intel-image-container {
+  border: 1px solid #2A1A4A;
+  border-left: 3px solid #F0A500;
+  background: #0D0A18;
+  padding: 10px 14px;
+  margin: 10px 0;
+  border-radius: 2px;
+}
+.intel-image-label {
+  font-family: var(--mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.28em;
+  color: #F0A500;
+  margin-bottom: 8px;
+}
+
 .diff-card {
   border: 2px solid var(--border);
   border-radius: 2px;
@@ -335,7 +517,9 @@ if "empleados"          not in st.session_state: st.session_state.empleados     
 if "historial_sesiones" not in st.session_state: st.session_state.historial_sesiones = datos_guardados["historial_sesiones"]
 if "escenarios_custom"  not in st.session_state: st.session_state.escenarios_custom  = datos_guardados.get("escenarios_custom", {})
 if "mensajes"           not in st.session_state: st.session_state.mensajes            = []
+if "mensajes_intel"     not in st.session_state: st.session_state.mensajes_intel      = []   # ← NUEVO: canal inteligencia
 if "evaluacion_actual"  not in st.session_state: st.session_state.evaluacion_actual  = None
+if "evaluacion_intel"   not in st.session_state: st.session_state.evaluacion_intel   = None  # ← NUEVO
 if "mision_iniciada"    not in st.session_state: st.session_state.mision_iniciada    = False
 if "tarjeta_objetivo"   not in st.session_state: st.session_state.tarjeta_objetivo   = None
 if "usuario_actual"     not in st.session_state: st.session_state.usuario_actual     = None
@@ -358,7 +542,6 @@ if token_invitacion:
 
 if st.session_state.usuario_actual is None:
 
-    # ── FLUJO INVITACIÓN ──
     if empresa_invitada:
         st.markdown(f"""
         <div style="text-align:center; padding: 60px 0 30px 0;">
@@ -416,7 +599,7 @@ if st.session_state.usuario_actual is None:
             <div>
                 <div style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.3em; color:#18213A; margin-bottom:8px;">ESTADO DEL SISTEMA</div>
                 <div style="font-family:var(--mono); font-size:0.58rem; color:#00D4A0; letter-spacing:0.15em;">OPERATIVO · ACCESO SEGURO</div>
-                <div style="margin-top:16px; font-family:var(--mono); font-size:0.48rem; letter-spacing:0.25em; color:#18213A;">v3.0.0 · CLASIFICADO</div>
+                <div style="margin-top:16px; font-family:var(--mono); font-size:0.48rem; letter-spacing:0.25em; color:#18213A;">v3.1.0 · CLASIFICADO</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -436,7 +619,6 @@ if st.session_state.usuario_actual is None:
 
         st.markdown("<div style='margin-top:32px;'></div>", unsafe_allow_html=True)
 
-        # ── MODO ACCESO ──
         if st.session_state.login_modo == "acceso":
             if st.session_state.login_step == 1:
                 with st.form("login_form"):
@@ -485,7 +667,6 @@ if st.session_state.usuario_actual is None:
                     if colB.form_submit_button("CANCELAR", use_container_width=True):
                         st.session_state.login_step = 1; del st.session_state["correo_enviado"]; st.rerun()
 
-        # ── MODO REGISTRO ──
         else:
             if st.session_state.get("mostrar_pago"):
                 info_pago = st.session_state.mostrar_pago
@@ -569,7 +750,8 @@ if st.session_state.usuario_actual is None:
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.stop()
-                # ─────────────────────────────────────────
+
+# ─────────────────────────────────────────
 # RESOLUCIÓN DE PERMISOS
 # ─────────────────────────────────────────
 u = st.session_state.usuario_actual
@@ -587,13 +769,15 @@ else:
     else:
         mi_plan = u.get("Plan", "BASE")
 
-# Normalizar planes legacy
 _legacy = {"Gratis": "BASE", "Individual": "OPERADOR", "Pro": "ESCUADRON", "Enterprise": "COMANDANCIA"}
 mi_plan = _legacy.get(mi_plan, mi_plan)
 
 ops_limite      = PLANES_INFO.get(mi_plan, {}).get("ops", 1)
 escenarios_lim  = PLANES_INFO.get(mi_plan, {}).get("escenarios", 0)
 agentes_lim     = PLANES_INFO.get(mi_plan, {}).get("agentes", 0)
+
+# ¿Tiene acceso al canal de inteligencia?
+tiene_intel = (mi_plan in PLANES_CON_INTEL) or (u["Nombre"] == COMANDANTE_SUPREMO)
 
 if u["Nombre"] == COMANDANTE_SUPREMO:
     historial_visible   = [s for s in st.session_state.historial_sesiones if s["Agente"] == u["Nombre"]]
@@ -890,9 +1074,8 @@ elif st.session_state.pantalla_actual == "expedientes":
                             modo_badge = "PRIVADO" if s.get("Tipo_Mision") == "Personal" else "OFICIAL"
                             dif_badge  = s.get("Dificultad", "—")
                             dif_color  = DIFICULTADES.get(dif_badge, {}).get("color", "#3A4A6A")
+                            tiene_intel_exp = bool(s.get("Transcripcion_Intel"))
 
-                            # Determinar si el usuario actual puede borrar esta sesión
-                            # Solo puede borrar sus propias sesiones; empresa no borra las de sus agentes
                             puede_borrar = (s["Agente"] == u["Nombre"]) or (u["Nombre"] == COMANDANTE_SUPREMO)
 
                             st.markdown(f"""
@@ -901,11 +1084,23 @@ elif st.session_state.pantalla_actual == "expedientes":
                                 <span style="color:#3A4A6A; font-size:0.8rem; font-family:var(--mono);">
                                     {s['Fecha']} · {modo_badge} · 
                                     <span style="color:{dif_color};">{dif_badge}</span>
+                                    {"· <span style='color:#F0A500;'>INTEL ACTIVO</span>" if tiene_intel_exp else ""}
                                 </span>
                                 <span style="font-family:var(--mono); color:{c_nota}; font-weight:700;">{nota_ind}%</span>
                             </div>
-                            <div style="font-size:0.85rem; color:#B8C4DC; margin-bottom:10px;">{s['Evaluacion']}</div>
+                            <div style="font-size:0.85rem; color:#B8C4DC; margin-bottom:10px;">{s['Evaluacion'][:300]}...</div>
                             """, unsafe_allow_html=True)
+
+                            # Mostrar evaluación intel si existe
+                            if s.get("Evaluacion_Intel"):
+                                st.markdown(f"""
+                                <div style="background:#0D0A18; border:1px solid #2A1A4A; border-left:3px solid #F0A500;
+                                            padding:10px 14px; margin-bottom:10px; border-radius:2px;">
+                                    <div style="font-family:var(--mono); font-size:0.48rem; letter-spacing:0.2em;
+                                                color:#F0A500; margin-bottom:6px;">EVALUACION USO DE INTELIGENCIA</div>
+                                    <div style="font-size:0.8rem; color:#B8C4DC;">{str(s.get('Evaluacion_Intel',''))[:400]}...</div>
+                                </div>
+                                """, unsafe_allow_html=True)
 
                             col_pdf, col_del = st.columns([3, 1])
 
@@ -920,7 +1115,6 @@ elif st.session_state.pantalla_actual == "expedientes":
 
                             with col_del:
                                 if puede_borrar:
-                                    # Clave única por sesión para el estado de confirmación
                                     confirm_key = f"confirm_del_{s['Agente']}_{s['Fecha']}"
                                     input_key   = f"input_del_{s['Agente']}_{s['Fecha']}"
 
@@ -951,7 +1145,6 @@ elif st.session_state.pantalla_actual == "expedientes":
                                         with col_conf:
                                             if st.button("EJECUTAR", key=f"exec_del_{s['Agente']}_{s['Fecha']}", use_container_width=True):
                                                 if texto_confirmacion.strip().upper() == "CONFIRMAR BORRADO":
-                                                    # Eliminar la sesión del historial
                                                     st.session_state.historial_sesiones = [
                                                         ses for ses in st.session_state.historial_sesiones
                                                         if not (ses["Agente"] == s["Agente"] and ses["Fecha"] == s["Fecha"])
@@ -976,12 +1169,14 @@ elif st.session_state.pantalla_actual == "expedientes":
                             st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div style='text-align:center; padding:60px; color:#18213A; font-family:var(--mono);'>DIRECTORIO VACIO</div>", unsafe_allow_html=True)
+
 # ─────────────────────────────────────────
 # SIMULADOR TÁCTICO
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "simulador":
     st.markdown("<div class='section-header'><div><div class='section-code'>MOD-02</div><div class='section-title'>Simulador Tactico</div></div></div>", unsafe_allow_html=True)
 
+    # ── PANTALLA DE CONFIGURACIÓN ──
     if not st.session_state.mision_iniciada:
         c1, c2 = st.columns(2)
         if es_empresa:
@@ -992,7 +1187,6 @@ elif st.session_state.pantalla_actual == "simulador":
 
         es_sel = c2.selectbox("Seleccionar Protocolo:", list(TODAS_LAS_MISIONES.keys()))
 
-        # ── SELECTOR DE DIFICULTAD ──
         st.markdown("<br><div class='section-label'>NIVEL DE DIFICULTAD</div>", unsafe_allow_html=True)
         d_cols = st.columns(4)
         for i, (d_nombre, d_data) in enumerate(DIFICULTADES.items()):
@@ -1003,12 +1197,8 @@ elif st.session_state.pantalla_actual == "simulador":
                 st.markdown(f"""
                 <div class="diff-card {'selected' if is_sel_d else ''}"
                      style="border-color:{border_d}; background:{bg_d};">
-                    <div class="diff-name" style="color:{d_data['color']};">
-                        {d_nombre}
-                    </div>
-                    <div style="font-family:var(--mono); font-size:0.5rem; color:{d_data['color']}; opacity:0.7; margin-top:2px; letter-spacing:0.12em;">
-                        LVL {d_data['nivel']}
-                    </div>
+                    <div class="diff-name" style="color:{d_data['color']};">{d_nombre}</div>
+                    <div style="font-family:var(--mono); font-size:0.5rem; color:{d_data['color']}; opacity:0.7; margin-top:2px; letter-spacing:0.12em;">LVL {d_data['nivel']}</div>
                     <div class="diff-desc">{d_data['desc']}</div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -1030,13 +1220,20 @@ elif st.session_state.pantalla_actual == "simulador":
         info = TODAS_LAS_MISIONES[es_sel]
         dif_activa = st.session_state.dificultad_actual
         dif_color  = DIFICULTADES[dif_activa]["color"]
+
+        # Mostrar si tiene Intel disponible
+        intel_badge = ""
+        if tiene_intel:
+            intel_badge = f"<span style='background:rgba(240,165,0,0.15); border:1px solid rgba(240,165,0,0.4); border-radius:2px; padding:2px 8px; font-family:var(--mono); font-size:0.48rem; color:#F0A500; letter-spacing:0.15em; margin-left:8px;'>INTEL ACTIVO</span>"
+
         st.markdown(f"""
         <div class="briefing-box">
-            <h4>REPORTE DE SITUACION</h4>
+            <h4>REPORTE DE SITUACION {intel_badge}</h4>
             <p><b>Contexto:</b> {info['contexto']}</p>
             <p><b>Perfil:</b> {info['perfil_sujeto']}</p>
             <p><b>Directiva:</b> {info['objetivo']}</p>
             <p><b>Dificultad:</b> <span style="color:{dif_color}; font-family:var(--mono); font-weight:700;">{dif_activa} (Nivel {DIFICULTADES[dif_activa]['nivel']})</span></p>
+            {"<p style='color:#F0A500; font-family:var(--mono); font-size:0.62rem;'>▸ SERVICIOS DE INTELIGENCIA disponibles durante la operación</p>" if tiene_intel else "<p style='color:#3A4A6A; font-family:var(--mono); font-size:0.62rem;'>▸ SERVICIOS DE INTELIGENCIA requieren plan ELITE o superior</p>"}
         </div>
         """, unsafe_allow_html=True)
 
@@ -1064,34 +1261,49 @@ elif st.session_state.pantalla_actual == "simulador":
                         st.session_state.tarjeta_objetivo = json.loads(res)
                     except:
                         st.session_state.tarjeta_objetivo = {"Nombre_Completo":"Desconocido","Familia":"Clasificado","Estado_Mental":"Inestable"}
-            
+
             st.session_state.mision_iniciada      = True
             st.session_state.mensajes             = []
+            st.session_state.mensajes_intel       = []   # ← resetear canal intel
+            st.session_state.evaluacion_actual    = None
+            st.session_state.evaluacion_intel     = None
             st.session_state.agente_activo        = ag_sel
             st.session_state.escenario_activo     = es_sel
             st.session_state.tipo_mision_actual   = tipo_mision_val
             st.session_state.dificultad_sesion    = dif_activa
             st.session_state.imagen_seed          = random.randint(1000, 9999)
-            st.session_state.imagenes_activas     = False # el usuario las activa manualmente
             st.rerun()
 
-    # 👇 EL ELIF VUELVE AL MARGEN DEL IF PRINCIPAL (4 espacios) 👇
+    # ── PANTALLA DE EVALUACIÓN FINAL ──
     elif st.session_state.evaluacion_actual:
-        st.markdown("<div class='section-label'>INFORME DE EVALUACION TACTICA</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-label'>INFORME DE EVALUACION TACTICA — CANAL PRINCIPAL</div>", unsafe_allow_html=True)
         st.markdown(st.session_state.evaluacion_actual)
+
+        if st.session_state.evaluacion_intel:
+            st.markdown("""
+            <div style="margin-top:24px; padding:16px 0 8px 0; border-top:1px solid #2A1A4A;">
+                <div style="font-family:var(--mono); font-size:0.55rem; letter-spacing:0.25em; color:#F0A500;
+                            margin-bottom:14px; padding-bottom:8px; border-bottom:1px solid #2A1A4A;">
+                    EVALUACION DE USO DE SERVICIOS DE INTELIGENCIA
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown(st.session_state.evaluacion_intel)
+
         st.markdown("<br>", unsafe_allow_html=True)
-        
         col_end1, col_end2 = st.columns(2)
-        
+
         with col_end1:
             if st.button("ARCHIVAR INFORME Y VOLVER AL MENU", use_container_width=True):
-                st.session_state.mision_iniciada = False
+                st.session_state.mision_iniciada   = False
                 st.session_state.evaluacion_actual = None
-                st.session_state.mensajes = []
-                st.session_state.tarjeta_objetivo = None
-                st.session_state.pantalla_actual = "menu"
+                st.session_state.evaluacion_intel  = None
+                st.session_state.mensajes          = []
+                st.session_state.mensajes_intel    = []
+                st.session_state.tarjeta_objetivo  = None
+                st.session_state.pantalla_actual   = "menu"
                 st.rerun()
-                
+
         with col_end2:
             ultima_sesion = st.session_state.historial_sesiones[-1]
             st.download_button(
@@ -1102,17 +1314,21 @@ elif st.session_state.pantalla_actual == "simulador":
                 use_container_width=True
             )
 
+    # ── PANTALLA DE SIMULACIÓN ACTIVA ──
     else:
-        dif_sesion = st.session_state.get("dificultad_sesion", "OPERATOR")
+        dif_sesion  = st.session_state.get("dificultad_sesion", "OPERATOR")
         dif_color_s = DIFICULTADES.get(dif_sesion, {}).get("color","#4F8EF7")
+
         st.markdown(f"""
         <div class='status-bar'>
             LINEA SEGURA ACTIVA: {st.session_state.escenario_activo} — 
             OPERADOR: {st.session_state.agente_activo.upper()} — 
             <span style="color:{dif_color_s};">DIFICULTAD: {dif_sesion}</span>
+            {"— <span style='color:#F0A500;'>INTEL: ONLINE</span>" if tiene_intel else ""}
         </div>
         """, unsafe_allow_html=True)
 
+        # ── TARJETA OBJETIVO ──
         if st.session_state.tarjeta_objetivo:
             t = st.session_state.tarjeta_objetivo
             st.markdown(f"""<div style="display:flex; gap:15px; background:#0B0E1A; border:1px solid #18213A; border-left:3px solid #F0A500; border-radius:2px; padding:14px 20px; margin-bottom:20px;">
@@ -1121,52 +1337,11 @@ elif st.session_state.pantalla_actual == "simulador":
                 <div style="flex:1;"><div style="color:#F0A500; font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">ESTADO CLINICO</div><div style="color:#B8C4DC; font-size:0.88rem;">{str(t.get('Estado_Mental','N/A'))}</div></div>
             </div>""", unsafe_allow_html=True)
 
-        # ── IMAGEN BAJO DEMANDA ─────────────────────────────────
-        if (st.session_state.get("imagenes_activas", False)
-                and mi_plan != "BASE"
-                and st.session_state.mensajes):
+        # ════════════════════════════════════════
+        # CANAL PRINCIPAL — CHAT CON EL SUJETO
+        # ════════════════════════════════════════
+        st.markdown("<div class='section-label'>CANAL PRINCIPAL — ENLACE CON OBJETIVO</div>", unsafe_allow_html=True)
 
-            ultimo_msg = st.session_state.mensajes[-1]
-
-            # Detectar si el último mensaje del usuario pide una imagen
-            keywords_imagen = [
-                "imagen", "foto", "satélite", "satelite", "fotografía", "fotografia",
-                "reconocimiento", "visual", "muéstrame", "muestrame", "ver", "mapa",
-                "plano", "vista", "captura", "snapshot", "intel visual"
-            ]
-            es_peticion_imagen = (
-                ultimo_msg["role"] == "user"
-                and any(k in ultimo_msg["content"].lower() for k in keywords_imagen)
-            )
-
-            if es_peticion_imagen:
-                # Extraer contexto adicional del mensaje del usuario
-                contexto_extra = ultimo_msg["content"][:120]
-                url_demanda = generar_url_imagen(
-                    construir_prompt_imagen(
-                        st.session_state.escenario_activo,
-                        st.session_state.tarjeta_objetivo,
-                        contexto_extra=contexto_extra
-                    ),
-                    seed=st.session_state.get("imagen_seed", 42) + len(st.session_state.mensajes),
-                )
-                st.markdown("""
-                <div style="border:1px solid #18213A; border-left:3px solid #4F8EF7;
-                            background:#0B0E1A; padding:10px 14px; margin-top:12px; margin-bottom:6px;">
-                    <div style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.3em;
-                                color:#4F8EF7; margin-bottom:8px;">
-                        ▸ INTELIGENCIA VISUAL — SOLICITUD PROCESADA
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                st.image(url_demanda, use_container_width=True)
-                st.markdown(
-                    "<div style='font-family:var(--mono); font-size:0.48rem; "
-                    "letter-spacing:0.2em; color:#18213A; margin-bottom:16px;'>"
-                    f"REF: SAT-{st.session_state.get('imagen_seed',42) + len(st.session_state.mensajes)}"
-                    f" · {datetime.now().strftime('%H:%M:%S')} · CLASIFICADO</div>",
-                    unsafe_allow_html=True
-                )
         for m in st.session_state.mensajes:
             label  = "TU" if m["role"] == "user" else "SUJETO"
             bg     = "#0D1424" if m["role"] == "user" else "#0B0E1A"
@@ -1178,15 +1353,15 @@ elif st.session_state.pantalla_actual == "simulador":
                 <div style="color:#B8C4DC; font-size:0.9rem; line-height:1.6;">{m['content']}</div>
             </div></div>""", unsafe_allow_html=True)
 
-        if prompt := st.chat_input("Introduzca directiva de respuesta..."):
-            st.session_state.mensajes.append({"role":"user","content":prompt}); st.rerun()
+        if prompt_principal := st.chat_input("Introduzca directiva de respuesta...", key="chat_principal"):
+            st.session_state.mensajes.append({"role":"user","content":prompt_principal}); st.rerun()
 
         if st.session_state.mensajes and st.session_state.mensajes[-1]["role"] == "user":
             if GROQ_API_KEY:
-                client     = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
-                escenario_a = st.session_state.escenario_activo
-                base_prompt = TODAS_LAS_MISIONES[escenario_a]["prompt"]
-                dif_instruc = DIFICULTADES.get(dif_sesion, {}).get("instruccion","")
+                client       = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                escenario_a  = st.session_state.escenario_activo
+                base_prompt  = TODAS_LAS_MISIONES[escenario_a]["prompt"]
+                dif_instruc  = DIFICULTADES.get(dif_sesion, {}).get("instruccion","")
                 base_prompt += f"\n\n[NIVEL DE DIFICULTAD: {dif_sesion}. {dif_instruc}]"
                 if st.session_state.tarjeta_objetivo:
                     t2 = st.session_state.tarjeta_objetivo
@@ -1197,34 +1372,114 @@ elif st.session_state.pantalla_actual == "simulador":
                 ).choices[0].message.content
                 st.session_state.mensajes.append({"role":"assistant","content":res}); st.rerun()
 
-        # ── CONTROLES INFERIORES ────────────────────────────────
-        col_toggle, col_end, col_abort = st.columns([2, 3, 1])
+        # ════════════════════════════════════════
+        # CANAL INTELIGENCIA — SOLO PLANES ELITE+
+        # ════════════════════════════════════════
+        if tiene_intel:
+            st.markdown("""
+            <div class="intel-header">
+                <span class="intel-dot"></span>
+                SERVICIOS DE INTELIGENCIA — CANAL CIFRADO
+                <span class="intel-badge">CLASIFICADO · SOLO OPERADOR</span>
+            </div>
+            """, unsafe_allow_html=True)
 
-        with col_toggle:
-            if mi_plan != "BASE":
-                imagenes_on = st.toggle(
-                    "IMÁGENES TÁCTICAS",
-                    value=st.session_state.get("imagenes_activas", False),
-                    key="toggle_imagenes",
-                    help="Activa la generación de imágenes de reconocimiento durante el chat"
-                )
-                if imagenes_on != st.session_state.get("imagenes_activas", False):
-                    st.session_state.imagenes_activas = imagenes_on
-                    st.rerun()
-            else:
-                st.markdown(
-                    "<div style='font-family:var(--mono); font-size:0.5rem; "
-                    "letter-spacing:0.15em; color:#3A4A6A; padding-top:14px;'>"
-                    "IMÁGENES · PLAN DE PAGO</div>",
-                    unsafe_allow_html=True
-                )
+            st.markdown("""
+            <div style="background:#0A0814; border:1px solid #1A1030; border-radius:2px; padding:8px 14px; margin-bottom:12px;">
+                <span style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.15em; color:#4A3A6A;">
+                    ▸ Este canal es independiente. Los Servicios de Inteligencia NO tienen acceso a tu conversación con el objetivo.
+                    Su información puede ser parcial o incorrecta. Puedes pedir imágenes de reconocimiento aquí.
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Mostrar historial del canal intel
+            for m in st.session_state.mensajes_intel:
+                if m["role"] == "user":
+                    st.markdown(f"""<div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+                    <div style="max-width:78%; background:#0D0A18; border:1px solid rgba(240,165,0,0.15);
+                                border-left:3px solid #F0A500; border-radius:2px; padding:12px 16px;">
+                        <div style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.2em;
+                                    color:#F0A500; margin-bottom:6px;">OPERADOR → INTEL</div>
+                        <div style="color:#B8C4DC; font-size:0.88rem; line-height:1.5;">{m['content']}</div>
+                    </div></div>""", unsafe_allow_html=True)
+                else:
+                    # Respuesta de inteligencia — verificar si hay imagen asociada
+                    st.markdown(f"""<div style="display:flex; justify-content:flex-start; margin-bottom:10px;">
+                    <div style="max-width:78%; background:#0A0814; border:1px solid rgba(155,89,182,0.2);
+                                border-left:3px solid #9B59B6; border-radius:2px; padding:12px 16px;">
+                        <div style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.2em;
+                                    color:#9B59B6; margin-bottom:6px;">INTEL → OPERADOR</div>
+                        <div style="color:#B8C4DC; font-size:0.88rem; line-height:1.5;">{m['content']}</div>
+                    </div></div>""", unsafe_allow_html=True)
+
+                    # Si el mensaje anterior del usuario pidió imagen, mostrarla
+                    idx = st.session_state.mensajes_intel.index(m)
+                    if idx > 0:
+                        prev = st.session_state.mensajes_intel[idx - 1]
+                        if prev["role"] == "user" and es_peticion_imagen_intel(prev["content"]):
+                            seed_img = st.session_state.get("imagen_seed", 42) + idx
+                            url_img  = generar_url_imagen_intel(
+                                st.session_state.escenario_activo,
+                                prev["content"],
+                                seed_img
+                            )
+                            st.markdown(f"""
+                            <div class="intel-image-container">
+                                <div class="intel-image-label">▸ IMAGEN DE RECONOCIMIENTO — REF: SAT-{seed_img} · {datetime.now().strftime('%H:%M:%S')} · CLASIFICADO</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            st.image(url_img, use_container_width=True)
+
+            # Input del canal intel
+            if prompt_intel := st.chat_input("Consultar a Servicios de Inteligencia...", key="chat_intel"):
+                st.session_state.mensajes_intel.append({"role":"user","content":prompt_intel}); st.rerun()
+
+            # Respuesta automática del canal intel
+            if st.session_state.mensajes_intel and st.session_state.mensajes_intel[-1]["role"] == "user":
+                if GROQ_API_KEY:
+                    client_intel = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                    escenario_intel = st.session_state.escenario_activo
+                    intel_system   = INTEL_PROMPTS.get(escenario_intel, INTEL_PROMPT_DEFAULT)
+
+                    # Añadir contexto del escenario al sistema de intel
+                    info_escenario = TODAS_LAS_MISIONES.get(escenario_intel, {})
+                    intel_system += f"\n\nCONTEXTO OPERACION: {info_escenario.get('contexto', '')}"
+                    intel_system += f"\nOBJETIVO DE LA MISION: {info_escenario.get('objetivo', '')}"
+                    if st.session_state.tarjeta_objetivo:
+                        t_intel = st.session_state.tarjeta_objetivo
+                        intel_system += f"\nSUJETO IDENTIFICADO: {t_intel.get('Nombre_Completo')} · Estado: {t_intel.get('Estado_Mental')}"
+
+                    # IMPORTANTE: Intel NO tiene acceso a mensajes del canal principal
+                    res_intel = client_intel.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[{"role":"system","content": intel_system}] + st.session_state.mensajes_intel
+                    ).choices[0].message.content
+                    st.session_state.mensajes_intel.append({"role":"assistant","content":res_intel}); st.rerun()
+
+        else:
+            # Mostrar badge de upgrade para planes sin intel
+            st.markdown("""
+            <div style="background:#0A0A14; border:1px solid #18213A; border-left:3px solid #2A2040;
+                        padding:16px 20px; border-radius:2px; margin-top:24px; text-align:center;">
+                <div style="font-family:var(--mono); font-size:0.55rem; letter-spacing:0.2em;
+                            color:#2A2040; margin-bottom:8px;">SERVICIOS DE INTELIGENCIA</div>
+                <div style="font-family:var(--mono); font-size:0.6rem; color:#3A4A6A;">
+                    Disponible en planes ELITE · ESCUADRON · COMANDANCIA
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # ── CONTROLES INFERIORES ──
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_abort, col_end = st.columns([1, 3])
 
         with col_abort:
             if st.button("ROMPER ENLACE", type="secondary", use_container_width=True):
-                st.session_state.mision_iniciada   = False
-                st.session_state.mensajes          = []
-                st.session_state.tarjeta_objetivo  = None
-                st.session_state.imagenes_activas  = False
+                st.session_state.mision_iniciada  = False
+                st.session_state.mensajes         = []
+                st.session_state.mensajes_intel   = []
+                st.session_state.tarjeta_objetivo = None
                 st.rerun()
 
         with col_end:
@@ -1236,12 +1491,16 @@ elif st.session_state.pantalla_actual == "simulador":
                         info_ev   = TODAS_LAS_MISIONES[escenario]
                         dif_ev    = st.session_state.get("dificultad_sesion", "OPERATOR")
                         dif_nivel = DIFICULTADES.get(dif_ev, {}).get("nivel", 2)
-                        hist_txt  = "\n".join([
+
+                        hist_txt = "\n".join([
                             f"{'OPERADOR' if m['role']=='user' else 'SUJETO'}: {m['content']}"
                             for m in st.session_state.mensajes
                         ])
+
                         umbral_excelente = {1:85, 2:80, 3:70, 4:60}.get(dif_nivel, 80)
                         umbral_correcto  = {1:65, 2:55, 3:45, 4:35}.get(dif_nivel, 55)
+
+                        # ── EVALUACIÓN CANAL PRINCIPAL ──
                         eval_prompt = f"""Eres un Analista de Inteligencia y Negociación Táctica altamente estricto.
 Evalúa el desempeño del OPERADOR en el escenario: {escenario}.
 Situación: {info_ev['contexto']}.
@@ -1263,10 +1522,12 @@ REGLAS:
 Estructura: ANALISIS DE LENGUAJE / TACTICAS EMPLEADAS / ERRORES CRITICOS / VEREDICTO / COMO MEJORAR
 
 PUNTUACION FINAL: XX/100"""
+
                         informe = client.chat.completions.create(
                             model="llama-3.3-70b-versatile",
                             messages=[{"role":"user","content":eval_prompt}]
                         ).choices[0].message.content
+
                         try:
                             match = re.search(r'PUNTUACI[OÓ]N FINAL[^\d]*(\d+)\s*\/?\s*100', informe, re.IGNORECASE)
                             nota  = min(int(match.group(1)), 100) if match else (
@@ -1274,18 +1535,79 @@ PUNTUACION FINAL: XX/100"""
                                 if re.search(r'(\d+)\s*/\s*100', informe) else 50)
                         except:
                             nota = 50
+
+                        # ── EVALUACIÓN USO DE INTELIGENCIA (si hay mensajes intel) ──
+                        informe_intel = None
+                        if tiene_intel and st.session_state.mensajes_intel:
+                            hist_intel_txt = "\n".join([
+                                f"{'OPERADOR' if m['role']=='user' else 'INTEL'}: {m['content']}"
+                                for m in st.session_state.mensajes_intel
+                            ])
+                            hist_principal_txt = "\n".join([
+                                f"{'OPERADOR' if m['role']=='user' else 'SUJETO'}: {m['content']}"
+                                for m in st.session_state.mensajes
+                            ])
+
+                            eval_intel_prompt = f"""Eres un Supervisor de Operaciones de Inteligencia. Evalúa cómo el OPERADOR utilizó los Servicios de Inteligencia durante la operación.
+
+ESCENARIO: {escenario}
+OBJETIVO: {info_ev['objetivo']}
+DIFICULTAD: {dif_ev}
+
+CANAL PRINCIPAL (conversación con el objetivo):
+{hist_principal_txt}
+
+CANAL DE INTELIGENCIA (consultas del operador):
+{hist_intel_txt}
+
+EVALÚA LOS SIGUIENTES ASPECTOS (sé estricto y específico):
+
+1. PERTINENCIA DE LAS CONSULTAS
+   - ¿Preguntó lo correcto en el momento correcto?
+   - ¿Las consultas eran relevantes para la negociación activa?
+   - ¿Desperdició consultas en información irrelevante?
+
+2. USO DE INFORMACIÓN RECIBIDA
+   - ¿Aplicó la información de inteligencia en su negociación?
+   - ¿Ignoró datos útiles que la inteligencia le proporcionó?
+   - ¿Mejoró su posición negociadora gracias a los datos obtenidos?
+
+3. GESTIÓN DE INFORMACIÓN IMPERFECTA
+   - ¿Sobreconfió en datos marcados como no verificados?
+   - ¿Verificó o cuestionó información dudosa de inteligencia?
+   - ¿Tomó decisiones arriesgadas basándose en datos incompletos?
+
+4. COORDINACIÓN TÁCTICA
+   - ¿Usó el canal en los momentos adecuados de la negociación?
+   - ¿La información obtenida fue relevante para el desenlace?
+
+VEREDICTO FINAL DE USO DE INTELIGENCIA: [EXCELENTE / CORRECTO / DEFICIENTE]
+
+PUNTUACION DE USO DE INTELIGENCIA: XX/100"""
+
+                            informe_intel = client.chat.completions.create(
+                                model="llama-3.3-70b-versatile",
+                                messages=[{"role":"user","content":eval_intel_prompt}]
+                            ).choices[0].message.content
+
                         st.session_state.evaluacion_actual = informe
-                        st.session_state.historial_sesiones.append({
-                            "Fecha":         datetime.now().strftime("%Y-%m-%d %H:%M"),
-                            "Agente":        st.session_state.agente_activo,
-                            "Escenario":     escenario,
-                            "Nota":          nota,
-                            "Evaluacion":    informe,
-                            "Transcripcion": st.session_state.mensajes,
-                            "Tipo_Mision":   st.session_state.tipo_mision_actual,
-                            "Dificultad":    dif_ev,
-                        })
-                        guardar_datos(); st.rerun()
+                        st.session_state.evaluacion_intel  = informe_intel
+
+                        sesion_guardada = {
+                            "Fecha":               datetime.now().strftime("%Y-%m-%d %H:%M"),
+                            "Agente":              st.session_state.agente_activo,
+                            "Escenario":           escenario,
+                            "Nota":                nota,
+                            "Evaluacion":          informe,
+                            "Evaluacion_Intel":    informe_intel,
+                            "Transcripcion":       st.session_state.mensajes,
+                            "Transcripcion_Intel": st.session_state.mensajes_intel if tiene_intel else [],
+                            "Tipo_Mision":         st.session_state.tipo_mision_actual,
+                            "Dificultad":          dif_ev,
+                        }
+                        st.session_state.historial_sesiones.append(sesion_guardada)
+                        guardar_datos()
+                        st.rerun()
 
 # ─────────────────────────────────────────
 # SÍNTESIS IA
@@ -1364,15 +1686,15 @@ elif st.session_state.pantalla_actual == "sintesis":
             <div class="auth-tier elite"><div style="display:flex;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid #18213A;padding-bottom:6px;">
                 <span style="font-family:var(--mono);font-size:0.65rem;color:#E2EAF8;">ELITE</span>
                 <span style="font-family:var(--mono);font-size:0.75rem;color:#F0A500;">49€/mes</span></div>
-                <div class="tier-spec">Escenarios ilimitados</div><div class="tier-spec">Ops ilimitadas</div></div>
+                <div class="tier-spec">Escenarios ilimitados</div><div class="tier-spec">Intel + Imágenes</div></div>
             <div class="auth-tier elite"><div style="display:flex;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid #18213A;padding-bottom:6px;">
                 <span style="font-family:var(--mono);font-size:0.65rem;color:#E2EAF8;">ESCUADRON</span>
                 <span style="font-family:var(--mono);font-size:0.75rem;color:#F0A500;">89€/mes</span></div>
-                <div class="tier-spec">15 agentes · IA ∞</div><div class="tier-spec">Ops ilimitadas</div></div>
+                <div class="tier-spec">15 agentes · IA ∞</div><div class="tier-spec">Intel + Imágenes</div></div>
             <div class="auth-tier elite"><div style="display:flex;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid #18213A;padding-bottom:6px;">
                 <span style="font-family:var(--mono);font-size:0.65rem;color:#E2EAF8;">COMANDANCIA</span>
                 <span style="font-family:var(--mono);font-size:0.75rem;color:#F0A500;">199€/mes</span></div>
-                <div class="tier-spec">Agentes ∞ · IA ∞</div><div class="tier-spec">Ops ilimitadas</div></div>
+                <div class="tier-spec">Agentes ∞ · IA ∞</div><div class="tier-spec">Intel + Imágenes</div></div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1425,7 +1747,6 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
                     del st.session_state.escenarios_custom[n_esc]; guardar_datos(); st.rerun()
 
     with col_adm2:
-        # ── EMITIR CREDENCIAL ──
         with st.expander("EMITIR CREDENCIAL DE CORTESIA", expanded=True):
             with st.form("admin_create_user"):
                 new_n    = st.text_input("ID / Entidad", key="admin_new_n")
@@ -1449,7 +1770,6 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
                     else:
                         st.warning("Rellena todos los campos.")
 
-        # ── ACTIVAR / CAMBIAR PLAN (SIN st.form) ──
         with st.expander("ACTIVAR / CAMBIAR PLAN", expanded=True):
             usuarios_no_admin = [e for e in st.session_state.empleados if e["Nombre"] != COMANDANTE_SUPREMO]
             if usuarios_no_admin:
