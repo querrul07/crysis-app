@@ -205,52 +205,9 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
 .topbar-brand { font-family: var(--mono); font-size: 1.1rem; letter-spacing: 0.3em; color: var(--text-hi); }
 .topbar-meta  { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.2em; color: var(--text-lo); margin-top: 3px; }
 
-/* ── HQ HEADER (antiguo, se reemplaza en el menú) ── */
-.hq-header { padding: 48px 0 36px 0; text-align: center; }
-.hq-label    { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.4em; color: var(--blue); margin-bottom: 12px; }
-.hq-greeting { font-size: 2.4rem; font-weight: 800; color: var(--text-hi); letter-spacing: -0.01em; margin-bottom: 6px; }
-.hq-date     { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.25em; color: var(--text-lo); }
-
-/* ── NUEVAS TARJETAS DEL MENÚ ── */
-.dashboard-card {
-    display: block;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--border);
-    padding: 28px 24px;
-    text-decoration: none !important;
-    border-radius: 0;
-    transition: border-color 0.15s ease, background 0.15s ease;
-    height: 140px;
-    position: relative;
-}
-.dashboard-card:hover {
-    border-left-color: var(--blue);
-    background: rgba(79,142,247,0.04);
-}
-.dashboard-card-title {
-    font-family: var(--mono);
-    font-size: 0.8rem;
-    letter-spacing: 0.1em;
-    color: var(--text-hi);
-    text-transform: uppercase;
-    margin-bottom: 16px;
-    line-height: 1.4;
-}
-.dashboard-card-metric {
-    font-family: var(--mono);
-    font-size: 0.62rem;
-    letter-spacing: 0.12em;
-    color: var(--text-lo);
-    text-transform: uppercase;
-    position: absolute;
-    bottom: 20px;
-    left: 24px;
-}
-
 /* ── CABECERA DEL MENÚ ── */
 .dashboard-header {
-    margin-bottom: 40px;
+    margin-bottom: 44px;
 }
 .dashboard-greeting {
     font-size: 2rem;
@@ -277,53 +234,69 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
     padding-top: 14px;
 }
 
-/* ── MODULE CARDS (mantenidas por si se usan en otras pantallas) ── */
-.module-card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  padding: 32px 28px 28px 28px;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: block;
-  text-decoration: none !important;
-  min-height: 180px;
+/* ── NUEVAS TARJETAS DEL MENÚ (estilo visual mejorado) ── */
+.dashboard-card {
+    position: relative;
+    display: block;
+    background: linear-gradient(135deg, #0B0E1A 0%, #0D1222 100%);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--border);
+    padding: 28px 24px;
+    text-decoration: none !important;
+    border-radius: 0;
+    transition: all 0.2s ease;
+    height: 150px;
+    cursor: pointer;
 }
-.module-card:hover { border-color: var(--border2); background: var(--bg3); transform: translateY(-3px); box-shadow: 0 12px 48px rgba(0,0,0,0.5); }
-.module-card.primary:hover { border-color: var(--blue);  box-shadow: 0 12px 48px rgba(79,142,247,0.12); }
-.module-card.danger:hover  { border-color: var(--red);   box-shadow: 0 12px 48px rgba(232,57,74,0.12); }
-.module-card.gold:hover    { border-color: var(--amber); box-shadow: 0 12px 48px rgba(240,165,0,0.12); }
-.module-card.admin-card:hover { border-color: var(--red); box-shadow: 0 12px 48px rgba(232,57,74,0.12); }
-
-.module-accent { position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--border2); }
-.module-card.primary .module-accent { background: var(--blue); }
-.module-card.danger  .module-accent { background: var(--red); }
-.module-card.gold    .module-accent { background: var(--amber); }
-.module-card.admin-card .module-accent { background: var(--red); }
-
-.module-arrow {
-  position: absolute;
-  bottom: 20px;
-  right: 24px;
-  font-family: var(--mono);
-  font-size: 0.75rem;
-  color: var(--text-lo);
-  opacity: 0;
-  transform: translateX(-6px);
-  transition: all 0.2s ease;
+.dashboard-card:hover {
+    border-left-color: var(--blue);
+    background: linear-gradient(135deg, #0F1428 0%, #111830 100%);
+    box-shadow: 0 0 20px rgba(79,142,247,0.08);
+    border-color: var(--border2);
+    transform: translateY(-2px);
 }
-.module-card:hover .module-arrow { opacity: 1; transform: translateX(0); }
-.module-card.primary:hover .module-arrow { color: var(--blue); }
-.module-card.danger:hover  .module-arrow { color: var(--red); }
-.module-card.gold:hover    .module-arrow { color: var(--amber); }
+.dashboard-card-title {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    color: var(--text-hi);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    line-height: 1.4;
+    font-weight: 600;
+}
+.dashboard-card-metric {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    color: var(--text-lo);
+    text-transform: uppercase;
+    position: absolute;
+    bottom: 20px;
+    left: 24px;
+    font-weight: 600;
+}
 
-.module-code  { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.3em; color: var(--text-lo); margin-bottom: 18px; }
-.module-title { font-size: 1.05rem; font-weight: 700; color: var(--text-hi); letter-spacing: 0.02em; margin-bottom: 8px; }
-.module-desc  { font-family: var(--mono); font-size: 0.62rem; color: var(--text-lo); line-height: 1.6; letter-spacing: 0.05em; }
-.module-stat  { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.22em; color: var(--text-lo); margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
-.module-stat span { color: var(--text); }
+/* ── BOTONES INVISIBLES PARA HACER CLICKABLE TODA LA TARJETA ── */
+/* Usamos el atributo 'title' que se rellena con el texto del botón */
+button[title="Análisis de Rendimiento"],
+button[title="Simulador Táctico"],
+button[title="Historial de Expedientes"],
+button[title="Gestión de Operadores"],
+button[title="Generación de Escenarios"],
+button[title="Consola Omega"] {
+    opacity: 0 !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 10 !important;
+    cursor: pointer !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
 
 /* ── SECTION HEADERS ── */
 .section-header { padding: 28px 0 24px 0; border-bottom: 1px solid var(--border); margin-bottom: 32px; display: flex; align-items: flex-end; justify-content: space-between; }
@@ -753,13 +726,6 @@ mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items()
                   if v.get("Creador") == empresa_actual or u["Nombre"] == COMANDANTE_SUPREMO}
 TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **mis_escenarios}
 
-# ═══ MANEJADOR DE NAVEGACIÓN POR TARJETAS (NUEVO) ═══
-menu_destino = st.query_params.get("menu", None)
-if menu_destino:
-    st.session_state.pantalla_actual = menu_destino
-    st.query_params.clear()
-    st.rerun()
-
 # ─────────────────────────────────────────
 # TOPBAR (se oculta en el menú)
 # ─────────────────────────────────────────
@@ -792,7 +758,7 @@ def ir_a(p):
     st.session_state.pantalla_actual = p; st.rerun()
 
 # ─────────────────────────────────────────
-# MENÚ PRINCIPAL — NUEVO DISEÑO (tarjetas clickables, sin MOD)
+# MENÚ PRINCIPAL — NUEVO DISEÑO (botón invisible sobre tarjeta)
 # ─────────────────────────────────────────
 if st.session_state.pantalla_actual == "menu":
     # Encabezado compacto
@@ -809,7 +775,7 @@ if st.session_state.pantalla_actual == "menu":
     </div>
     """, unsafe_allow_html=True)
 
-    # Cálculo de métricas reales
+    # Métricas reales
     total_ops    = len(historial_visible)
     media_global = int(sum(s["Nota"] for s in historial_visible) / total_ops) if total_ops > 0 else 0
     mes_actual   = datetime.now().strftime("%Y-%m")
@@ -827,7 +793,6 @@ if st.session_state.pantalla_actual == "menu":
     mrr = sum(_precios.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
               for e in st.session_state.empleados)
 
-    # Tarjetas del menú
     tarjetas = [
         ("estadisticas", "ANÁLISIS DE RENDIMIENTO",     f"RENDIMIENTO MEDIO {media_global}%"),
         ("simulador",    "SIMULADOR TÁCTICO",            f"OPERACIONES ACTIVAS ESTE MES {ops_mes}"),
@@ -838,17 +803,51 @@ if st.session_state.pantalla_actual == "menu":
     if u["Nombre"] == COMANDANTE_SUPREMO:
         tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR"))
 
-    # Grid 3 columnas
+    # Tarjetas en grid 3x2 (o 3x2 con 6 para admin)
     for fila in range(0, len(tarjetas), 3):
         cols = st.columns(3)
         for i, (destino, titulo, metrica) in enumerate(tarjetas[fila:fila+3]):
             with cols[i]:
+                # Contenedor relativo para el posicionamiento absoluto del botón
                 st.markdown(f"""
-                <a href="?menu={destino}" class="dashboard-card">
+                <div class="dashboard-card">
                     <div class="dashboard-card-title">{titulo}</div>
                     <div class="dashboard-card-metric">{metrica}</div>
-                </a>
+                </div>
                 """, unsafe_allow_html=True)
+                # Botón invisible que cubre toda la tarjeta
+                if st.button(titulo, key=f"card_{destino}", help=titulo):
+                    st.session_state.pantalla_actual = destino
+                    st.rerun()
+
+    # CSS para ocultar los botones y posicionarlos sobre las tarjetas
+    st.markdown("""
+    <style>
+    /* El contenedor de la columna debe ser relativo */
+    [data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] {
+        position: relative;
+    }
+    /* Botones invisibles encima de la tarjeta */
+    button[title="Análisis de Rendimiento"],
+    button[title="Simulador Táctico"],
+    button[title="Historial de Expedientes"],
+    button[title="Gestión de Operadores"],
+    button[title="Generación de Escenarios"],
+    button[title="Consola Omega"] {
+        opacity: 0 !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 10 !important;
+        cursor: pointer !important;
+        background: transparent !important;
+        border: none !important;
+        border-radius: 0 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
     st.stop()
 
