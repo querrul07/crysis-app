@@ -780,8 +780,7 @@ if st.session_state.pantalla_actual == "menu":
     mrr = sum(_precios.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
               for e in st.session_state.empleados)
 
-    # --- Definimos las tarjetas como botones de Streamlit ---
-    # Cada elemento: (destino, título, métrica, color)
+    # Tarjetas: destino, título, métrica, color hex
     tarjetas = [
         ("estadisticas", "ANÁLISIS DE RENDIMIENTO",  f"RENDIMIENTO MEDIO {media_global}%",         "#4F8EF7"),
         ("simulador",    "SIMULADOR TÁCTICO",         f"OPERACIONES ACTIVAS ESTE MES {ops_mes}",     "#00D4A0"),
@@ -792,46 +791,97 @@ if st.session_state.pantalla_actual == "menu":
     if u["Nombre"] == COMANDANTE_SUPREMO:
         tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR", "#F59E0B"))
 
-    # --- Grid de 3 columnas con botones estilizados ---
+    # Grid de 3 columnas
     for fila in range(0, len(tarjetas), 3):
         cols = st.columns(3)
         for i, (destino, titulo, metrica, color) in enumerate(tarjetas[fila:fila+3]):
             with cols[i]:
-                # Creamos un botón con el título y la métrica en el label
-                # Usamos un key único para cada destino
-                if st.button(
-                    label=f"**{titulo}**\n\n{metrica}",
-                    key=f"btn_{destino}",
-                    use_container_width=True,
-                    # No usamos type="primary" para permitir colores personalizados
-                ):
+                # Contenedor visual de la tarjeta (círculo + texto)
+                st.markdown(f"""
+                <div class="card-container" style="--card-color: {color};">
+                    <div class="card-visual">
+                        <div class="card-circle"></div>
+                        <div class="card-body">
+                            <div class="card-title">{titulo}</div>
+                            <div class="card-metric" style="color: {color};">{metrica}</div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                # Botón invisible que cubre el contenedor
+                if st.button(" ", key=f"btn_{destino}"):
                     st.session_state.pantalla_actual = destino
                     st.rerun()
 
-    # --- CSS para estilizar los botones como tarjetas ---
+    # CSS para tarjetas con colores personalizados y botón invisible
     st.markdown("""
     <style>
-    /* Botón como tarjeta */
-    button[kind] {
-        background: linear-gradient(135deg, #0B0E1A 0%, #0F1425 100%) !important;
-        border: 1px solid var(--border) !important;
-        border-left: 4px solid var(--blue) !important;
-        border-radius: 2px !important;
-        padding: 20px 16px !important;
-        text-align: left !important;
-        line-height: 1.5 !important;
-        transition: all 0.2s ease !important;
+    .card-container {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    .card-visual {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: linear-gradient(135deg, #0B0E1A 0%, #0F1425 100%);
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--card-color, #4F8EF7);
+        border-radius: 2px;
+        padding: 20px;
+        transition: all 0.2s ease;
+        height: 130px;
+    }
+    .card-visual:hover {
+        border-color: var(--border2);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        transform: translateY(-3px);
+    }
+    .card-circle {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--card-color, #4F8EF7);
+        flex-shrink: 0;
+    }
+    .card-body {
+        flex: 1;
+    }
+    .card-title {
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        color: #E2EAF8;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+    .card-metric {
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    /* Botón invisible encima de la tarjeta */
+    .card-container button {
+        position: absolute !important;
+        inset: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        opacity: 0 !important;
+        z-index: 10 !important;
+        background: transparent !important;
+        border: none !important;
+        border-radius: 0 !important;
         cursor: pointer !important;
-        white-space: normal !important;
-        word-wrap: break-word !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
-    button[kind]:hover {
-        border-color: var(--border2) !important;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
-        transform: translateY(-3px) !important;
+    .card-container button span,
+    .card-container button p {
+        display: none !important;
     }
-    /* Ocultamos la etiqueta por defecto del botón para mostrar solo nuestro contenido */
-    /* No es necesario ocultar porque usamos el label directamente */
     </style>
     """, unsafe_allow_html=True)
 
