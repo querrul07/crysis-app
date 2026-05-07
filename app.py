@@ -1659,6 +1659,14 @@ elif st.session_state.pantalla_actual == "simulador":
 
     # ── PANTALLA SETUP ──
     if not st.session_state.mision_iniciada:
+        st.markdown(f"""
+        <div class="tac-panel" style="margin-bottom: 24px; min-height: auto;">
+            <div class="tac-panel-header">
+                <span>PARÁMETROS DE DESPLIEGUE</span>
+                <span class="tac-badge amber">PRE-FLIGHT</span>
+            </div>
+        """, unsafe_allow_html=True)
+
         c1, c2 = st.columns(2)
         if es_empresa:
             ag_sel = c1.selectbox(t("assign_op"), agentes_de_mi_empresa)
@@ -1668,24 +1676,25 @@ elif st.session_state.pantalla_actual == "simulador":
 
         es_sel = c2.selectbox(t("select_proto"), list(TODAS_LAS_MISIONES.keys()))
 
-        st.markdown(f"<br><div class='section-label'>{t('difficulty')}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-family:var(--mono); font-size:0.5rem; letter-spacing:0.2em; color:var(--blue-tactical); margin: 20px 0 10px 0; border-bottom: 1px solid var(--border-dim); padding-bottom: 5px;'>{t('difficulty').upper()}</div>", unsafe_allow_html=True)
+        
         d_cols = st.columns(4)
         for i, (d_nombre, d_data) in enumerate(DIFICULTADES.items()):
             with d_cols[i]:
                 is_sel_d  = st.session_state.dificultad_actual == d_nombre
-                border_d  = d_data["color"] if is_sel_d else "var(--border)"
-                bg_d      = f"rgba({int(d_data['color'][1:3],16)},{int(d_data['color'][3:5],16)},{int(d_data['color'][5:7],16)},0.1)" if is_sel_d else "var(--bg3)"
+                border_d  = d_data["color"] if is_sel_d else "var(--border-dim)"
+                bg_d      = f"rgba({int(d_data['color'][1:3],16)},{int(d_data['color'][3:5],16)},{int(d_data['color'][5:7],16)},0.1)" if is_sel_d else "var(--bg-card)"
                 st.markdown(f"""
                 <div class="diff-card {'selected' if is_sel_d else ''}" style="border-color:{border_d}; background:{bg_d}; color:{d_data['color']};">
                     <div class="diff-name">{d_nombre}</div>
                     <div style="font-family:var(--mono); font-size:0.48rem; opacity:0.7; margin-top:2px; letter-spacing:0.12em;">LVL {d_data['nivel']}</div>
-                    <div class="diff-desc">{d_data['desc']}</div>
+                    <div class="diff-desc" style="color:var(--text-lo);">{d_data['desc']}</div>
                 </div>
                 """, unsafe_allow_html=True)
                 if st.button(f"{'▶ ' if is_sel_d else ''}{d_nombre}", key=f"diff_{d_nombre}", use_container_width=True):
                     st.session_state.dificultad_actual = d_nombre; st.rerun()
 
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True) # Cierra el primer tac-panel
 
         if u.get("Rol") == "Agente":
             tipo_despliegue = st.radio(t("privacy_level"), [t("official_mission"), t("private_training")], horizontal=True)
@@ -1696,13 +1705,16 @@ elif st.session_state.pantalla_actual == "simulador":
         info = TODAS_LAS_MISIONES[es_sel]
         dif_activa = st.session_state.dificultad_actual
         dif_color  = DIFICULTADES[dif_activa]["color"]
+        
         st.markdown(f"""
-        <div class="briefing-box">
-            <h4>{t('situation_report')}</h4>
-            <p><b>{t('context')}</b> {info['contexto']}</p>
-            <p><b>{t('target_profile')}</b> {info['perfil_sujeto']}</p>
-            <p><b>{t('directive')}</b> {info['objetivo']}</p>
-            <p><b>{t('diff_label')}</b> <span style="color:{dif_color}; font-family:var(--mono); font-weight:700;">{dif_activa} (Nivel {DIFICULTADES[dif_activa]['nivel']})</span></p>
+        <div class="tac-panel" style="border-left: 4px solid var(--blue-tactical); min-height: auto; margin-bottom: 24px;">
+            <div style="font-family:var(--mono); font-size:0.55rem; letter-spacing:0.2em; color:var(--blue-tactical); margin-bottom:14px;">{t('situation_report').upper()}</div>
+            <p style="margin-bottom: 8px; font-size: 0.9rem;"><b>{t('context')}</b> <span style="color:var(--text-lo);">{info['contexto']}</span></p>
+            <p style="margin-bottom: 8px; font-size: 0.9rem;"><b>{t('target_profile')}</b> <span style="color:var(--text-lo);">{info['perfil_sujeto']}</span></p>
+            <p style="margin-bottom: 8px; font-size: 0.9rem;"><b>{t('directive')}</b> <span style="color:var(--text-lo);">{info['objetivo']}</span></p>
+            <p style="margin-top: 16px; font-size: 0.9rem; border-top: 1px solid var(--border-dim); padding-top: 12px;">
+                <b>{t('diff_label')}</b> <span style="color:{dif_color}; font-family:var(--mono); font-weight:700;">{dif_activa} (Nivel {DIFICULTADES[dif_activa]['nivel']})</span>
+            </p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1715,11 +1727,11 @@ elif st.session_state.pantalla_actual == "simulador":
         if mi_plan != "COMANDANCIA" and u["Nombre"] != COMANDANTE_SUPREMO:
             if ops_este_mes >= ops_limite:
                 bloquear_inicio = True
-                st.markdown(f"""<div class="alert-box error">{t('access_denied_quota')} ({ops_este_mes}/{ops_limite} ops).</div>""", unsafe_allow_html=True)
+                st.markdown(f"""<div style="background:rgba(232,57,74,0.1); border:1px solid var(--red-alert); padding:12px; color:var(--red-alert); font-family:var(--mono); font-size:0.8rem; text-align:center; margin-bottom:16px;">{t('access_denied_quota')} ({ops_este_mes}/{ops_limite} ops).</div>""", unsafe_allow_html=True)
 
-        if st.button(t("start_link"), use_container_width=True, disabled=bloquear_inicio):
+        if st.button("INICIAR PROTOCOLO TÁCTICO", use_container_width=True, disabled=bloquear_inicio, type="primary"):
             if GROQ_API_KEY:
-                with st.spinner(t("connecting")):
+                with st.spinner("Sintetizando perfil psicológico objetivo..."):
                     try:
                         client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
                         json_prompt = f"Genera para {info['perfil_sujeto']} EXCLUSIVAMENTE JSON PLANO con 3 claves: 'Nombre_Completo', 'Familia', 'Estado_Mental'."
