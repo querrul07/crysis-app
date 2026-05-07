@@ -729,8 +729,8 @@ if st.session_state.pantalla_actual != "menu":
     col_top1, col_top2 = st.columns([8, 1])
     with col_top1:
         pantalla = st.session_state.pantalla_actual
-        nombres_pantalla = {"estadisticas": "ESTADÍSTICAS", "personal": "PERSONAL", "expedientes": "EXPEDIENTES",
-                            "simulador": "SIMULADOR", "sintesis": "SÍNTESIS IA", "admin": "ADMINISTRACIÓN"}
+                nombres_pantalla = {"estadisticas": "ESTADÍSTICAS", "personal": "AGENTES", "expedientes": "EXPEDIENTES",
+                            "simulador": "SIMULADOR", "sintesis": "SÍNTESIS IA", "admin": "ADMINISTRACIÓN", "cuenta": "CUENTA"}
         back_label = f"/ {nombres_pantalla.get(pantalla, pantalla.upper())}" if pantalla != "menu" else ""
         st.markdown(f"""
         <div class="topbar">
@@ -772,27 +772,39 @@ if st.session_state.pantalla_actual == "menu":
     agentes_act  = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"])
     esc_creados  = len(mis_escenarios)
 
-    if es_empresa:
-        metrica_personal = f"AGENTES ACTIVOS {agentes_act}"
-    else:
-        metrica_personal = f"OPERADOR {u['Nombre'].upper()}"
+    # Métrica de la tarjeta "CUENTA"
+    metrica_cuenta = f"{u['Nombre'].upper()} · {mi_plan}"
+
+    # Métrica de agentes (solo empresas)
+    metrica_agentes = f"AGENTES ACTIVOS {agentes_act}"
 
     _precios = {"COMANDANCIA":199,"ESCUADRON":89,"ELITE":49,"OPERADOR":19,"BASE":0,
                 "Enterprise":199,"Pro":89,"Individual":19,"Gratis":0}
     mrr = sum(_precios.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
               for e in st.session_state.empleados)
 
+    # ---- Construcción de la lista de tarjetas ----
     tarjetas = [
         ("estadisticas", "ANÁLISIS DE RENDIMIENTO",  f"RENDIMIENTO MEDIO {media_global}%",         "#4F8EF7"),
         ("simulador",    "SIMULADOR TÁCTICO",         f"OPERACIONES ACTIVAS ESTE MES {ops_mes}",     "#00D4A0"),
         ("expedientes",  "HISTORIAL DE EXPEDIENTES",  f"EXPEDIENTES TOTALES {total_ops}",            "#F0A500"),
-        ("personal",     "GESTIÓN DE OPERADORES",     metrica_personal,                              "#E8394A"),
-        ("sintesis",     "GENERACIÓN DE ESCENARIOS",  f"ESCENARIOS ACTIVOS {esc_creados}",           "#A855F7"),
     ]
+
+    # Tarjeta "TU CUENTA" para todos
+    tarjetas.append(("cuenta", "TU CUENTA", metrica_cuenta, "#6B7280"))
+
+    # Tarjeta "GESTIÓN DE AGENTES" solo para empresas
+    if es_empresa:
+        tarjetas.append(("personal", "GESTIÓN DE AGENTES", metrica_agentes, "#E8394A"))
+
+    # Tarjeta de escenarios (siempre)
+    tarjetas.append(("sintesis", "GENERACIÓN DE ESCENARIOS", f"ESCENARIOS ACTIVOS {esc_creados}", "#A855F7"))
+
+    # Consola Omega solo para el comandante supremo
     if u["Nombre"] == COMANDANTE_SUPREMO:
         tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR", "#F59E0B"))
 
-    # Grid 3×2
+    # Grid de tarjetas (3 columnas)
     for fila in range(0, len(tarjetas), 3):
         cols = st.columns(3)
         for i, (destino, titulo, metrica, color) in enumerate(tarjetas[fila:fila+3]):
@@ -803,7 +815,7 @@ if st.session_state.pantalla_actual == "menu":
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
-    # CSS con hover que sí se nota
+    # CSS (el mismo que ya tenías, lo conservamos)
     st.markdown("""
     <style>
     .card-wrapper {
@@ -822,7 +834,6 @@ if st.session_state.pantalla_actual == "menu":
         word-wrap: break-word !important;
         transition: all 0.2s ease !important;
     }
-    /* Hover: iluminación brillante del color de la tarjeta */
     .card-wrapper:hover button {
         background: linear-gradient(135deg, #111530 0%, #131A30 100%) !important;
         border-color: var(--card-color) !important;
@@ -830,7 +841,6 @@ if st.session_state.pantalla_actual == "menu":
         box-shadow: 0 0 25px var(--card-color), 0 0 60px var(--card-color), 0 8px 24px rgba(0,0,0,0.5) !important;
         transform: translateY(-4px) !important;
     }
-    /* Círculo decorativo */
     .card-wrapper::before {
         content: '';
         position: absolute;
@@ -900,7 +910,7 @@ elif st.session_state.pantalla_actual == "estadisticas":
 # PERSONAL
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "personal":
-    st.markdown("<div class='section-header'><div><div class='section-code'>MOD-04</div><div class='section-title'>Gestión de Operadores</div></div></div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'><div><div class='section-code'>AGENTES</div><div class='section-title'>Gestión de Operadores</div></div></div>", unsafe_allow_html=True)
 
     if es_empresa:
         st.markdown("<div class='section-label'>ENLACE SEGURO DE RECLUTAMIENTO</div>", unsafe_allow_html=True)
@@ -936,60 +946,7 @@ elif st.session_state.pantalla_actual == "personal":
         else:
             st.markdown("<div style='color:var(--text-lo); font-family:var(--mono); font-size:0.65rem; padding:20px 0;'>No hay agentes activos en esta unidad.</div>", unsafe_allow_html=True)
     else:
-        st.markdown("<div class='section-label'>ACREDITACIÓN CONFIRMADA</div>", unsafe_allow_html=True)
-        st.markdown(f"""<div class="briefing-box"><h4>DATOS DEL OPERADOR</h4>
-        <p><b>Identificador:</b> {u['Nombre']} &nbsp;|&nbsp; <b>Unidad:</b> {empresa_actual} &nbsp;|&nbsp; <b>Plan:</b> {mi_plan}</p></div>""",
-        unsafe_allow_html=True)
-
-    st.markdown("<br><div class='section-label'>AJUSTES DE CUENTA</div>", unsafe_allow_html=True)
-    with st.expander("CAMBIAR CONTRASEÑA"):
-        nueva_pass = st.text_input("Nueva Contraseña", type="password", key="nueva_pass_input")
-        confirmar  = st.text_input("Confirmar Contraseña", type="password", key="confirmar_pass_input")
-        if st.button("ACTUALIZAR CONTRASEÑA"):
-            if not nueva_pass:
-                st.warning("Introduce una contraseña válida.")
-            elif nueva_pass != confirmar:
-                st.error("Las contraseñas no coinciden.")
-            else:
-                for e in st.session_state.empleados:
-                    if e["Nombre"] == u["Nombre"]: e["Password"] = nueva_pass
-                st.session_state.usuario_actual["Password"] = nueva_pass
-                guardar_datos(); st.success("Contraseña actualizada correctamente.")
-
-    if u["Nombre"] != COMANDANTE_SUPREMO:
-        st.markdown("<br><div class='section-label'>GESTIÓN DE SUSCRIPCIÓN</div>", unsafe_allow_html=True)
-        planes_suscripcion = [
-            ("OPERADOR",    "19€/mes",  "10 ops/mes · 3 esc.", "OPERADOR"),
-            ("ELITE",       "49€/mes",  "Ilimitado · IA ∞",    "ELITE"),
-            ("ESCUADRON",   "89€/mes",  "Equipo · 15 agentes", "ESCUADRON"),
-            ("COMANDANCIA", "199€/mes", "Enterprise · ∞",      "COMANDANCIA"),
-        ]
-        cols_plan = st.columns(4)
-        for col, (nombre, precio, desc, plan_key) in zip(cols_plan, planes_suscripcion):
-            with col:
-                es_elite_p = plan_key in ["ELITE","ESCUADRON","COMANDANCIA"]
-                color_p    = "#F0A500" if es_elite_p else "#4F8EF7"
-                activo     = mi_plan == plan_key
-                border_col = "#00D4A0" if activo else ("#F0A500" if es_elite_p else "var(--border)")
-                st.markdown(f"""<div class="metric-card" style="border-left-color:{border_col}; {'border-color:#00D4A020;' if activo else ''}">
-                    <div class="metric-label">{nombre}</div>
-                    <div class="metric-value" style="font-size:1.1rem; color:{color_p};">{precio}</div>
-                    <div style="font-family:var(--mono); font-size:0.52rem; color:#3A4A6A; margin-top:8px;">{desc}</div>
-                    {'<div style="font-family:var(--mono); font-size:0.52rem; color:#00D4A0; margin-top:10px;">● ACTIVO</div>' if activo else ''}
-                </div>""", unsafe_allow_html=True)
-                st.markdown("<br>", unsafe_allow_html=True)
-                if not activo:
-                    link = LINKS_PAGO.get(plan_key, "#")
-                    st.markdown(f'<a href="{link}" target="_blank"><button style="background:#4F8EF7;color:#060810;font-family:var(--mono);font-weight:700;border:none;padding:10px;border-radius:2px;cursor:pointer;width:100%;font-size:0.6rem;letter-spacing:0.1em;">ACTIVAR</button></a>', unsafe_allow_html=True)
-
-    st.markdown("<br><div class='section-label'>ZONA DE RIESGO</div>", unsafe_allow_html=True)
-    st.markdown("""<div class="alert-box error">Esta acción es irreversible. Se eliminarán todos los datos asociados a tu cuenta.</div>""", unsafe_allow_html=True)
-    if st.button("ELIMINAR MI CUENTA DEFINITIVAMENTE", type="primary"):
-        if es_empresa:
-            st.session_state.empleados = [e for e in st.session_state.empleados if e.get("Empresa") != u["Nombre"]]
-        else:
-            st.session_state.empleados = [e for e in st.session_state.empleados if e["Nombre"] != u["Nombre"]]
-        st.session_state.usuario_actual = None; guardar_datos(); st.rerun()
+        st.info("Esta sección solo está disponible para cuentas de empresa.")
 
 # ─────────────────────────────────────────
 # EXPEDIENTES
@@ -1080,6 +1037,67 @@ elif st.session_state.pantalla_actual == "expedientes":
                             st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div style='text-align:center; padding:60px; color:#18213A; font-family:var(--mono);'>DIRECTORIO VACÍO</div>", unsafe_allow_html=True)
+# ─────────────────────────────────────────
+# CUENTA (información personal / corporativa)
+# ─────────────────────────────────────────
+elif st.session_state.pantalla_actual == "cuenta":
+    st.markdown("<div class='section-header'><div><div class='section-code'>CUENTA</div><div class='section-title'>Tu Cuenta</div></div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='section-label'>ACREDITACIÓN CONFIRMADA</div>", unsafe_allow_html=True)
+    st.markdown(f"""<div class="briefing-box"><h4>DATOS DE LA CUENTA</h4>
+    <p><b>Identificador:</b> {u['Nombre']} &nbsp;|&nbsp; <b>Unidad:</b> {empresa_actual} &nbsp;|&nbsp; <b>Plan:</b> {mi_plan}</p>
+    <p><b>Email:</b> {u.get('Email','—')}</p>
+    </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br><div class='section-label'>AJUSTES DE CUENTA</div>", unsafe_allow_html=True)
+    with st.expander("CAMBIAR CONTRASEÑA"):
+        nueva_pass = st.text_input("Nueva Contraseña", type="password", key="nueva_pass_cuenta")
+        confirmar  = st.text_input("Confirmar Contraseña", type="password", key="confirmar_pass_cuenta")
+        if st.button("ACTUALIZAR CONTRASEÑA", key="btn_cambiar_cuenta"):
+            if not nueva_pass:
+                st.warning("Introduce una contraseña válida.")
+            elif nueva_pass != confirmar:
+                st.error("Las contraseñas no coinciden.")
+            else:
+                for e in st.session_state.empleados:
+                    if e["Nombre"] == u["Nombre"]: e["Password"] = nueva_pass
+                st.session_state.usuario_actual["Password"] = nueva_pass
+                guardar_datos(); st.success("Contraseña actualizada correctamente.")
+
+    if u["Nombre"] != COMANDANTE_SUPREMO:
+        st.markdown("<br><div class='section-label'>GESTIÓN DE SUSCRIPCIÓN</div>", unsafe_allow_html=True)
+        planes_suscripcion = [
+            ("OPERADOR",    "19€/mes",  "10 ops/mes · 3 esc.", "OPERADOR"),
+            ("ELITE",       "49€/mes",  "Ilimitado · IA ∞",    "ELITE"),
+            ("ESCUADRON",   "89€/mes",  "Equipo · 15 agentes", "ESCUADRON"),
+            ("COMANDANCIA", "199€/mes", "Enterprise · ∞",      "COMANDANCIA"),
+        ]
+        cols_plan = st.columns(4)
+        for col, (nombre, precio, desc, plan_key) in zip(cols_plan, planes_suscripcion):
+            with col:
+                es_elite_p = plan_key in ["ELITE","ESCUADRON","COMANDANCIA"]
+                color_p    = "#F0A500" if es_elite_p else "#4F8EF7"
+                activo     = mi_plan == plan_key
+                border_col = "#00D4A0" if activo else ("#F0A500" if es_elite_p else "var(--border)")
+                st.markdown(f"""<div class="metric-card" style="border-left-color:{border_col}; {'border-color:#00D4A020;' if activo else ''}">
+                    <div class="metric-label">{nombre}</div>
+                    <div class="metric-value" style="font-size:1.1rem; color:{color_p};">{precio}</div>
+                    <div style="font-family:var(--mono); font-size:0.52rem; color:#3A4A6A; margin-top:8px;">{desc}</div>
+                    {'<div style="font-family:var(--mono); font-size:0.52rem; color:#00D4A0; margin-top:10px;">● ACTIVO</div>' if activo else ''}
+                </div>""", unsafe_allow_html=True)
+                st.markdown("<br>", unsafe_allow_html=True)
+                if not activo:
+                    link = LINKS_PAGO.get(plan_key, "#")
+                    st.markdown(f'<a href="{link}" target="_blank"><button style="background:#4F8EF7;color:#060810;font-family:var(--mono);font-weight:700;border:none;padding:10px;border-radius:2px;cursor:pointer;width:100%;font-size:0.6rem;letter-spacing:0.1em;">ACTIVAR</button></a>', unsafe_allow_html=True)
+
+    st.markdown("<br><div class='section-label'>ZONA DE RIESGO</div>", unsafe_allow_html=True)
+    st.markdown("""<div class="alert-box error">Esta acción es irreversible. Se eliminarán todos los datos asociados a tu cuenta.</div>""", unsafe_allow_html=True)
+    if st.button("ELIMINAR MI CUENTA DEFINITIVAMENTE", type="primary", key="btn_eliminar_cuenta"):
+        if es_empresa:
+            st.session_state.empleados = [e for e in st.session_state.empleados if e.get("Empresa") != u["Nombre"]]
+        else:
+            st.session_state.empleados = [e for e in st.session_state.empleados if e["Nombre"] != u["Nombre"]]
+        st.session_state.usuario_actual = None; guardar_datos(); st.rerun()
 
 # ─────────────────────────────────────────
 # SIMULADOR TÁCTICO
