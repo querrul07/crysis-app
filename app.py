@@ -780,7 +780,6 @@ if st.session_state.pantalla_actual == "menu":
     mrr = sum(_precios.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
               for e in st.session_state.empleados)
 
-    # Tarjetas: destino, título, métrica, color hex
     tarjetas = [
         ("estadisticas", "ANÁLISIS DE RENDIMIENTO",  f"RENDIMIENTO MEDIO {media_global}%",         "#4F8EF7"),
         ("simulador",    "SIMULADOR TÁCTICO",         f"OPERACIONES ACTIVAS ESTE MES {ops_mes}",     "#00D4A0"),
@@ -791,7 +790,7 @@ if st.session_state.pantalla_actual == "menu":
     if u["Nombre"] == COMANDANTE_SUPREMO:
         tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR", "#F59E0B"))
 
-    # Grid 3×2 con tarjetas botón envueltas en div + color personalizado
+    # Grid 3×2
     for fila in range(0, len(tarjetas), 3):
         cols = st.columns(3)
         for i, (destino, titulo, metrica, color) in enumerate(tarjetas[fila:fila+3]):
@@ -802,17 +801,17 @@ if st.session_state.pantalla_actual == "menu":
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
-    # CSS con hover iluminado del color de cada tarjeta
+    # CSS con hover que sí se nota
     st.markdown("""
     <style>
     .card-wrapper {
         position: relative;
         margin-bottom: 20px;
-        padding-left: 28px;       /* espacio para el círculo */
+        padding-left: 28px;
     }
     .card-wrapper button {
         background: linear-gradient(135deg, #0B0E1A 0%, #0F1425 100%) !important;
-        border: 1px solid var(--border) !important;
+        border: 1px solid #18213A !important;
         border-left: 4px solid var(--card-color, #4F8EF7) !important;
         border-radius: 2px !important;
         padding: 18px 16px !important;
@@ -820,17 +819,16 @@ if st.session_state.pantalla_actual == "menu":
         white-space: normal !important;
         word-wrap: break-word !important;
         transition: all 0.2s ease !important;
-        position: relative;
-        z-index: 1;
     }
-    /* Hover: ilumina con el color de la tarjeta */
+    /* Hover: iluminación brillante del color de la tarjeta */
     .card-wrapper:hover button {
+        background: linear-gradient(135deg, #111530 0%, #131A30 100%) !important;
         border-color: var(--card-color) !important;
-        box-shadow: 0 0 18px var(--card-color), 0 8px 24px rgba(0,0,0,0.4) !important;
-        transform: translateY(-3px) !important;
-        background: linear-gradient(135deg, #0F1428 0%, #111830 100%) !important;
+        border-left-width: 6px !important;
+        box-shadow: 0 0 25px var(--card-color), 0 0 60px var(--card-color), 0 8px 24px rgba(0,0,0,0.5) !important;
+        transform: translateY(-4px) !important;
     }
-    /* Círculo de color a la izquierda */
+    /* Círculo decorativo */
     .card-wrapper::before {
         content: '';
         position: absolute;
@@ -844,7 +842,7 @@ if st.session_state.pantalla_actual == "menu":
         transition: box-shadow 0.2s ease;
     }
     .card-wrapper:hover::before {
-        box-shadow: 0 0 12px var(--card-color);
+        box-shadow: 0 0 18px var(--card-color), 0 0 36px var(--card-color);
     }
     </style>
     """, unsafe_allow_html=True)
