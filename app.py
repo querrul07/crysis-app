@@ -406,12 +406,6 @@ if "login_subpantalla"  not in st.session_state: st.session_state.login_subpanta
 try:    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except: GROQ_API_KEY = None
 
-# ═══ MANEJADOR DE NAVEGACIÓN POR TARJETAS (PRIMERO DE TODO) ═══
-menu_destino = st.query_params.get("menu", None)
-if menu_destino and st.session_state.usuario_actual is not None:
-    st.session_state.pantalla_actual = menu_destino
-    st.query_params.clear()
-    st.rerun()
 
 # ─────────────────────────────────────────
 # LOGIN
@@ -673,10 +667,19 @@ if st.session_state.usuario_actual is None:
 
         st.markdown("</div>", unsafe_allow_html=True)
 
-    st.stop()
+    st.stop()   # fin del login
+
+# ═══════════════════════════════════════════
+# MANEJADOR DE NAVEGACIÓN POR TARJETAS (COLÓCALO AQUÍ)
+# ═══════════════════════════════════════════
+menu_destino = st.query_params.get("menu", None)
+if menu_destino and st.session_state.usuario_actual is not None:
+    st.session_state.pantalla_actual = menu_destino
+    st.query_params.clear()
+    st.rerun()
 
 # ─────────────────────────────────────────
-# RESOLUCIÓN DE PERMISOS
+# RESOLUCIÓN DE PERMISOS (ya existente más abajo)
 # ─────────────────────────────────────────
 u = st.session_state.usuario_actual
 
@@ -743,7 +746,7 @@ if st.session_state.pantalla_actual != "menu":
             st.session_state.usuario_actual = None; st.session_state.login_step = 1; st.session_state.pantalla_actual = "menu"; st.rerun()
 
 # ─────────────────────────────────────────
-# MENÚ PRINCIPAL — COLORES POR SECCIÓN, SIN BOTONES DUPLICADOS, SIN NUEVA VENTANA
+# MENÚ PRINCIPAL — TARJETAS CON COLOR, SIN BOTONES, SIN RECARGAR SESIÓN
 # ─────────────────────────────────────────
 if st.session_state.pantalla_actual == "menu":
     ahora = datetime.now()
@@ -759,7 +762,7 @@ if st.session_state.pantalla_actual == "menu":
     </div>
     """, unsafe_allow_html=True)
 
-    # Métricas reales
+    # Métricas reales (exactamente igual que antes)
     total_ops    = len(historial_visible)
     media_global = int(sum(s["Nota"] for s in historial_visible) / total_ops) if total_ops > 0 else 0
     mes_actual   = datetime.now().strftime("%Y-%m")
@@ -777,7 +780,7 @@ if st.session_state.pantalla_actual == "menu":
     mrr = sum(_precios.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
               for e in st.session_state.empleados)
 
-    # Tarjetas con color asignado y destino
+    # Tarjetas con su color característico
     tarjetas = [
         ("estadisticas", "ANÁLISIS DE RENDIMIENTO",  f"RENDIMIENTO MEDIO {media_global}%",         "#4F8EF7"),
         ("simulador",    "SIMULADOR TÁCTICO",         f"OPERACIONES ACTIVAS ESTE MES {ops_mes}",     "#00D4A0"),
@@ -788,53 +791,56 @@ if st.session_state.pantalla_actual == "menu":
     if u["Nombre"] == COMANDANTE_SUPREMO:
         tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR", "#F59E0B"))
 
-    # Grid de 3 columnas con botón invisible sobre cada tarjeta
+    # Mostrar en grid 3×2
     for fila in range(0, len(tarjetas), 3):
         cols = st.columns(3)
         for i, (destino, titulo, metrica, color) in enumerate(tarjetas[fila:fila+3]):
             with cols[i]:
-                # Contenedor relativo para posicionar el botón encima
                 st.markdown(f"""
-                <div class="card-wrapper">
-                    <div class="dashboard-card">
+                <a href="?menu={destino}" style="text-decoration: none;">
+                    <div class="dashboard-card colored-card">
                         <div class="dashboard-card-content">
                             <div class="dashboard-card-title">{titulo}</div>
                             <div class="dashboard-card-metric" style="color:{color};">{metrica}</div>
                         </div>
                     </div>
-                </div>
+                </a>
                 """, unsafe_allow_html=True)
-                # Botón completamente oculto
-                st.button("", key=f"btn_{destino}",
-                          on_click=lambda destino=destino: st.session_state.__setitem__("pantalla_actual", destino) or st.rerun(),
-                          help=None,
-                          kwargs=None,
-                          disabled=False)
 
-    # CSS para ocultar el botón y posicionarlo sobre la tarjeta
+    # Estilos para las tarjetas (solo se inyectan en el menú)
     st.markdown("""
     <style>
-    .card-wrapper {
+    .colored-card {
         position: relative;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        background: linear-gradient(135deg, #0B0E1A 0%, #0F1425 100%);
+        border: 1px solid var(--border);
+        border-radius: 2px;
+        padding: 24px;
+        transition: all 0.2s ease;
+        height: 140px;
+        cursor: pointer;
+        overflow: hidden;
         margin-bottom: 20px;
     }
-    .card-wrapper button {
-        position: absolute !important;
-        inset: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        opacity: 0 !important;
-        z-index: 10 !important;
-        cursor: pointer !important;
-        background: transparent !important;
-        border: none !important;
-        border-radius: 0 !important;
-        font-size: 0 !important;
-        color: transparent !important;
+    .colored-card:hover {
+        border-color: var(--border2);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        transform: translateY(-3px);
     }
-    .card-wrapper button p, 
-    .card-wrapper button span {
-        display: none !important;
+    .colored-card::before {
+        content: '';
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--border);
+        transition: background 0.2s ease;
+        flex-shrink: 0;
+    }
+    .colored-card:hover::before {
+        background: var(--blue);
     }
     </style>
     """, unsafe_allow_html=True)
