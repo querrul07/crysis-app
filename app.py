@@ -205,13 +205,79 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
 .topbar-brand { font-family: var(--mono); font-size: 1.1rem; letter-spacing: 0.3em; color: var(--text-hi); }
 .topbar-meta  { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.2em; color: var(--text-lo); margin-top: 3px; }
 
-/* ── HQ HEADER ── */
+/* ── HQ HEADER (antiguo, se reemplaza en el menú) ── */
 .hq-header { padding: 48px 0 36px 0; text-align: center; }
 .hq-label    { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.4em; color: var(--blue); margin-bottom: 12px; }
 .hq-greeting { font-size: 2.4rem; font-weight: 800; color: var(--text-hi); letter-spacing: -0.01em; margin-bottom: 6px; }
 .hq-date     { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.25em; color: var(--text-lo); }
 
-/* ── MODULE CARDS (CLICKABLE) ── */
+/* ── NUEVAS TARJETAS DEL MENÚ ── */
+.dashboard-card {
+    display: block;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--border);
+    padding: 28px 24px;
+    text-decoration: none !important;
+    border-radius: 0;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    height: 140px;
+    position: relative;
+}
+.dashboard-card:hover {
+    border-left-color: var(--blue);
+    background: rgba(79,142,247,0.04);
+}
+.dashboard-card-title {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    color: var(--text-hi);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    line-height: 1.4;
+}
+.dashboard-card-metric {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    color: var(--text-lo);
+    text-transform: uppercase;
+    position: absolute;
+    bottom: 20px;
+    left: 24px;
+}
+
+/* ── CABECERA DEL MENÚ ── */
+.dashboard-header {
+    margin-bottom: 40px;
+}
+.dashboard-greeting {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-hi);
+    margin-bottom: 2px;
+}
+.dashboard-meta {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    color: var(--text-lo);
+    margin-bottom: 16px;
+}
+.dashboard-status {
+    display: flex;
+    gap: 32px;
+    font-family: var(--mono);
+    font-size: 0.5rem;
+    letter-spacing: 0.15em;
+    color: var(--blue);
+    text-transform: uppercase;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+}
+
+/* ── MODULE CARDS (mantenidas por si se usan en otras pantallas) ── */
 .module-card {
   background: var(--bg2);
   border: 1px solid var(--border);
@@ -687,174 +753,102 @@ mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items()
                   if v.get("Creador") == empresa_actual or u["Nombre"] == COMANDANTE_SUPREMO}
 TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **mis_escenarios}
 
-# ─────────────────────────────────────────
-# TOPBAR
-# ─────────────────────────────────────────
-rol_label = ("OMNISCIENCIA GLOBAL" if u["Nombre"] == COMANDANTE_SUPREMO
-             else (f"SUPERVISION [{mi_plan}]" if es_empresa
-                   else f"OPERADOR · {empresa_actual.upper()} [{mi_plan}]"))
+# ═══ MANEJADOR DE NAVEGACIÓN POR TARJETAS (NUEVO) ═══
+menu_destino = st.query_params.get("menu", None)
+if menu_destino:
+    st.session_state.pantalla_actual = menu_destino
+    st.query_params.clear()
+    st.rerun()
 
-col_top1, col_top2 = st.columns([8, 1])
-with col_top1:
-    pantalla = st.session_state.pantalla_actual
-    nombres_pantalla = {"estadisticas": "ESTADÍSTICAS", "personal": "PERSONAL", "expedientes": "EXPEDIENTES",
-                        "simulador": "SIMULADOR", "sintesis": "SÍNTESIS IA", "admin": "ADMINISTRACIÓN"}
-    back_label = f"/ {nombres_pantalla.get(pantalla, pantalla.upper())}" if pantalla != "menu" else ""
-    st.markdown(f"""
-    <div class="topbar">
-        <div>
-            <div class="topbar-brand">CRYSIS {back_label}</div>
-            <div class="topbar-meta">{rol_label} · ID: {u['Nombre'].upper()}</div>
+# ─────────────────────────────────────────
+# TOPBAR (se oculta en el menú)
+# ─────────────────────────────────────────
+if st.session_state.pantalla_actual != "menu":
+    rol_label = ("OMNISCIENCIA GLOBAL" if u["Nombre"] == COMANDANTE_SUPREMO
+                 else (f"SUPERVISION [{mi_plan}]" if es_empresa
+                       else f"OPERADOR · {empresa_actual.upper()} [{mi_plan}]"))
+    col_top1, col_top2 = st.columns([8, 1])
+    with col_top1:
+        pantalla = st.session_state.pantalla_actual
+        nombres_pantalla = {"estadisticas": "ESTADÍSTICAS", "personal": "PERSONAL", "expedientes": "EXPEDIENTES",
+                            "simulador": "SIMULADOR", "sintesis": "SÍNTESIS IA", "admin": "ADMINISTRACIÓN"}
+        back_label = f"/ {nombres_pantalla.get(pantalla, pantalla.upper())}" if pantalla != "menu" else ""
+        st.markdown(f"""
+        <div class="topbar">
+            <div>
+                <div class="topbar-brand">CRYSIS {back_label}</div>
+                <div class="topbar-meta">{rol_label} · ID: {u['Nombre'].upper()}</div>
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
-with col_top2:
-    st.markdown("<br>", unsafe_allow_html=True)
-    if pantalla != "menu":
-        if st.button("← MENÚ", key="btn_menu"): st.session_state.pantalla_actual = "menu"; st.rerun()
-    if st.button("SALIR", key="btn_logout", type="secondary"):
-        st.session_state.usuario_actual = None; st.session_state.login_step = 1; st.session_state.pantalla_actual = "menu"; st.rerun()
+        """, unsafe_allow_html=True)
+    with col_top2:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if pantalla != "menu":
+            if st.button("← MENÚ", key="btn_menu"): st.session_state.pantalla_actual = "menu"; st.rerun()
+        if st.button("SALIR", key="btn_logout", type="secondary"):
+            st.session_state.usuario_actual = None; st.session_state.login_step = 1; st.session_state.pantalla_actual = "menu"; st.rerun()
 
 def ir_a(p):
     st.session_state.pantalla_actual = p; st.rerun()
 
 # ─────────────────────────────────────────
-# MENÚ PRINCIPAL — Tarjetas 100% clickables
+# MENÚ PRINCIPAL — NUEVO DISEÑO (tarjetas clickables, sin MOD)
 # ─────────────────────────────────────────
 if st.session_state.pantalla_actual == "menu":
-    total_ops    = len(historial_visible)
-    media_global = int(sum(s["Nota"] for s in historial_visible) / total_ops) if total_ops > 0 else 0
-    ops_exitosas = sum(1 for s in historial_visible if s["Nota"] >= 80)
-    tasa_exito   = int((ops_exitosas / total_ops) * 100) if total_ops > 0 else 0
-    hora_actual  = datetime.now().strftime("%H:%M") + " · " + datetime.now().strftime("%d.%m.%Y")
-
-    mes_actual   = datetime.now().strftime("%Y-%m")
-    ops_mes      = len([s for s in historial_visible if str(s.get("Fecha","")).startswith(mes_actual)])
-    escenarios_creados = len(mis_escenarios)
-    agentes_activos    = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"])
-
+    # Encabezado compacto
+    ahora = datetime.now()
+    fecha_str = ahora.strftime("%H.%M - %d.%m.%Y")
     st.markdown(f"""
-    <div class="hq-header">
-        <div class="hq-label">CUARTEL GENERAL</div>
-        <div class="hq-greeting">Bienvenido, {u['Nombre'].upper()}</div>
-        <div class="hq-date">{hora_actual} · SISTEMA OPERATIVO</div>
+    <div class="dashboard-header">
+        <div class="dashboard-greeting">Bienvenido, {u['Nombre'].upper()}</div>
+        <div class="dashboard-meta">{fecha_str} · SISTEMA OPERATIVO</div>
+        <div class="dashboard-status">
+            <span>SYSTEM STATUS: SECURE</span>
+            <span>GLOBAL NETWORK: OPTIMIZED</span>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    c1, c2, c3 = st.columns(3)
+    # Cálculo de métricas reales
+    total_ops    = len(historial_visible)
+    media_global = int(sum(s["Nota"] for s in historial_visible) / total_ops) if total_ops > 0 else 0
+    mes_actual   = datetime.now().strftime("%Y-%m")
+    ops_mes      = len([s for s in historial_visible if str(s.get("Fecha","")).startswith(mes_actual)])
+    agentes_act  = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"])
+    esc_creados  = len(mis_escenarios)
 
-    with c1:
-        if st.button("__MOD01__", key="card_stats", use_container_width=True, help="Acceder a Estadísticas"):
-            ir_a("estadisticas")
-        st.markdown(f"""
-        <div class="module-card primary" onclick="void(0)" style="margin-top:-8px;">
-            <div class="module-accent"></div>
-            <div class="module-code">MOD-01 / ESTADÍSTICAS</div>
-            <div class="module-title">Análisis de Rendimiento</div>
-            <div class="module-desc">Métricas globales, histórico de desempeño y distribución de escenarios por operador.</div>
-            <div class="module-stat">RENDIMIENTO MEDIO · <span style="color:{'#00D4A0' if media_global>=70 else '#E8394A'}">{media_global}%</span></div>
-            <div class="module-arrow">→</div>
-        </div>""", unsafe_allow_html=True)
-
-    with c2:
-        if st.button("__MOD02__", key="card_sim", use_container_width=True, help="Iniciar Simulador"):
-            ir_a("simulador")
-        st.markdown(f"""
-        <div class="module-card danger" onclick="void(0)" style="margin-top:-8px;">
-            <div class="module-accent"></div>
-            <div class="module-code">MOD-02 / DESPLIEGUE</div>
-            <div class="module-title">Simulador Táctico</div>
-            <div class="module-desc">Inicia una operación de negociación táctica en tiempo real con objetivo generado por IA.</div>
-            <div class="module-stat">OPS ESTE MES · <span>{ops_mes}</span></div>
-            <div class="module-arrow">→</div>
-        </div>""", unsafe_allow_html=True)
-
-    with c3:
-        if st.button("__MOD03__", key="card_exp", use_container_width=True, help="Ver Expedientes"):
-            ir_a("expedientes")
-        st.markdown(f"""
-        <div class="module-card" onclick="void(0)" style="margin-top:-8px;">
-            <div class="module-accent"></div>
-            <div class="module-code">MOD-03 / EXPEDIENTES</div>
-            <div class="module-title">Archivo Operacional</div>
-            <div class="module-desc">Consulta y descarga de dossiers de sesiones anteriores con transcripciones completas.</div>
-            <div class="module-stat">EXPEDIENTES TOTALES · <span>{total_ops}</span></div>
-            <div class="module-arrow">→</div>
-        </div>""", unsafe_allow_html=True)
-
-    st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
-
-    if u["Nombre"] == COMANDANTE_SUPREMO:
-        c4, c5, c6 = st.columns(3)
+    if es_empresa:
+        metrica_personal = f"AGENTES ACTIVOS {agentes_act}"
     else:
-        c4, c5 = st.columns(2)
+        metrica_personal = f"OPERADOR {u['Nombre'].upper()}"
 
-    with c4:
-        if st.button("__MOD04__", key="card_pers", use_container_width=True, help="Gestionar Personal"):
-            ir_a("personal")
-        st.markdown(f"""
-        <div class="module-card" onclick="void(0)" style="margin-top:-8px;">
-            <div class="module-accent"></div>
-            <div class="module-code">MOD-04 / PERSONAL</div>
-            <div class="module-title">Gestión de Operadores</div>
-            <div class="module-desc">Reclutamiento de agentes, control de accesos, enlace cifrado y ajustes de cuenta.</div>
-            <div class="module-stat">AGENTES ACTIVOS · <span>{agentes_activos}</span></div>
-            <div class="module-arrow">→</div>
-        </div>""", unsafe_allow_html=True)
+    _precios = {"COMANDANCIA":199,"ESCUADRON":89,"ELITE":49,"OPERADOR":19,"BASE":0,
+                "Enterprise":199,"Pro":89,"Individual":19,"Gratis":0}
+    mrr = sum(_precios.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
+              for e in st.session_state.empleados)
 
-    with c5:
-        if st.button("__MOD05__", key="card_sint", use_container_width=True, help="Generación de Escenarios"):
-            ir_a("sintesis")
-        st.markdown(f"""
-        <div class="module-card gold" onclick="void(0)" style="margin-top:-8px;">
-            <div class="module-accent"></div>
-            <div class="module-code">MOD-05 / SÍNTESIS</div>
-            <div class="module-title">Generación de Escenarios</div>
-            <div class="module-desc">Motor de IA para crear simulaciones personalizadas adaptadas a tu contexto operativo.</div>
-            <div class="module-stat">ESCENARIOS ACTIVOS · <span>{escenarios_creados}</span></div>
-            <div class="module-arrow">→</div>
-        </div>""", unsafe_allow_html=True)
-
+    # Tarjetas del menú
+    tarjetas = [
+        ("estadisticas", "ANÁLISIS DE RENDIMIENTO",     f"RENDIMIENTO MEDIO {media_global}%"),
+        ("simulador",    "SIMULADOR TÁCTICO",            f"OPERACIONES ACTIVAS ESTE MES {ops_mes}"),
+        ("expedientes",  "HISTORIAL DE EXPEDIENTES",     f"EXPEDIENTES TOTALES {total_ops}"),
+        ("personal",     "GESTIÓN DE OPERADORES",        metrica_personal),
+        ("sintesis",     "GENERACIÓN DE ESCENARIOS",     f"ESCENARIOS ACTIVOS {esc_creados}"),
+    ]
     if u["Nombre"] == COMANDANTE_SUPREMO:
-        with c6:
-            _precio_plan_mrr = {"COMANDANCIA":199,"ESCUADRON":89,"ELITE":49,"OPERADOR":19,"BASE":0}
-            mrr = sum(_precio_plan_mrr.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
-                      for e in st.session_state.empleados)
-            if st.button("__MOD06__", key="card_admin", use_container_width=True, help="Consola Omega"):
-                ir_a("admin")
-            st.markdown(f"""
-            <div class="module-card admin-card" onclick="void(0)" style="margin-top:-8px;">
-                <div class="module-accent"></div>
-                <div class="module-code">MOD-06 / ADMIN</div>
-                <div class="module-title">Consola Omega</div>
-                <div class="module-desc">Panel de control global. Gestión de usuarios, planes y métricas SaaS en tiempo real.</div>
-                <div class="module-stat">MRR ESTIMADO · <span style="color:var(--amber)">{mrr}€</span></div>
-                <div class="module-arrow">→</div>
-            </div>""", unsafe_allow_html=True)
+        tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR"))
 
-    # Ocultar los botones dummy con CSS
-    st.markdown("""
-    <style>
-    [data-testid="stButton"] button[title="Acceder a Estadísticas"],
-    [data-testid="stButton"] button[title="Iniciar Simulador"],
-    [data-testid="stButton"] button[title="Ver Expedientes"],
-    [data-testid="stButton"] button[title="Gestionar Personal"],
-    [data-testid="stButton"] button[title="Generación de Escenarios"],
-    [data-testid="stButton"] button[title="Consola Omega"] {
-        opacity: 0 !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        z-index: 10 !important;
-        cursor: pointer !important;
-        background: transparent !important;
-        border: none !important;
-        border-radius: 2px !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    # Grid 3 columnas
+    for fila in range(0, len(tarjetas), 3):
+        cols = st.columns(3)
+        for i, (destino, titulo, metrica) in enumerate(tarjetas[fila:fila+3]):
+            with cols[i]:
+                st.markdown(f"""
+                <a href="?menu={destino}" class="dashboard-card">
+                    <div class="dashboard-card-title">{titulo}</div>
+                    <div class="dashboard-card-metric">{metrica}</div>
+                </a>
+                """, unsafe_allow_html=True)
 
     st.stop()
 
