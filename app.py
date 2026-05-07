@@ -858,12 +858,18 @@ elif st.session_state.pantalla_actual == "expedientes":
                     lbl_esc  = escenario.replace("OPERACION: ","")
                     with st.expander(f"{lbl_esc}  —  Evaluacion Media: {media_op}%", expanded=True):
                         for _, s in df_op.sort_values("Fecha", ascending=False).iterrows():
-                            nota_ind = s['Nota']
-                            c_nota   = "#00D4A0" if nota_ind >= 80 else ("#F0A500" if nota_ind >= 50 else "#E8394A")
+                            nota_ind   = s['Nota']
+                            c_nota     = "#00D4A0" if nota_ind >= 80 else ("#F0A500" if nota_ind >= 50 else "#E8394A")
                             modo_badge = "PRIVADO" if s.get("Tipo_Mision") == "Personal" else "OFICIAL"
                             dif_badge  = s.get("Dificultad", "—")
                             dif_color  = DIFICULTADES.get(dif_badge, {}).get("color", "#3A4A6A")
-                            st.markdown(f"""<div style="border-bottom: 1px solid #18213A; padding: 12px 0; margin-bottom: 12px;">
+
+                            # Determinar si el usuario actual puede borrar esta sesión
+                            # Solo puede borrar sus propias sesiones; empresa no borra las de sus agentes
+                            puede_borrar = (s["Agente"] == u["Nombre"]) or (u["Nombre"] == COMANDANTE_SUPREMO)
+
+                            st.markdown(f"""
+                            <div style="border-bottom: 1px solid #18213A; padding: 12px 0; margin-bottom: 12px;">
                             <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
                                 <span style="color:#3A4A6A; font-size:0.8rem; font-family:var(--mono);">
                                     {s['Fecha']} · {modo_badge} · 
@@ -873,23 +879,77 @@ elif st.session_state.pantalla_actual == "expedientes":
                             </div>
                             <div style="font-size:0.85rem; color:#B8C4DC; margin-bottom:10px;">{s['Evaluacion']}</div>
                             """, unsafe_allow_html=True)
-                            st.download_button(
-                                label="EXTRAER DOSSIER PDF",
-                                data=generar_pdf_dossier(s),
-                                file_name=f"CRYSIS_{s['Agente']}_{s['Fecha'][:10]}.pdf",
-                                mime="application/pdf",
-                                key=f"pdf_{s['Agente']}_{s['Fecha']}"
-                            )
+
+                            col_pdf, col_del = st.columns([3, 1])
+
+                            with col_pdf:
+                                st.download_button(
+                                    label="EXTRAER DOSSIER PDF",
+                                    data=generar_pdf_dossier(s),
+                                    file_name=f"CRYSIS_{s['Agente']}_{s['Fecha'][:10]}.pdf",
+                                    mime="application/pdf",
+                                    key=f"pdf_{s['Agente']}_{s['Fecha']}"
+                                )
+
+                            with col_del:
+                                if puede_borrar:
+                                    # Clave única por sesión para el estado de confirmación
+                                    confirm_key = f"confirm_del_{s['Agente']}_{s['Fecha']}"
+                                    input_key   = f"input_del_{s['Agente']}_{s['Fecha']}"
+
+                                    if not st.session_state.get(confirm_key, False):
+                                        if st.button("ELIMINAR", key=f"btn_del_{s['Agente']}_{s['Fecha']}", type="secondary", use_container_width=True):
+                                            st.session_state[confirm_key] = True
+                                            st.rerun()
+                                    else:
+                                        st.markdown("""
+                                        <div style="background:#1A0A0A; border:1px solid #E8394A; border-left:3px solid #E8394A;
+                                                    padding:10px 12px; border-radius:2px; margin-bottom:6px;">
+                                            <div style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.2em;
+                                                        color:#E8394A; margin-bottom:6px;">CONFIRMACION REQUERIDA</div>
+                                            <div style="font-family:var(--mono); font-size:0.52rem; color:#3A4A6A; line-height:1.5;">
+                                                Escribe <b style="color:#B8C4DC;">CONFIRMAR BORRADO</b> y pulsa el botón para eliminar este expediente de forma permanente.
+                                            </div>
+                                        </div>
+                                        """, unsafe_allow_html=True)
+
+                                        texto_confirmacion = st.text_input(
+                                            "Frase de confirmación:",
+                                            key=input_key,
+                                            placeholder="CONFIRMAR BORRADO",
+                                            label_visibility="collapsed"
+                                        )
+
+                                        col_conf, col_canc = st.columns(2)
+                                        with col_conf:
+                                            if st.button("EJECUTAR", key=f"exec_del_{s['Agente']}_{s['Fecha']}", use_container_width=True):
+                                                if texto_confirmacion.strip().upper() == "CONFIRMAR BORRADO":
+                                                    # Eliminar la sesión del historial
+                                                    st.session_state.historial_sesiones = [
+                                                        ses for ses in st.session_state.historial_sesiones
+                                                        if not (ses["Agente"] == s["Agente"] and ses["Fecha"] == s["Fecha"])
+                                                    ]
+                                                    guardar_datos()
+                                                    del st.session_state[confirm_key]
+                                                    st.rerun()
+                                                else:
+                                                    st.error("Frase incorrecta.")
+                                        with col_canc:
+                                            if st.button("CANCELAR", key=f"canc_del_{s['Agente']}_{s['Fecha']}", use_container_width=True, type="secondary"):
+                                                del st.session_state[confirm_key]
+                                                st.rerun()
+
                             if es_empresa and mi_plan == "COMANDANCIA" and "Transcripcion" in s:
                                 st.markdown("<br><span style='color:#F0A500; font-size:0.65rem; font-family:var(--mono); letter-spacing:0.1em;'>AUDITORIA DE COMUNICACIONES</span>", unsafe_allow_html=True)
                                 for tr in s["Transcripcion"]:
                                     ag_tr = "OPERADOR" if tr["role"] == "user" else "SUJETO"
                                     colr  = "#4F8EF7" if tr["role"] == "user" else "#E8394A"
                                     st.markdown(f"<div style='font-size:0.8rem; margin-bottom:4px;'><b style='color:{colr}'>{ag_tr}:</b> <span style='color:#3A4A6A'>{tr['content']}</span></div>", unsafe_allow_html=True)
+
                             st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div style='text-align:center; padding:60px; color:#18213A; font-family:var(--mono);'>DIRECTORIO VACIO</div>", unsafe_allow_html=True)
-                # ─────────────────────────────────────────
+# ─────────────────────────────────────────
 # SIMULADOR TÁCTICO
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "simulador":
