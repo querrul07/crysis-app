@@ -430,12 +430,14 @@ if st.session_state.usuario_actual is None:
         with c2:
             empresa_obj = next((e for e in st.session_state.empleados if e["Rol"] == "Empresa" and e["Nombre"] == empresa_invitada), None)
             if empresa_obj:
-                agentes_actuales = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_invitada and e.get("Rol") == "Agente"])
-                plan_emp = empresa_obj.get("Plan", "BASE")
-                limite_agentes = PLANES_INFO.get(plan_emp, {}).get("agentes", 0)
-                if agentes_actuales >= limite_agentes:
-                    st.error("ACCESO DENEGADO: Esta unidad no posee licencia corporativa activa o ha alcanzado su límite de efectivos.")
-                    st.stop()
+                # El comandante supremo nunca tiene límite de agentes
+                if empresa_obj["Nombre"] != COMANDANTE_SUPREMO:
+                    agentes_actuales = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_invitada and e.get("Rol") == "Agente"])
+                    plan_emp = empresa_obj.get("Plan", "BASE")
+                    limite_agentes = PLANES_INFO.get(plan_emp, {}).get("agentes", 0)
+                    if agentes_actuales >= limite_agentes:
+                        st.error("ACCESO DENEGADO: Esta unidad no posee licencia corporativa activa o ha alcanzado su límite de efectivos.")
+                        st.stop()
             with st.form("reg_agente"):
                 st.markdown("<div class='section-label'>SOLICITUD DE CREDENCIALES DE AGENTE</div>", unsafe_allow_html=True)
                 n     = st.text_input("Identificador de Agente (ID)")
