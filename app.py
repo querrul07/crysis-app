@@ -26,11 +26,11 @@ LINKS_PAGO = {
 }
 
 PLANES_INFO = {
-    "BASE":        {"precio": "0€",    "desc": "Individual · 1 op/mes · sin IA",     "ops": 1,    "escenarios": 0,    "agentes": 0,    "elite": False},
-    "OPERADOR":    {"precio": "19€/mes","desc": "Individual · 10 ops/mes · 3 escenarios","ops": 10, "escenarios": 3,  "agentes": 0,    "elite": False},
-    "ELITE":       {"precio": "49€/mes","desc": "Individual · ilimitado · IA sin límite","ops": 99999,"escenarios": 99999,"agentes": 0, "elite": True},
-    "ESCUADRON":   {"precio": "89€/mes","desc": "Equipo · ilimitado · 15 agentes",    "ops": 99999,"escenarios": 99999,"agentes": 15,   "elite": True},
-    "COMANDANCIA": {"precio": "199€/mes","desc": "Enterprise · ilimitado · ∞ agentes","ops": 99999,"escenarios": 99999,"agentes": 99999,"elite": True},
+    "BASE":        {"precio": "0€",     "desc": "Individual · 1 op/mes · sin IA",        "ops": 1,     "escenarios": 0,     "agentes": 0,     "elite": False},
+    "OPERADOR":    {"precio": "19€/mes","desc": "Individual · 10 ops/mes · 3 escenarios", "ops": 10,    "escenarios": 3,     "agentes": 0,     "elite": False},
+    "ELITE":       {"precio": "49€/mes","desc": "Individual · ilimitado · IA sin límite", "ops": 99999, "escenarios": 99999, "agentes": 0,     "elite": True},
+    "ESCUADRON":   {"precio": "89€/mes","desc": "Equipo · ilimitado · 15 agentes",        "ops": 99999, "escenarios": 99999, "agentes": 15,    "elite": True},
+    "COMANDANCIA": {"precio": "199€/mes","desc": "Enterprise · ilimitado · ∞ agentes",   "ops": 99999, "escenarios": 99999, "agentes": 99999, "elite": True},
 }
 
 DIFICULTADES = {
@@ -81,6 +81,23 @@ def enviar_correo_2fa(destinatario, codigo):
         password  = st.secrets["SMTP_PASS"]
         msg = MIMEText(f"Tu código de autorización táctica para CRYSIS es: {codigo}\n\nSi no has solicitado este acceso, reporta una brecha de seguridad inmediatamente.")
         msg['Subject'] = 'CRYSIS | Código de Acceso 2FA'
+        msg['From']    = "CRYSIS Security <no-reply@comando-crysis.net>"
+        msg['To']      = destinatario
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(remitente, password)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except:
+        return False
+
+def enviar_correo_reset(destinatario, nueva_pass):
+    try:
+        remitente = st.secrets["SMTP_EMAIL"]
+        password  = st.secrets["SMTP_PASS"]
+        msg = MIMEText(f"Tu nueva contraseña temporal para CRYSIS es: {nueva_pass}\n\nCámbiala en Ajustes de Cuenta tras acceder.")
+        msg['Subject'] = 'CRYSIS | Recuperación de Contraseña'
         msg['From']    = "CRYSIS Security <no-reply@comando-crysis.net>"
         msg['To']      = destinatario
         server = smtplib.SMTP('smtp.gmail.com', 587)
@@ -169,6 +186,7 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
   z-index: 9999;
 }
 
+/* ── BRAND ── */
 .brand-wordmark {
   font-family: var(--mono);
   font-size: 4rem;
@@ -178,99 +196,102 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
   margin-bottom: 12px;
   text-shadow: 0 0 60px rgba(79,142,247,0.2);
 }
-.brand-sub {
-  font-family: var(--mono);
-  font-size: 0.55rem;
-  letter-spacing: 0.4em;
-  color: var(--blue);
-  margin-bottom: 40px;
-}
+.brand-sub { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.4em; color: var(--blue); margin-bottom: 40px; }
 .brand-line { width: 40px; height: 2px; background: var(--blue); margin-bottom: 24px; }
-.brand-desc {
-  font-size: 0.78rem;
-  color: var(--text-lo);
-  line-height: 1.7;
-  letter-spacing: 0.02em;
-  font-family: var(--mono);
-}
+.brand-desc { font-size: 0.78rem; color: var(--text-lo); line-height: 1.7; letter-spacing: 0.02em; font-family: var(--mono); }
 
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 0 12px 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 0;
-}
+/* ── TOPBAR ── */
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 0 12px 0; border-bottom: 1px solid var(--border); margin-bottom: 0; }
 .topbar-brand { font-family: var(--mono); font-size: 1.1rem; letter-spacing: 0.3em; color: var(--text-hi); }
 .topbar-meta  { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.2em; color: var(--text-lo); margin-top: 3px; }
 
-.hq-header { padding: 56px 0 40px 0; text-align: center; }
+/* ── HQ HEADER ── */
+.hq-header { padding: 48px 0 36px 0; text-align: center; }
 .hq-label    { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.4em; color: var(--blue); margin-bottom: 12px; }
 .hq-greeting { font-size: 2.4rem; font-weight: 800; color: var(--text-hi); letter-spacing: -0.01em; margin-bottom: 6px; }
 .hq-date     { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.25em; color: var(--text-lo); }
 
+/* ── MODULE CARDS (CLICKABLE) ── */
 .module-card {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 2px;
-  padding: 32px 28px;
+  padding: 32px 28px 28px 28px;
   position: relative;
   overflow: hidden;
-  transition: all 0.25s;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: block;
+  text-decoration: none !important;
+  min-height: 180px;
 }
-.module-card:hover { border-color: var(--border2); background: var(--bg3); transform: translateY(-2px); box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
-.module-card.primary:hover { border-color: var(--blue);  box-shadow: 0 8px 40px rgba(79,142,247,0.1); }
-.module-card.danger:hover  { border-color: var(--red);   box-shadow: 0 8px 40px rgba(232,57,74,0.1); }
-.module-card.gold:hover    { border-color: var(--amber); box-shadow: 0 8px 40px rgba(240,165,0,0.1); }
+.module-card:hover { border-color: var(--border2); background: var(--bg3); transform: translateY(-3px); box-shadow: 0 12px 48px rgba(0,0,0,0.5); }
+.module-card.primary:hover { border-color: var(--blue);  box-shadow: 0 12px 48px rgba(79,142,247,0.12); }
+.module-card.danger:hover  { border-color: var(--red);   box-shadow: 0 12px 48px rgba(232,57,74,0.12); }
+.module-card.gold:hover    { border-color: var(--amber); box-shadow: 0 12px 48px rgba(240,165,0,0.12); }
+.module-card.admin-card:hover { border-color: var(--red); box-shadow: 0 12px 48px rgba(232,57,74,0.12); }
+
 .module-accent { position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--border2); }
 .module-card.primary .module-accent { background: var(--blue); }
 .module-card.danger  .module-accent { background: var(--red); }
 .module-card.gold    .module-accent { background: var(--amber); }
+.module-card.admin-card .module-accent { background: var(--red); }
+
+.module-arrow {
+  position: absolute;
+  bottom: 20px;
+  right: 24px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-lo);
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: all 0.2s ease;
+}
+.module-card:hover .module-arrow { opacity: 1; transform: translateX(0); }
+.module-card.primary:hover .module-arrow { color: var(--blue); }
+.module-card.danger:hover  .module-arrow { color: var(--red); }
+.module-card.gold:hover    .module-arrow { color: var(--amber); }
+
 .module-code  { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.3em; color: var(--text-lo); margin-bottom: 18px; }
 .module-title { font-size: 1.05rem; font-weight: 700; color: var(--text-hi); letter-spacing: 0.02em; margin-bottom: 8px; }
 .module-desc  { font-family: var(--mono); font-size: 0.62rem; color: var(--text-lo); line-height: 1.6; letter-spacing: 0.05em; }
+.module-stat  { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.22em; color: var(--text-lo); margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.module-stat span { color: var(--text); }
 
-.section-header {
-  padding: 28px 0 24px 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 32px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-}
+/* ── SECTION HEADERS ── */
+.section-header { padding: 28px 0 24px 0; border-bottom: 1px solid var(--border); margin-bottom: 32px; display: flex; align-items: flex-end; justify-content: space-between; }
 .section-title { font-size: 1.4rem; font-weight: 700; color: var(--text-hi); letter-spacing: 0.02em; }
 .section-code  { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.3em; color: var(--text-lo); margin-bottom: 4px; }
 
+/* ── METRICS ── */
 .metric-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 2px; padding: 24px; position: relative; overflow: hidden; }
 .metric-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--blue); }
 .metric-label { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.22em; color: var(--blue); margin-bottom: 10px; }
 .metric-value { font-family: var(--mono); font-size: 2rem; font-weight: 700; color: var(--text-hi); line-height: 1; }
 
+/* ── BRIEFING / STATUS ── */
 .briefing-box { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--blue); padding: 20px 24px; border-radius: 2px; margin-bottom: 20px; }
 .briefing-box h4 { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.2em; color: var(--blue); margin-bottom: 12px; }
 .section-label { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.25em; color: var(--blue); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 .status-bar { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--green); padding: 10px 18px; border-radius: 2px; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.12em; color: var(--green); margin-bottom: 20px; }
 
-.diff-card {
-  border: 2px solid var(--border);
-  border-radius: 2px;
-  padding: 14px 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: var(--bg3);
-  text-align: center;
-}
+/* ── DIFFICULTY CARDS ── */
+.diff-card { border: 2px solid var(--border); border-radius: 2px; padding: 14px 16px; cursor: pointer; transition: all 0.2s; background: var(--bg3); text-align: center; }
 .diff-card:hover { transform: translateY(-2px); }
 .diff-card.selected { background: rgba(79,142,247,0.08); }
 .diff-name  { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.18em; font-weight: 700; }
 .diff-desc  { font-family: var(--mono); font-size: 0.52rem; color: var(--text-lo); margin-top: 6px; line-height: 1.5; }
 
+/* ── INPUTS ── */
 .stTextInput input, .stSelectbox > div > div, .stTextArea textarea {
   background: var(--bg3) !important; border: 1px solid var(--border2) !important;
   color: var(--text) !important; border-radius: 2px !important; font-family: var(--sans) !important;
 }
 .stTextInput input:focus, .stTextArea textarea:focus { border-color: var(--blue) !important; box-shadow: 0 0 0 2px rgba(79,142,247,0.08) !important; }
+.stTextInput label, .stTextArea label, .stSelectbox label { color: var(--text-lo) !important; font-family: var(--mono) !important; font-size: 0.62rem !important; letter-spacing: 0.15em !important; }
+
+/* ── BUTTONS ── */
 .stButton > button {
   background: var(--blue) !important; color: var(--bg) !important;
   font-family: var(--mono) !important; font-size: 0.65rem !important; font-weight: 700 !important;
@@ -280,11 +301,49 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
 .stButton > button:hover { background: #3A7AE4 !important; box-shadow: 0 0 24px rgba(79,142,247,0.25) !important; transform: translateY(-1px); }
 [data-testid="stButton"] button[disabled] { background: var(--border) !important; color: var(--text-lo) !important; box-shadow: none !important; }
 
+/* Botón secundario */
+button[kind="secondary"] { background: transparent !important; border: 1px solid var(--border2) !important; color: var(--text) !important; }
+button[kind="secondary"]:hover { border-color: var(--blue) !important; color: var(--text-hi) !important; background: var(--blue-dim) !important; }
+
+/* ── LOGIN TABS ── */
+.login-tab-active {
+  background: var(--blue) !important;
+  color: var(--bg) !important;
+  border: none !important;
+}
+.login-tab-inactive {
+  background: transparent !important;
+  color: var(--text-lo) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* ── AUTH TIERS ── */
 .auth-tier { background: var(--bg3); border: 1px solid var(--border); border-left: 3px solid var(--border2); padding: 20px; border-radius: 2px; transition: border-color 0.2s; margin-bottom: 8px; }
 .auth-tier:hover { border-left-color: var(--blue); }
 .auth-tier.elite { border-left-color: var(--amber); }
 .tier-spec { font-size: 0.75rem; color: #8B9CC8; margin-bottom: 6px; display: flex; align-items: center; }
 .tier-spec::before { content: '—'; margin-right: 8px; color: var(--blue); font-size: 0.6rem; }
+
+/* ── ALERT/INFO BOXES ── */
+.alert-box { background: #0D1020; border: 1px solid var(--border); border-left: 3px solid var(--blue); padding: 14px 18px; border-radius: 2px; margin-bottom: 16px; font-family: var(--mono); font-size: 0.62rem; color: var(--text-lo); line-height: 1.6; }
+.alert-box.warning { border-left-color: var(--amber); }
+.alert-box.error   { border-left-color: var(--red); background: #120808; }
+
+/* ── FORGOT PASSWORD ── */
+.link-btn { background: none; border: none; color: var(--text-lo); font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.1em; cursor: pointer; padding: 0; text-decoration: underline; transition: color 0.15s; }
+.link-btn:hover { color: var(--blue); }
+
+/* ── PLAN SELECTOR ── */
+.plan-card { border: 1px solid var(--border); background: var(--bg3); border-radius: 2px; padding: 12px 14px; margin-bottom: 4px; cursor: pointer; transition: all 0.15s; }
+.plan-card:hover { border-color: var(--border2); }
+.plan-card.selected-plan { border-color: var(--blue); background: rgba(79,142,247,0.08); }
+.plan-card.selected-plan.elite-plan { border-color: var(--amber); background: rgba(240,165,0,0.08); }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--blue); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -301,7 +360,7 @@ PLOTLY_THEME = dict(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
 AXIS_STYLE   = dict(gridcolor='#1A2035', zeroline=False, color='#4A5568', linecolor='#1A2035')
 
 # ─────────────────────────────────────────
-# CARGA DE MEMORIA Y ESTADOS
+# ESTADOS
 # ─────────────────────────────────────────
 datos_guardados = cargar_datos()
 if "empleados"          not in st.session_state: st.session_state.empleados          = datos_guardados["empleados"]
@@ -316,6 +375,7 @@ if "login_step"         not in st.session_state: st.session_state.login_step    
 if "pantalla_actual"    not in st.session_state: st.session_state.pantalla_actual    = "menu"
 if "login_modo"         not in st.session_state: st.session_state.login_modo         = "acceso"
 if "dificultad_actual"  not in st.session_state: st.session_state.dificultad_actual  = "OPERATOR"
+if "login_subpantalla"  not in st.session_state: st.session_state.login_subpantalla  = "main"  # main | forgot
 
 try:    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except: GROQ_API_KEY = None
@@ -372,6 +432,7 @@ if st.session_state.usuario_actual is None:
         st.success("Acreditación procesada. Identifícate en el portal de acceso.")
         st.session_state.registro_completado = False
 
+    # ── LAYOUT PRINCIPAL LOGIN ──
     col_brand, col_form = st.columns([1, 1])
 
     with col_brand:
@@ -388,8 +449,8 @@ if st.session_state.usuario_actual is None:
             </div>
             <div>
                 <div style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.3em; color:#18213A; margin-bottom:8px;">ESTADO DEL SISTEMA</div>
-                <div style="font-family:var(--mono); font-size:0.58rem; color:#00D4A0; letter-spacing:0.15em;">OPERATIVO · ACCESO SEGURO</div>
-                <div style="margin-top:16px; font-family:var(--mono); font-size:0.48rem; letter-spacing:0.25em; color:#18213A;">v3.0.0 · CLASIFICADO</div>
+                <div style="font-family:var(--mono); font-size:0.58rem; color:#00D4A0; letter-spacing:0.15em;">● OPERATIVO · ACCESO SEGURO</div>
+                <div style="margin-top:16px; font-family:var(--mono); font-size:0.48rem; letter-spacing:0.25em; color:#18213A;">v3.1.0 · CLASIFICADO</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -397,159 +458,204 @@ if st.session_state.usuario_actual is None:
     with col_form:
         st.markdown("<div style='padding: 60px 20px 60px 40px;'>", unsafe_allow_html=True)
 
-        col_t1, col_t2 = st.columns(2)
-        with col_t1:
-            if st.button("ACCESO", key="modo_acceso", use_container_width=True,
-                         type="primary" if st.session_state.login_modo == "acceso" else "secondary"):
-                st.session_state.login_modo = "acceso"; st.rerun()
-        with col_t2:
-            if st.button("REGISTRO", key="modo_registro", use_container_width=True,
-                         type="primary" if st.session_state.login_modo == "registro" else "secondary"):
-                st.session_state.login_modo = "registro"; st.rerun()
-
-        st.markdown("<div style='margin-top:32px;'></div>", unsafe_allow_html=True)
-
-        # ── MODO ACCESO ──
-        if st.session_state.login_modo == "acceso":
-            if st.session_state.login_step == 1:
-                with st.form("login_form"):
-                    st.markdown("<div class='section-label'>IDENTIFICACIÓN DE OPERADOR</div>", unsafe_allow_html=True)
-                    u_id   = st.text_input("ID Operativo")
-                    u_pass = st.text_input("Clave de Seguridad", type="password")
-                    st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
-                    if st.form_submit_button("INICIAR SESION SEGURA", use_container_width=True):
-                        agente = next((e for e in st.session_state.empleados if e["Nombre"] == u_id and e.get("Password") == u_pass), None)
-                        if agente:
-                            expiro = False
-                            if "Expiracion" in agente:
-                                fecha_exp = datetime.strptime(agente["Expiracion"], "%Y-%m-%d")
-                                if datetime.now() > fecha_exp: expiro = True
-                            if expiro:
-                                st.error(f"ACCESO DENEGADO: Licencia expirada el {agente['Expiracion']}.")
-                            else:
-                                if agente.get("2FA_Verificado", False) == True or agente["Nombre"] == COMANDANTE_SUPREMO:
-                                    st.session_state.usuario_actual = agente; st.session_state.pantalla_actual = "menu"; st.rerun()
-                                else:
-                                    st.session_state["2fa_code"]  = str(random.randint(100000, 999999))
-                                    st.session_state["2fa_agente"] = agente
-                                    st.session_state.login_step = 2; st.rerun()
+        # ── SUB-PANTALLA: RECUPERAR CONTRASEÑA ──
+        if st.session_state.login_subpantalla == "forgot":
+            st.markdown("<div class='section-label'>RECUPERACION DE ACCESO</div>", unsafe_allow_html=True)
+            st.markdown("""
+            <div class="alert-box">
+                Introduce tu ID de operador y el correo registrado. Si coinciden, recibirás una contraseña temporal por correo.
+            </div>
+            """, unsafe_allow_html=True)
+            with st.form("forgot_form"):
+                r_id    = st.text_input("ID Operativo")
+                r_email = st.text_input("Correo Registrado")
+                col_f1, col_f2 = st.columns(2)
+                enviar = col_f1.form_submit_button("ENVIAR CLAVE TEMPORAL", use_container_width=True)
+                volver = col_f2.form_submit_button("VOLVER", use_container_width=True)
+                if enviar:
+                    agente_r = next((e for e in st.session_state.empleados
+                                     if e["Nombre"] == r_id and e.get("Email","").lower() == r_email.lower()), None)
+                    if agente_r:
+                        nueva_pass = str(random.randint(100000, 999999))
+                        ok = enviar_correo_reset(r_email, nueva_pass)
+                        if ok:
+                            for e in st.session_state.empleados:
+                                if e["Nombre"] == r_id:
+                                    e["Password"] = nueva_pass
+                            guardar_datos()
+                            st.success(f"Clave temporal enviada a {r_email}. Cámbiala tras acceder.")
                         else:
-                            st.error("Identificación fallida. Verifica tu ID o contraseña.")
+                            st.error("Error al enviar el correo. Contacta con soporte.")
+                    else:
+                        st.error("No se encontró ninguna cuenta con ese ID y correo.")
+                if volver:
+                    st.session_state.login_subpantalla = "main"; st.rerun()
 
-            elif st.session_state.login_step == 2:
-                correo_dest = st.session_state["2fa_agente"].get("Email", "Desconocido")
-                if "correo_enviado" not in st.session_state:
-                    exito = enviar_correo_2fa(correo_dest, st.session_state["2fa_code"])
-                    if exito: st.success(f"Código enviado a: {correo_dest}")
-                    else:     st.error("Fallo en el sistema de correo seguro.")
-                    st.session_state["correo_enviado"] = True
-                with st.form("2fa_form"):
-                    st.markdown("<div class='section-label'>VERIFICACION DE DISPOSITIVO</div>", unsafe_allow_html=True)
-                    st.info("Autenticación de dos factores requerida (solo primera vez).")
-                    u_code = st.text_input("Código de Validación")
-                    colA, colB = st.columns(2)
-                    if colA.form_submit_button("VERIFICAR", use_container_width=True):
-                        if u_code == st.session_state["2fa_code"]:
-                            st.session_state["2fa_agente"]["2FA_Verificado"] = True; guardar_datos()
-                            st.session_state.usuario_actual = st.session_state["2fa_agente"]
-                            st.session_state.pantalla_actual = "menu"
-                            st.session_state.login_step = 1; del st.session_state["correo_enviado"]; st.rerun()
-                        else: st.error("Código incorrecto.")
-                    if colB.form_submit_button("CANCELAR", use_container_width=True):
-                        st.session_state.login_step = 1; del st.session_state["correo_enviado"]; st.rerun()
-
-        # ── MODO REGISTRO ──
+        # ── SUB-PANTALLA: PRINCIPAL (ACCESO / REGISTRO) ──
         else:
-            if st.session_state.get("mostrar_pago"):
-                info_pago = st.session_state.mostrar_pago
-                st.markdown(f"""
-                <div style="background:var(--bg3); border:1px solid var(--amber); border-left:3px solid var(--amber); padding:20px; border-radius:2px; margin-bottom:16px;">
-                    <div style="font-family:var(--mono); font-size:0.58rem; letter-spacing:0.2em; color:var(--amber); margin-bottom:10px;">ACTIVACION DE PLAN PENDIENTE</div>
-                    <p style="color:var(--text); font-size:0.82rem; margin-bottom:14px;">Cuenta <b style='color:var(--text-hi)'>{info_pago['id']}</b> creada con Nivel BASE. Tras el pago, el administrador activará tu plan en máximo 24h.</p>
-                    <a href="{info_pago['link']}" target="_blank" style="display:inline-block; background:var(--amber); color:#060810; font-family:var(--mono); font-weight:700; font-size:0.65rem; letter-spacing:0.1em; padding:10px 20px; border-radius:2px; text-decoration:none;">IR AL PAGO — {info_pago['plan']}</a>
-                </div>
-                """, unsafe_allow_html=True)
-                if st.button("ENTRAR CON NIVEL BASE", use_container_width=True):
-                    st.session_state.usuario_actual = info_pago["usuario"]
-                    st.session_state.pantalla_actual = "menu"
-                    del st.session_state.mostrar_pago; st.rerun()
-            else:
-                st.markdown("<div class='section-label'>SELECCIONAR NIVEL DE ACCESO</div>", unsafe_allow_html=True)
+            # Tabs de modo
+            col_t1, col_t2 = st.columns(2)
+            with col_t1:
+                if st.button("ACCESO", key="modo_acceso", use_container_width=True,
+                             type="primary" if st.session_state.login_modo == "acceso" else "secondary"):
+                    st.session_state.login_modo = "acceso"; st.rerun()
+            with col_t2:
+                if st.button("REGISTRO", key="modo_registro", use_container_width=True,
+                             type="primary" if st.session_state.login_modo == "registro" else "secondary"):
+                    st.session_state.login_modo = "registro"; st.rerun()
 
-                if "plan_sel_reg" not in st.session_state: st.session_state.plan_sel_reg = "BASE"
+            st.markdown("<div style='margin-top:32px;'></div>", unsafe_allow_html=True)
 
-                planes_registro = [
-                    ("BASE",        "0€",     "Individual · 1 op/mes",            False),
-                    ("OPERADOR",    "19€/mes", "Individual · 10 ops/mes · 3 esc.", False),
-                    ("ELITE",       "49€/mes", "Individual · ilimitado · IA ∞",    True),
-                    ("ESCUADRON",   "89€/mes", "Equipo · 15 agentes · ∞ ops",      True),
-                    ("COMANDANCIA", "199€/mes","Enterprise · agentes ∞ · ops ∞",   True),
-                ]
-
-                col1, col2 = st.columns(2)
-                for i, (nombre, precio, desc, elite) in enumerate(planes_registro):
-                    col = col1 if i % 2 == 0 else col2
-                    with col:
-                        is_sel    = st.session_state.plan_sel_reg == nombre
-                        border_col = "#F0A500" if elite and is_sel else ("#4F8EF7" if is_sel else "#18213A")
-                        bg_col     = "rgba(240,165,0,0.08)" if elite and is_sel else ("rgba(79,142,247,0.1)" if is_sel else "#101525")
-                        st.markdown(f"""
-                        <div style="border:1px solid {border_col}; background:{bg_col}; padding:12px 14px; border-radius:2px; margin-bottom:4px;">
-                            <div style="font-family:var(--mono); font-size:0.6rem; letter-spacing:0.15em; color:var(--text-hi);">{nombre}</div>
-                            <div style="font-size:0.85rem; color:{'#F0A500' if elite else '#4F8EF7'}; font-weight:700; margin-top:4px;">{precio}</div>
-                            <div style="font-family:var(--mono); font-size:0.5rem; color:var(--text-lo); margin-top:4px;">{desc}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        if st.button(f"Sel. {nombre}", key=f"plan_reg_{nombre}", use_container_width=True):
-                            st.session_state.plan_sel_reg = nombre; st.rerun()
-
-                plan_sel       = st.session_state.plan_sel_reg
-                es_corporativo = plan_sel in ["ESCUADRON", "COMANDANCIA"]
-                es_pago        = plan_sel != "BASE"
-
-                st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
-                with st.form("registro_form"):
-                    st.markdown("<div class='section-label'>DATOS DE ACCESO</div>", unsafe_allow_html=True)
-                    lbl_id = "Identificador de la Entidad (Empresa)" if es_corporativo else "Identificador Personal (Alias)"
-                    n      = st.text_input(lbl_id)
-                    email  = st.text_input("Correo de Contacto")
-                    p      = st.text_input("Clave Maestra", type="password")
-                    lbl_btn = "CREAR CUENTA E IR AL PAGO" if es_pago else "CREAR CUENTA Y ENTRAR"
-                    if st.form_submit_button(lbl_btn, use_container_width=True):
-                        if n and p and email:
-                            empresa_destino = n if es_corporativo else "Independiente"
-                            if any(e["Nombre"] == n and e.get("Empresa", "Independiente") == empresa_destino for e in st.session_state.empleados):
-                                st.warning("Ya existe una cuenta con ese identificador.")
-                            elif any(e["Nombre"] == n and e.get("Password") == p for e in st.session_state.empleados):
-                                st.warning("ID ya en uso con esa contraseña.")
+            # ── MODO ACCESO ──
+            if st.session_state.login_modo == "acceso":
+                if st.session_state.login_step == 1:
+                    with st.form("login_form"):
+                        st.markdown("<div class='section-label'>IDENTIFICACIÓN DE OPERADOR</div>", unsafe_allow_html=True)
+                        u_id   = st.text_input("ID Operativo")
+                        u_pass = st.text_input("Clave de Seguridad", type="password")
+                        st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
+                        submitted = st.form_submit_button("INICIAR SESIÓN SEGURA", use_container_width=True)
+                        if submitted:
+                            agente = next((e for e in st.session_state.empleados if e["Nombre"] == u_id and e.get("Password") == u_pass), None)
+                            if agente:
+                                expiro = False
+                                if "Expiracion" in agente:
+                                    fecha_exp = datetime.strptime(agente["Expiracion"], "%Y-%m-%d")
+                                    if datetime.now() > fecha_exp: expiro = True
+                                if expiro:
+                                    st.error(f"ACCESO DENEGADO: Licencia expirada el {agente['Expiracion']}.")
+                                else:
+                                    if agente.get("2FA_Verificado", False) == True or agente["Nombre"] == COMANDANTE_SUPREMO:
+                                        st.session_state.usuario_actual = agente; st.session_state.pantalla_actual = "menu"; st.rerun()
+                                    else:
+                                        st.session_state["2fa_code"]   = str(random.randint(100000, 999999))
+                                        st.session_state["2fa_agente"] = agente
+                                        st.session_state.login_step = 2; st.rerun()
                             else:
-                                if es_corporativo:
-                                    nuevo_usuario = {"Nombre": n, "Email": email, "Departamento": "Administración", "Rol": "Empresa", "Plan": "BASE", "Empresa": n, "Password": p, "2FA_Verificado": True}
+                                st.error("ID o contraseña incorrectos. Verifica tus credenciales.")
+
+                    # Enlace "Olvidé mi contraseña" FUERA del form
+                    st.markdown("<div style='margin-top:12px; text-align:right;'>", unsafe_allow_html=True)
+                    if st.button("¿Olvidaste tu contraseña?", key="btn_forgot"):
+                        st.session_state.login_subpantalla = "forgot"; st.rerun()
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                elif st.session_state.login_step == 2:
+                    correo_dest = st.session_state["2fa_agente"].get("Email", "Desconocido")
+                    if "correo_enviado" not in st.session_state:
+                        exito = enviar_correo_2fa(correo_dest, st.session_state["2fa_code"])
+                        if exito: st.success(f"Código enviado a: {correo_dest}")
+                        else:     st.error("Fallo en el sistema de correo seguro.")
+                        st.session_state["correo_enviado"] = True
+                    with st.form("2fa_form"):
+                        st.markdown("<div class='section-label'>VERIFICACION DE DISPOSITIVO</div>", unsafe_allow_html=True)
+                        st.markdown("""<div class="alert-box">Autenticación de dos factores requerida la primera vez. Revisa tu correo.</div>""", unsafe_allow_html=True)
+                        u_code = st.text_input("Código de 6 dígitos")
+                        colA, colB = st.columns(2)
+                        if colA.form_submit_button("VERIFICAR", use_container_width=True):
+                            if u_code == st.session_state["2fa_code"]:
+                                st.session_state["2fa_agente"]["2FA_Verificado"] = True; guardar_datos()
+                                st.session_state.usuario_actual = st.session_state["2fa_agente"]
+                                st.session_state.pantalla_actual = "menu"
+                                st.session_state.login_step = 1; del st.session_state["correo_enviado"]; st.rerun()
+                            else: st.error("Código incorrecto.")
+                        if colB.form_submit_button("CANCELAR", use_container_width=True):
+                            st.session_state.login_step = 1; del st.session_state["correo_enviado"]; st.rerun()
+
+            # ── MODO REGISTRO ──
+            else:
+                if st.session_state.get("mostrar_pago"):
+                    info_pago = st.session_state.mostrar_pago
+                    st.markdown(f"""
+                    <div style="background:var(--bg3); border:1px solid var(--amber); border-left:3px solid var(--amber); padding:20px; border-radius:2px; margin-bottom:16px;">
+                        <div style="font-family:var(--mono); font-size:0.58rem; letter-spacing:0.2em; color:var(--amber); margin-bottom:10px;">ACTIVACION DE PLAN PENDIENTE</div>
+                        <p style="color:var(--text); font-size:0.82rem; margin-bottom:14px;">Cuenta <b style='color:var(--text-hi)'>{info_pago['id']}</b> creada. Tras el pago, tu plan se activará en máximo 24h.</p>
+                        <a href="{info_pago['link']}" target="_blank" style="display:inline-block; background:var(--amber); color:#060810; font-family:var(--mono); font-weight:700; font-size:0.65rem; letter-spacing:0.1em; padding:10px 20px; border-radius:2px; text-decoration:none;">IR AL PAGO — {info_pago['plan']}</a>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    if st.button("ENTRAR CON NIVEL BASE", use_container_width=True):
+                        st.session_state.usuario_actual = info_pago["usuario"]
+                        st.session_state.pantalla_actual = "menu"
+                        del st.session_state.mostrar_pago; st.rerun()
+                else:
+                    st.markdown("<div class='section-label'>SELECCIONAR NIVEL DE ACCESO</div>", unsafe_allow_html=True)
+
+                    if "plan_sel_reg" not in st.session_state: st.session_state.plan_sel_reg = "BASE"
+
+                    planes_registro = [
+                        ("BASE",        "0€",     "1 op/mes · sin IA",           False),
+                        ("OPERADOR",    "19€/mes", "10 ops/mes · 3 escenarios",   False),
+                        ("ELITE",       "49€/mes", "Ilimitado · IA sin límite",   True),
+                        ("ESCUADRON",   "89€/mes", "Equipo · 15 agentes",         True),
+                        ("COMANDANCIA", "199€/mes","Enterprise · agentes ∞",      True),
+                    ]
+
+                    col1, col2 = st.columns(2)
+                    for i, (nombre, precio, desc, elite) in enumerate(planes_registro):
+                        col = col1 if i % 2 == 0 else col2
+                        with col:
+                            is_sel     = st.session_state.plan_sel_reg == nombre
+                            border_col = "#F0A500" if elite and is_sel else ("#4F8EF7" if is_sel else "#18213A")
+                            bg_col     = "rgba(240,165,0,0.08)" if elite and is_sel else ("rgba(79,142,247,0.1)" if is_sel else "#101525")
+                            check      = "✓ " if is_sel else ""
+                            st.markdown(f"""
+                            <div style="border:1px solid {border_col}; background:{bg_col}; padding:10px 14px; border-radius:2px; margin-bottom:4px;">
+                                <div style="font-family:var(--mono); font-size:0.6rem; letter-spacing:0.15em; color:var(--text-hi);">{check}{nombre}</div>
+                                <div style="font-size:0.85rem; color:{'#F0A500' if elite else '#4F8EF7'}; font-weight:700; margin-top:3px;">{precio}</div>
+                                <div style="font-family:var(--mono); font-size:0.5rem; color:var(--text-lo); margin-top:3px;">{desc}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            if st.button(f"Seleccionar", key=f"plan_reg_{nombre}", use_container_width=True):
+                                st.session_state.plan_sel_reg = nombre; st.rerun()
+
+                    plan_sel       = st.session_state.plan_sel_reg
+                    es_corporativo = plan_sel in ["ESCUADRON", "COMANDANCIA"]
+                    es_pago        = plan_sel != "BASE"
+
+                    st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+                    with st.form("registro_form"):
+                        st.markdown("<div class='section-label'>DATOS DE ACCESO</div>", unsafe_allow_html=True)
+                        lbl_id = "Nombre de la Entidad / Empresa" if es_corporativo else "Alias / ID Personal"
+                        n      = st.text_input(lbl_id)
+                        email  = st.text_input("Correo de Contacto")
+                        p      = st.text_input("Contraseña", type="password")
+                        if es_corporativo:
+                            st.markdown("""<div class="alert-box">Las cuentas corporativas pueden añadir agentes mediante enlace de invitación.</div>""", unsafe_allow_html=True)
+                        lbl_btn = "CREAR CUENTA E IR AL PAGO" if es_pago else "CREAR CUENTA Y ENTRAR"
+                        if st.form_submit_button(lbl_btn, use_container_width=True):
+                            if n and p and email:
+                                empresa_destino = n if es_corporativo else "Independiente"
+                                if any(e["Nombre"] == n and e.get("Empresa", "Independiente") == empresa_destino for e in st.session_state.empleados):
+                                    st.warning("Ya existe una cuenta con ese identificador.")
                                 else:
-                                    nuevo_usuario = {"Nombre": n, "Email": email, "Rol": "Individual", "Plan": "BASE", "Empresa": n, "Password": p, "2FA_Verificado": True}
-                                st.session_state.empleados.append(nuevo_usuario); guardar_datos()
-                                if es_pago:
-                                    link_pago   = LINKS_PAGO.get(plan_sel, "#")
-                                    nombre_plan = f"{plan_sel} ({PLANES_INFO[plan_sel]['precio']})"
-                                    st.session_state.mostrar_pago = {"id": n, "link": link_pago, "plan": nombre_plan, "usuario": nuevo_usuario}
-                                    st.rerun()
-                                else:
-                                    st.session_state.usuario_actual = nuevo_usuario
-                                    st.session_state.pantalla_actual = "menu"; st.rerun()
-                        else:
-                            st.warning("Información incompleta. Rellena todos los campos.")
+                                    if es_corporativo:
+                                        nuevo_usuario = {"Nombre": n, "Email": email, "Departamento": "Administración", "Rol": "Empresa", "Plan": "BASE", "Empresa": n, "Password": p, "2FA_Verificado": True}
+                                    else:
+                                        nuevo_usuario = {"Nombre": n, "Email": email, "Rol": "Individual", "Plan": "BASE", "Empresa": n, "Password": p, "2FA_Verificado": True}
+                                    st.session_state.empleados.append(nuevo_usuario); guardar_datos()
+                                    if es_pago:
+                                        link_pago   = LINKS_PAGO.get(plan_sel, "#")
+                                        nombre_plan = f"{plan_sel} ({PLANES_INFO[plan_sel]['precio']})"
+                                        st.session_state.mostrar_pago = {"id": n, "link": link_pago, "plan": nombre_plan, "usuario": nuevo_usuario}
+                                        st.rerun()
+                                    else:
+                                        st.session_state.usuario_actual = nuevo_usuario
+                                        st.session_state.pantalla_actual = "menu"; st.rerun()
+                            else:
+                                st.warning("Rellena todos los campos para continuar.")
 
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.stop()
-                # ─────────────────────────────────────────
+
+# ─────────────────────────────────────────
 # RESOLUCIÓN DE PERMISOS
 # ─────────────────────────────────────────
 u = st.session_state.usuario_actual
 
 if u["Nombre"] == COMANDANTE_SUPREMO:
-    es_empresa    = True
-    mi_plan       = "COMANDANCIA"
+    es_empresa     = True
+    mi_plan        = "COMANDANCIA"
     empresa_actual = u["Nombre"]
 else:
     es_empresa     = u.get("Rol") == "Empresa"
@@ -560,16 +666,15 @@ else:
     else:
         mi_plan = u.get("Plan", "BASE")
 
-# Normalizar planes legacy
 _legacy = {"Gratis": "BASE", "Individual": "OPERADOR", "Pro": "ESCUADRON", "Enterprise": "COMANDANCIA"}
 mi_plan = _legacy.get(mi_plan, mi_plan)
 
-ops_limite      = PLANES_INFO.get(mi_plan, {}).get("ops", 1)
-escenarios_lim  = PLANES_INFO.get(mi_plan, {}).get("escenarios", 0)
-agentes_lim     = PLANES_INFO.get(mi_plan, {}).get("agentes", 0)
+ops_limite     = PLANES_INFO.get(mi_plan, {}).get("ops", 1)
+escenarios_lim = PLANES_INFO.get(mi_plan, {}).get("escenarios", 0)
+agentes_lim    = PLANES_INFO.get(mi_plan, {}).get("agentes", 0)
 
 if u["Nombre"] == COMANDANTE_SUPREMO:
-    historial_visible   = [s for s in st.session_state.historial_sesiones if s["Agente"] == u["Nombre"]]
+    historial_visible     = [s for s in st.session_state.historial_sesiones if s["Agente"] == u["Nombre"]]
     agentes_de_mi_empresa = [u["Nombre"]]
 elif es_empresa:
     agentes_de_mi_empresa = [e["Nombre"] for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]
@@ -592,8 +697,8 @@ rol_label = ("OMNISCIENCIA GLOBAL" if u["Nombre"] == COMANDANTE_SUPREMO
 col_top1, col_top2 = st.columns([8, 1])
 with col_top1:
     pantalla = st.session_state.pantalla_actual
-    nombres_pantalla = {"estadisticas": "ESTADISTICAS", "personal": "PERSONAL", "expedientes": "EXPEDIENTES",
-                        "simulador": "SIMULADOR", "sintesis": "SINTESIS IA", "admin": "ADMINISTRACION"}
+    nombres_pantalla = {"estadisticas": "ESTADÍSTICAS", "personal": "PERSONAL", "expedientes": "EXPEDIENTES",
+                        "simulador": "SIMULADOR", "sintesis": "SÍNTESIS IA", "admin": "ADMINISTRACIÓN"}
     back_label = f"/ {nombres_pantalla.get(pantalla, pantalla.upper())}" if pantalla != "menu" else ""
     st.markdown(f"""
     <div class="topbar">
@@ -606,7 +711,7 @@ with col_top1:
 with col_top2:
     st.markdown("<br>", unsafe_allow_html=True)
     if pantalla != "menu":
-        if st.button("MENU", key="btn_menu"): st.session_state.pantalla_actual = "menu"; st.rerun()
+        if st.button("← MENÚ", key="btn_menu"): st.session_state.pantalla_actual = "menu"; st.rerun()
     if st.button("SALIR", key="btn_logout", type="secondary"):
         st.session_state.usuario_actual = None; st.session_state.login_step = 1; st.session_state.pantalla_actual = "menu"; st.rerun()
 
@@ -614,7 +719,7 @@ def ir_a(p):
     st.session_state.pantalla_actual = p; st.rerun()
 
 # ─────────────────────────────────────────
-# MENÚ PRINCIPAL
+# MENÚ PRINCIPAL — Tarjetas 100% clickables
 # ─────────────────────────────────────────
 if st.session_state.pantalla_actual == "menu":
     total_ops    = len(historial_visible)
@@ -622,6 +727,11 @@ if st.session_state.pantalla_actual == "menu":
     ops_exitosas = sum(1 for s in historial_visible if s["Nota"] >= 80)
     tasa_exito   = int((ops_exitosas / total_ops) * 100) if total_ops > 0 else 0
     hora_actual  = datetime.now().strftime("%H:%M") + " · " + datetime.now().strftime("%d.%m.%Y")
+
+    mes_actual   = datetime.now().strftime("%Y-%m")
+    ops_mes      = len([s for s in historial_visible if str(s.get("Fecha","")).startswith(mes_actual)])
+    escenarios_creados = len(mis_escenarios)
+    agentes_activos    = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"])
 
     st.markdown(f"""
     <div class="hq-header">
@@ -632,40 +742,47 @@ if st.session_state.pantalla_actual == "menu":
     """, unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns(3)
+
     with c1:
-        st.markdown("""
-        <div class="module-card primary">
+        if st.button("__MOD01__", key="card_stats", use_container_width=True, help="Acceder a Estadísticas"):
+            ir_a("estadisticas")
+        st.markdown(f"""
+        <div class="module-card primary" onclick="void(0)" style="margin-top:-8px;">
             <div class="module-accent"></div>
-            <div class="module-code">MOD-01 / ESTADISTICAS</div>
-            <div class="module-title">Analisis de Rendimiento</div>
+            <div class="module-code">MOD-01 / ESTADÍSTICAS</div>
+            <div class="module-title">Análisis de Rendimiento</div>
             <div class="module-desc">Métricas globales, histórico de desempeño y distribución de escenarios por operador.</div>
+            <div class="module-stat">RENDIMIENTO MEDIO · <span style="color:{'#00D4A0' if media_global>=70 else '#E8394A'}">{media_global}%</span></div>
+            <div class="module-arrow">→</div>
         </div>""", unsafe_allow_html=True)
-        st.markdown(f"<div style='font-family:var(--mono); font-size:0.55rem; letter-spacing:0.2em; color:#3A4A6A; margin-top:-8px; margin-bottom:4px;'>RENDIMIENTO MEDIO · {media_global}%</div>", unsafe_allow_html=True)
-        if st.button("ACCEDER A ESTADISTICAS", key="goto_stats", use_container_width=True): ir_a("estadisticas")
 
     with c2:
-        st.markdown("""
-        <div class="module-card danger">
+        if st.button("__MOD02__", key="card_sim", use_container_width=True, help="Iniciar Simulador"):
+            ir_a("simulador")
+        st.markdown(f"""
+        <div class="module-card danger" onclick="void(0)" style="margin-top:-8px;">
             <div class="module-accent"></div>
             <div class="module-code">MOD-02 / DESPLIEGUE</div>
-            <div class="module-title">Simulador Tactico</div>
+            <div class="module-title">Simulador Táctico</div>
             <div class="module-desc">Inicia una operación de negociación táctica en tiempo real con objetivo generado por IA.</div>
+            <div class="module-stat">OPS ESTE MES · <span>{ops_mes}</span></div>
+            <div class="module-arrow">→</div>
         </div>""", unsafe_allow_html=True)
-        mes_actual = datetime.now().strftime("%Y-%m")
-        ops_mes    = len([s for s in historial_visible if str(s.get("Fecha","")).startswith(mes_actual)])
-        st.markdown(f"<div style='font-family:var(--mono); font-size:0.55rem; letter-spacing:0.2em; color:#3A4A6A; margin-top:-8px; margin-bottom:4px;'>OPERACIONES ESTE MES · {ops_mes}</div>", unsafe_allow_html=True)
-        if st.button("INICIAR DESPLIEGUE", key="goto_sim", use_container_width=True): ir_a("simulador")
 
     with c3:
-        st.markdown("""
-        <div class="module-card">
+        if st.button("__MOD03__", key="card_exp", use_container_width=True, help="Ver Expedientes"):
+            ir_a("expedientes")
+        st.markdown(f"""
+        <div class="module-card" onclick="void(0)" style="margin-top:-8px;">
             <div class="module-accent"></div>
             <div class="module-code">MOD-03 / EXPEDIENTES</div>
             <div class="module-title">Archivo Operacional</div>
             <div class="module-desc">Consulta y descarga de dossiers de sesiones anteriores con transcripciones completas.</div>
+            <div class="module-stat">EXPEDIENTES TOTALES · <span>{total_ops}</span></div>
+            <div class="module-arrow">→</div>
         </div>""", unsafe_allow_html=True)
-        st.markdown(f"<div style='font-family:var(--mono); font-size:0.55rem; letter-spacing:0.2em; color:#3A4A6A; margin-top:-8px; margin-bottom:4px;'>EXPEDIENTES TOTALES · {total_ops}</div>", unsafe_allow_html=True)
-        if st.button("VER EXPEDIENTES", key="goto_exp", use_container_width=True): ir_a("expedientes")
+
+    st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
 
     if u["Nombre"] == COMANDANTE_SUPREMO:
         c4, c5, c6 = st.columns(3)
@@ -673,43 +790,71 @@ if st.session_state.pantalla_actual == "menu":
         c4, c5 = st.columns(2)
 
     with c4:
-        st.markdown("""
-        <div class="module-card">
+        if st.button("__MOD04__", key="card_pers", use_container_width=True, help="Gestionar Personal"):
+            ir_a("personal")
+        st.markdown(f"""
+        <div class="module-card" onclick="void(0)" style="margin-top:-8px;">
             <div class="module-accent"></div>
             <div class="module-code">MOD-04 / PERSONAL</div>
-            <div class="module-title">Gestion de Operadores</div>
+            <div class="module-title">Gestión de Operadores</div>
             <div class="module-desc">Reclutamiento de agentes, control de accesos, enlace cifrado y ajustes de cuenta.</div>
+            <div class="module-stat">AGENTES ACTIVOS · <span>{agentes_activos}</span></div>
+            <div class="module-arrow">→</div>
         </div>""", unsafe_allow_html=True)
-        agentes_activos = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"])
-        st.markdown(f"<div style='font-family:var(--mono); font-size:0.55rem; letter-spacing:0.2em; color:#3A4A6A; margin-top:-8px; margin-bottom:4px;'>AGENTES ACTIVOS · {agentes_activos}</div>", unsafe_allow_html=True)
-        if st.button("GESTIONAR PERSONAL", key="goto_pers", use_container_width=True): ir_a("personal")
 
     with c5:
-        st.markdown("""
-        <div class="module-card gold">
+        if st.button("__MOD05__", key="card_sint", use_container_width=True, help="Generación de Escenarios"):
+            ir_a("sintesis")
+        st.markdown(f"""
+        <div class="module-card gold" onclick="void(0)" style="margin-top:-8px;">
             <div class="module-accent"></div>
-            <div class="module-code">MOD-05 / SINTESIS</div>
-            <div class="module-title">Generacion de Escenarios</div>
+            <div class="module-code">MOD-05 / SÍNTESIS</div>
+            <div class="module-title">Generación de Escenarios</div>
             <div class="module-desc">Motor de IA para crear simulaciones personalizadas adaptadas a tu contexto operativo.</div>
+            <div class="module-stat">ESCENARIOS ACTIVOS · <span>{escenarios_creados}</span></div>
+            <div class="module-arrow">→</div>
         </div>""", unsafe_allow_html=True)
-        escenarios_creados = len(mis_escenarios)
-        st.markdown(f"<div style='font-family:var(--mono); font-size:0.55rem; letter-spacing:0.2em; color:#3A4A6A; margin-top:-8px; margin-bottom:4px;'>ESCENARIOS ACTIVOS · {escenarios_creados}</div>", unsafe_allow_html=True)
-        if st.button("ACCEDER A SINTESIS", key="goto_sint", use_container_width=True): ir_a("sintesis")
 
     if u["Nombre"] == COMANDANTE_SUPREMO:
         with c6:
-            total_clientes = len([e for e in st.session_state.empleados if e["Nombre"] != COMANDANTE_SUPREMO])
-            mrr = sum({"COMANDANCIA":199,"ESCUADRON":89,"ELITE":49,"OPERADOR":19,"BASE":0}.get(
-                _legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0) for e in st.session_state.empleados)
-            st.markdown("""
-            <div class="module-card" style="border-left-color: #E8394A;">
-                <div class="module-accent" style="background:#E8394A;"></div>
+            _precio_plan_mrr = {"COMANDANCIA":199,"ESCUADRON":89,"ELITE":49,"OPERADOR":19,"BASE":0}
+            mrr = sum(_precio_plan_mrr.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
+                      for e in st.session_state.empleados)
+            if st.button("__MOD06__", key="card_admin", use_container_width=True, help="Consola Omega"):
+                ir_a("admin")
+            st.markdown(f"""
+            <div class="module-card admin-card" onclick="void(0)" style="margin-top:-8px;">
+                <div class="module-accent"></div>
                 <div class="module-code">MOD-06 / ADMIN</div>
                 <div class="module-title">Consola Omega</div>
-                <div class="module-desc">Panel de control global. Gestion de usuarios, planes y métricas SaaS en tiempo real.</div>
+                <div class="module-desc">Panel de control global. Gestión de usuarios, planes y métricas SaaS en tiempo real.</div>
+                <div class="module-stat">MRR ESTIMADO · <span style="color:var(--amber)">{mrr}€</span></div>
+                <div class="module-arrow">→</div>
             </div>""", unsafe_allow_html=True)
-            st.markdown(f"<div style='font-family:var(--mono); font-size:0.55rem; letter-spacing:0.2em; color:#3A4A6A; margin-top:-8px; margin-bottom:4px;'>MRR ESTIMADO · {mrr}€</div>", unsafe_allow_html=True)
-            if st.button("CONSOLA OMEGA", key="goto_admin", use_container_width=True): ir_a("admin")
+
+    # Ocultar los botones dummy con CSS
+    st.markdown("""
+    <style>
+    [data-testid="stButton"] button[title="Acceder a Estadísticas"],
+    [data-testid="stButton"] button[title="Iniciar Simulador"],
+    [data-testid="stButton"] button[title="Ver Expedientes"],
+    [data-testid="stButton"] button[title="Gestionar Personal"],
+    [data-testid="stButton"] button[title="Generación de Escenarios"],
+    [data-testid="stButton"] button[title="Consola Omega"] {
+        opacity: 0 !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 10 !important;
+        cursor: pointer !important;
+        background: transparent !important;
+        border: none !important;
+        border-radius: 2px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
     st.stop()
 
@@ -717,7 +862,7 @@ if st.session_state.pantalla_actual == "menu":
 # ESTADÍSTICAS
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "estadisticas":
-    st.markdown("<div class='section-header'><div><div class='section-code'>MOD-01</div><div class='section-title'>Analisis de Rendimiento</div></div></div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'><div><div class='section-code'>MOD-01</div><div class='section-title'>Análisis de Rendimiento</div></div></div>", unsafe_allow_html=True)
 
     total_ops    = len(historial_visible)
     media_global = int(sum(s["Nota"] for s in historial_visible) / total_ops) if total_ops > 0 else 0
@@ -737,7 +882,7 @@ elif st.session_state.pantalla_actual == "estadisticas":
         df["Nota"] = pd.to_numeric(df["Nota"])
         col_left, col_right = st.columns(2, gap="medium")
         with col_left:
-            st.markdown("<div class='section-label'>DISTRIBUCION DE ESCENARIOS</div>", unsafe_allow_html=True)
+            st.markdown("<div class='section-label'>DISTRIBUCIÓN DE ESCENARIOS</div>", unsafe_allow_html=True)
             esc_count = df["Escenario"].value_counts().reset_index()
             esc_count.columns = ["Escenario","Count"]
             fig2 = go.Figure(go.Pie(labels=esc_count["Escenario"], values=esc_count["Count"], hole=0.65,
@@ -746,12 +891,12 @@ elif st.session_state.pantalla_actual == "estadisticas":
             st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
         with col_right:
             if es_empresa:
-                st.markdown("<div class='section-label'>EVALUACION POR OPERADOR</div>", unsafe_allow_html=True)
+                st.markdown("<div class='section-label'>EVALUACIÓN POR OPERADOR</div>", unsafe_allow_html=True)
                 avg_agent = df.groupby("Agente")["Nota"].mean().reset_index()
                 fig3 = go.Figure(go.Bar(x=avg_agent["Nota"], y=avg_agent["Agente"], orientation='h', marker=dict(color='#4F8EF7')))
                 fig3.update_layout(**PLOTLY_THEME, height=280)
             else:
-                st.markdown("<div class='section-label'>HISTORICO DE DESEMPENO</div>", unsafe_allow_html=True)
+                st.markdown("<div class='section-label'>HISTÓRICO DE DESEMPEÑO</div>", unsafe_allow_html=True)
                 df["Fecha_dt"] = pd.to_datetime(df["Fecha"])
                 df_sorted = df.sort_values("Fecha_dt")
                 fig3 = go.Figure(go.Scatter(x=df_sorted["Fecha_dt"], y=df_sorted["Nota"],
@@ -764,24 +909,33 @@ elif st.session_state.pantalla_actual == "estadisticas":
 # PERSONAL
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "personal":
-    st.markdown("<div class='section-header'><div><div class='section-code'>MOD-04</div><div class='section-title'>Gestion de Operadores</div></div></div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'><div><div class='section-code'>MOD-04</div><div class='section-title'>Gestión de Operadores</div></div></div>", unsafe_allow_html=True)
 
     if es_empresa:
         st.markdown("<div class='section-label'>ENLACE SEGURO DE RECLUTAMIENTO</div>", unsafe_allow_html=True)
         if agentes_lim > 0 or u["Nombre"] == COMANDANTE_SUPREMO:
-            token_cifrado  = base64.urlsafe_b64encode(empresa_actual.encode()).decode()
-            URL_BASE_APP   = "https://crysis.streamlit.app/"
+            token_cifrado   = base64.urlsafe_b64encode(empresa_actual.encode()).decode()
+            URL_BASE_APP    = "https://crysis.streamlit.app/"
             enlace_completo = f"{URL_BASE_APP}?invite={token_cifrado}"
-            st.info("Comparte este enlace con tus agentes para que se incorporen automáticamente a tu unidad.")
+            st.markdown("""<div class="alert-box">Comparte este enlace con tus agentes para que se incorporen automáticamente a tu unidad.</div>""", unsafe_allow_html=True)
             st.code(enlace_completo, language="html")
         else:
-            st.warning("Tu nivel de licencia no permite la formación de escuadrones. Actualiza a ESCUADRON o COMANDANCIA.")
+            st.markdown("""<div class="alert-box warning">Tu nivel de licencia no permite la formación de escuadrones. Actualiza a ESCUADRON o COMANDANCIA.</div>""", unsafe_allow_html=True)
 
         st.markdown("<br><div class='section-label'>PLANTILLA OPERATIVA ACTIVA</div>", unsafe_allow_html=True)
         agentes_mios = [e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]
         if agentes_mios:
             for ag in agentes_mios:
-                st.markdown(f"**{ag['Nombre']}** | Unidad: {ag.get('Departamento','—')} | Contacto: {ag['Email']}")
+                col_ag1, col_ag2 = st.columns([4, 1])
+                with col_ag1:
+                    st.markdown(f"""
+                    <div style="background:var(--bg2); border:1px solid var(--border); border-radius:2px; padding:12px 16px; margin-bottom:6px;">
+                        <span style="color:var(--text-hi); font-weight:600;">{ag['Nombre']}</span>
+                        <span style="color:var(--text-lo); font-family:var(--mono); font-size:0.6rem; margin-left:12px;">
+                            {ag.get('Departamento','—')} · {ag['Email']}
+                        </span>
+                    </div>
+                    """, unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
             with st.expander("REVOCAR ACCESO DE PERSONAL"):
                 ag_a_borrar = st.selectbox("Operador a revocar:", [a['Nombre'] for a in agentes_mios])
@@ -789,50 +943,56 @@ elif st.session_state.pantalla_actual == "personal":
                     st.session_state.empleados = [e for e in st.session_state.empleados if e['Nombre'] != ag_a_borrar]
                     guardar_datos(); st.success(f"Operador {ag_a_borrar} revocado."); st.rerun()
         else:
-            st.markdown("No hay agentes activos en esta unidad.")
+            st.markdown("<div style='color:var(--text-lo); font-family:var(--mono); font-size:0.65rem; padding:20px 0;'>No hay agentes activos en esta unidad.</div>", unsafe_allow_html=True)
     else:
-        st.markdown("<div class='section-label'>ACREDITACION CONFIRMADA</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-label'>ACREDITACIÓN CONFIRMADA</div>", unsafe_allow_html=True)
         st.markdown(f"""<div class="briefing-box"><h4>DATOS DEL OPERADOR</h4>
-        <p><b>Identificador:</b> {u['Nombre']} | <b>Unidad:</b> {empresa_actual} | <b>Plan:</b> {mi_plan}</p></div>""",
+        <p><b>Identificador:</b> {u['Nombre']} &nbsp;|&nbsp; <b>Unidad:</b> {empresa_actual} &nbsp;|&nbsp; <b>Plan:</b> {mi_plan}</p></div>""",
         unsafe_allow_html=True)
 
     st.markdown("<br><div class='section-label'>AJUSTES DE CUENTA</div>", unsafe_allow_html=True)
-    with st.expander("CAMBIAR CLAVE DE ACCESO"):
-        nueva_pass = st.text_input("Nueva Contraseña", type="password")
-        if st.button("ACTUALIZAR CONTRASENA"):
-            if nueva_pass:
+    with st.expander("CAMBIAR CONTRASEÑA"):
+        nueva_pass = st.text_input("Nueva Contraseña", type="password", key="nueva_pass_input")
+        confirmar  = st.text_input("Confirmar Contraseña", type="password", key="confirmar_pass_input")
+        if st.button("ACTUALIZAR CONTRASEÑA"):
+            if not nueva_pass:
+                st.warning("Introduce una contraseña válida.")
+            elif nueva_pass != confirmar:
+                st.error("Las contraseñas no coinciden.")
+            else:
                 for e in st.session_state.empleados:
                     if e["Nombre"] == u["Nombre"]: e["Password"] = nueva_pass
                 st.session_state.usuario_actual["Password"] = nueva_pass
-                guardar_datos(); st.success("Contraseña actualizada.")
-            else: st.warning("Introduce una contraseña válida.")
+                guardar_datos(); st.success("Contraseña actualizada correctamente.")
 
     if u["Nombre"] != COMANDANTE_SUPREMO:
-        st.markdown("<br><div class='section-label'>GESTION DE SUSCRIPCION</div>", unsafe_allow_html=True)
+        st.markdown("<br><div class='section-label'>GESTIÓN DE SUSCRIPCIÓN</div>", unsafe_allow_html=True)
         planes_suscripcion = [
-            ("OPERADOR",    "19€/mes", "Individual · 10 ops", "OPERADOR"),
-            ("ELITE",       "49€/mes", "Individual · ∞ ops · IA ∞", "ELITE"),
-            ("ESCUADRON",   "89€/mes", "Equipo · 15 agentes", "ESCUADRON"),
-            ("COMANDANCIA", "199€/mes","Enterprise · ∞ agentes", "COMANDANCIA"),
+            ("OPERADOR",    "19€/mes",  "10 ops/mes · 3 esc.", "OPERADOR"),
+            ("ELITE",       "49€/mes",  "Ilimitado · IA ∞",    "ELITE"),
+            ("ESCUADRON",   "89€/mes",  "Equipo · 15 agentes", "ESCUADRON"),
+            ("COMANDANCIA", "199€/mes", "Enterprise · ∞",      "COMANDANCIA"),
         ]
         cols_plan = st.columns(4)
         for col, (nombre, precio, desc, plan_key) in zip(cols_plan, planes_suscripcion):
             with col:
                 es_elite_p = plan_key in ["ELITE","ESCUADRON","COMANDANCIA"]
                 color_p    = "#F0A500" if es_elite_p else "#4F8EF7"
-                st.markdown(f"""<div class="metric-card" style="{'border-left-color:#F0A500' if es_elite_p else ''}">
+                activo     = mi_plan == plan_key
+                border_col = "#00D4A0" if activo else ("#F0A500" if es_elite_p else "var(--border)")
+                st.markdown(f"""<div class="metric-card" style="border-left-color:{border_col}; {'border-color:#00D4A020;' if activo else ''}">
                     <div class="metric-label">{nombre}</div>
                     <div class="metric-value" style="font-size:1.1rem; color:{color_p};">{precio}</div>
                     <div style="font-family:var(--mono); font-size:0.52rem; color:#3A4A6A; margin-top:8px;">{desc}</div>
+                    {'<div style="font-family:var(--mono); font-size:0.52rem; color:#00D4A0; margin-top:10px;">● ACTIVO</div>' if activo else ''}
                 </div>""", unsafe_allow_html=True)
                 st.markdown("<br>", unsafe_allow_html=True)
-                if mi_plan == plan_key:
-                    st.success("Activo")
-                else:
+                if not activo:
                     link = LINKS_PAGO.get(plan_key, "#")
                     st.markdown(f'<a href="{link}" target="_blank"><button style="background:#4F8EF7;color:#060810;font-family:var(--mono);font-weight:700;border:none;padding:10px;border-radius:2px;cursor:pointer;width:100%;font-size:0.6rem;letter-spacing:0.1em;">ACTIVAR</button></a>', unsafe_allow_html=True)
 
     st.markdown("<br><div class='section-label'>ZONA DE RIESGO</div>", unsafe_allow_html=True)
+    st.markdown("""<div class="alert-box error">Esta acción es irreversible. Se eliminarán todos los datos asociados a tu cuenta.</div>""", unsafe_allow_html=True)
     if st.button("ELIMINAR MI CUENTA DEFINITIVAMENTE", type="primary"):
         if es_empresa:
             st.session_state.empleados = [e for e in st.session_state.empleados if e.get("Empresa") != u["Nombre"]]
@@ -851,21 +1011,18 @@ elif st.session_state.pantalla_actual == "expedientes":
         df_hist["Nota"] = pd.to_numeric(df_hist["Nota"])
         for agente, df_agente in df_hist.groupby("Agente"):
             media_agente = int(df_agente["Nota"].mean())
-            with st.expander(f"OPERADOR: {agente.upper()}  —  METRICA GLOBAL: {media_agente}%", expanded=False):
+            with st.expander(f"OPERADOR: {agente.upper()}  —  MÉTRICA GLOBAL: {media_agente}%", expanded=False):
                 st.markdown("<br>", unsafe_allow_html=True)
                 for escenario, df_op in df_agente.groupby("Escenario"):
                     media_op = int(df_op["Nota"].mean())
                     lbl_esc  = escenario.replace("OPERACION: ","")
-                    with st.expander(f"{lbl_esc}  —  Evaluacion Media: {media_op}%", expanded=True):
+                    with st.expander(f"{lbl_esc}  —  Evaluación Media: {media_op}%", expanded=True):
                         for _, s in df_op.sort_values("Fecha", ascending=False).iterrows():
                             nota_ind   = s['Nota']
                             c_nota     = "#00D4A0" if nota_ind >= 80 else ("#F0A500" if nota_ind >= 50 else "#E8394A")
                             modo_badge = "PRIVADO" if s.get("Tipo_Mision") == "Personal" else "OFICIAL"
                             dif_badge  = s.get("Dificultad", "—")
                             dif_color  = DIFICULTADES.get(dif_badge, {}).get("color", "#3A4A6A")
-
-                            # Determinar si el usuario actual puede borrar esta sesión
-                            # Solo puede borrar sus propias sesiones; empresa no borra las de sus agentes
                             puede_borrar = (s["Agente"] == u["Nombre"]) or (u["Nombre"] == COMANDANTE_SUPREMO)
 
                             st.markdown(f"""
@@ -881,7 +1038,6 @@ elif st.session_state.pantalla_actual == "expedientes":
                             """, unsafe_allow_html=True)
 
                             col_pdf, col_del = st.columns([3, 1])
-
                             with col_pdf:
                                 st.download_button(
                                     label="EXTRAER DOSSIER PDF",
@@ -890,57 +1046,41 @@ elif st.session_state.pantalla_actual == "expedientes":
                                     mime="application/pdf",
                                     key=f"pdf_{s['Agente']}_{s['Fecha']}"
                                 )
-
                             with col_del:
                                 if puede_borrar:
-                                    # Clave única por sesión para el estado de confirmación
                                     confirm_key = f"confirm_del_{s['Agente']}_{s['Fecha']}"
                                     input_key   = f"input_del_{s['Agente']}_{s['Fecha']}"
-
                                     if not st.session_state.get(confirm_key, False):
                                         if st.button("ELIMINAR", key=f"btn_del_{s['Agente']}_{s['Fecha']}", type="secondary", use_container_width=True):
-                                            st.session_state[confirm_key] = True
-                                            st.rerun()
+                                            st.session_state[confirm_key] = True; st.rerun()
                                     else:
                                         st.markdown("""
                                         <div style="background:#1A0A0A; border:1px solid #E8394A; border-left:3px solid #E8394A;
                                                     padding:10px 12px; border-radius:2px; margin-bottom:6px;">
                                             <div style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.2em;
-                                                        color:#E8394A; margin-bottom:6px;">CONFIRMACION REQUERIDA</div>
+                                                        color:#E8394A; margin-bottom:6px;">CONFIRMACIÓN REQUERIDA</div>
                                             <div style="font-family:var(--mono); font-size:0.52rem; color:#3A4A6A; line-height:1.5;">
-                                                Escribe <b style="color:#B8C4DC;">CONFIRMAR BORRADO</b> y pulsa el botón para eliminar este expediente de forma permanente.
+                                                Escribe <b style="color:#B8C4DC;">CONFIRMAR BORRADO</b> y pulsa ejecutar.
                                             </div>
                                         </div>
                                         """, unsafe_allow_html=True)
-
-                                        texto_confirmacion = st.text_input(
-                                            "Frase de confirmación:",
-                                            key=input_key,
-                                            placeholder="CONFIRMAR BORRADO",
-                                            label_visibility="collapsed"
-                                        )
-
+                                        texto_confirmacion = st.text_input("", key=input_key, placeholder="CONFIRMAR BORRADO", label_visibility="collapsed")
                                         col_conf, col_canc = st.columns(2)
                                         with col_conf:
                                             if st.button("EJECUTAR", key=f"exec_del_{s['Agente']}_{s['Fecha']}", use_container_width=True):
                                                 if texto_confirmacion.strip().upper() == "CONFIRMAR BORRADO":
-                                                    # Eliminar la sesión del historial
                                                     st.session_state.historial_sesiones = [
                                                         ses for ses in st.session_state.historial_sesiones
                                                         if not (ses["Agente"] == s["Agente"] and ses["Fecha"] == s["Fecha"])
                                                     ]
-                                                    guardar_datos()
-                                                    del st.session_state[confirm_key]
-                                                    st.rerun()
-                                                else:
-                                                    st.error("Frase incorrecta.")
+                                                    guardar_datos(); del st.session_state[confirm_key]; st.rerun()
+                                                else: st.error("Frase incorrecta.")
                                         with col_canc:
                                             if st.button("CANCELAR", key=f"canc_del_{s['Agente']}_{s['Fecha']}", use_container_width=True, type="secondary"):
-                                                del st.session_state[confirm_key]
-                                                st.rerun()
+                                                del st.session_state[confirm_key]; st.rerun()
 
                             if es_empresa and mi_plan == "COMANDANCIA" and "Transcripcion" in s:
-                                st.markdown("<br><span style='color:#F0A500; font-size:0.65rem; font-family:var(--mono); letter-spacing:0.1em;'>AUDITORIA DE COMUNICACIONES</span>", unsafe_allow_html=True)
+                                st.markdown("<br><span style='color:#F0A500; font-size:0.65rem; font-family:var(--mono); letter-spacing:0.1em;'>AUDITORÍA DE COMUNICACIONES</span>", unsafe_allow_html=True)
                                 for tr in s["Transcripcion"]:
                                     ag_tr = "OPERADOR" if tr["role"] == "user" else "SUJETO"
                                     colr  = "#4F8EF7" if tr["role"] == "user" else "#E8394A"
@@ -948,12 +1088,13 @@ elif st.session_state.pantalla_actual == "expedientes":
 
                             st.markdown("</div>", unsafe_allow_html=True)
     else:
-        st.markdown("<div style='text-align:center; padding:60px; color:#18213A; font-family:var(--mono);'>DIRECTORIO VACIO</div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:center; padding:60px; color:#18213A; font-family:var(--mono);'>DIRECTORIO VACÍO</div>", unsafe_allow_html=True)
+
 # ─────────────────────────────────────────
 # SIMULADOR TÁCTICO
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "simulador":
-    st.markdown("<div class='section-header'><div><div class='section-code'>MOD-02</div><div class='section-title'>Simulador Tactico</div></div></div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'><div><div class='section-code'>MOD-02</div><div class='section-title'>Simulador Táctico</div></div></div>", unsafe_allow_html=True)
 
     if not st.session_state.mision_iniciada:
         c1, c2 = st.columns(2)
@@ -965,7 +1106,6 @@ elif st.session_state.pantalla_actual == "simulador":
 
         es_sel = c2.selectbox("Seleccionar Protocolo:", list(TODAS_LAS_MISIONES.keys()))
 
-        # ── SELECTOR DE DIFICULTAD ──
         st.markdown("<br><div class='section-label'>NIVEL DE DIFICULTAD</div>", unsafe_allow_html=True)
         d_cols = st.columns(4)
         for i, (d_nombre, d_data) in enumerate(DIFICULTADES.items()):
@@ -974,14 +1114,9 @@ elif st.session_state.pantalla_actual == "simulador":
                 border_d  = d_data["color"] if is_sel_d else "#18213A"
                 bg_d      = f"rgba({','.join(str(int(d_data['color'].lstrip('#')[j:j+2],16)) for j in (0,2,4))},0.12)" if is_sel_d else "#101525"
                 st.markdown(f"""
-                <div class="diff-card {'selected' if is_sel_d else ''}"
-                     style="border-color:{border_d}; background:{bg_d};">
-                    <div class="diff-name" style="color:{d_data['color']};">
-                        {d_nombre}
-                    </div>
-                    <div style="font-family:var(--mono); font-size:0.5rem; color:{d_data['color']}; opacity:0.7; margin-top:2px; letter-spacing:0.12em;">
-                        LVL {d_data['nivel']}
-                    </div>
+                <div class="diff-card {'selected' if is_sel_d else ''}" style="border-color:{border_d}; background:{bg_d};">
+                    <div class="diff-name" style="color:{d_data['color']};">{d_nombre}</div>
+                    <div style="font-family:var(--mono); font-size:0.5rem; color:{d_data['color']}; opacity:0.7; margin-top:2px; letter-spacing:0.12em;">LVL {d_data['nivel']}</div>
                     <div class="diff-desc">{d_data['desc']}</div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -993,7 +1128,7 @@ elif st.session_state.pantalla_actual == "simulador":
         if u.get("Rol") == "Agente":
             tipo_despliegue = st.radio(
                 "Nivel de Privacidad:",
-                ["Mision Oficial (Auditable por el Mando)", "Entrenamiento Privado (Oculto en expediente corporativo)"],
+                ["Misión Oficial (Auditable por el Mando)", "Entrenamiento Privado (Oculto en expediente corporativo)"],
                 horizontal=True
             )
             tipo_mision_val = "Corporativa" if "Oficial" in tipo_despliegue else "Personal"
@@ -1005,15 +1140,15 @@ elif st.session_state.pantalla_actual == "simulador":
         dif_color  = DIFICULTADES[dif_activa]["color"]
         st.markdown(f"""
         <div class="briefing-box">
-            <h4>REPORTE DE SITUACION</h4>
+            <h4>REPORTE DE SITUACIÓN</h4>
             <p><b>Contexto:</b> {info['contexto']}</p>
-            <p><b>Perfil:</b> {info['perfil_sujeto']}</p>
+            <p><b>Perfil del objetivo:</b> {info['perfil_sujeto']}</p>
             <p><b>Directiva:</b> {info['objetivo']}</p>
             <p><b>Dificultad:</b> <span style="color:{dif_color}; font-family:var(--mono); font-weight:700;">{dif_activa} (Nivel {DIFICULTADES[dif_activa]['nivel']})</span></p>
         </div>
         """, unsafe_allow_html=True)
 
-        mes_actual  = datetime.now().strftime("%Y-%m")
+        mes_actual   = datetime.now().strftime("%Y-%m")
         ops_este_mes = len([s for s in st.session_state.historial_sesiones
                             if s["Agente"] == ag_sel and str(s.get("Fecha","")).startswith(mes_actual)])
 
@@ -1021,9 +1156,9 @@ elif st.session_state.pantalla_actual == "simulador":
         if mi_plan != "COMANDANCIA" and u["Nombre"] != COMANDANTE_SUPREMO:
             if ops_este_mes >= ops_limite:
                 bloquear_inicio = True
-                st.error(f"AUTORIZACION DENEGADA: Cuota mensual superada ({ops_este_mes}/{ops_limite} ops). Actualiza tu plan.")
+                st.markdown(f"""<div class="alert-box error">AUTORIZACIÓN DENEGADA: Cuota mensual superada ({ops_este_mes}/{ops_limite} ops). Actualiza tu plan.</div>""", unsafe_allow_html=True)
 
-        if st.button("INICIAR ENLACE DE COMUNICACION", use_container_width=True, disabled=bloquear_inicio):
+        if st.button("INICIAR ENLACE DE COMUNICACIÓN", use_container_width=True, disabled=bloquear_inicio):
             if GROQ_API_KEY:
                 with st.spinner("Estableciendo conexión segura..."):
                     try:
@@ -1037,22 +1172,22 @@ elif st.session_state.pantalla_actual == "simulador":
                         st.session_state.tarjeta_objetivo = json.loads(res)
                     except:
                         st.session_state.tarjeta_objetivo = {"Nombre_Completo":"Desconocido","Familia":"Clasificado","Estado_Mental":"Inestable"}
-            st.session_state.mision_iniciada   = True
-            st.session_state.mensajes          = []
-            st.session_state.agente_activo     = ag_sel
-            st.session_state.escenario_activo  = es_sel
+            st.session_state.mision_iniciada    = True
+            st.session_state.mensajes           = []
+            st.session_state.agente_activo      = ag_sel
+            st.session_state.escenario_activo   = es_sel
             st.session_state.tipo_mision_actual = tipo_mision_val
-            st.session_state.dificultad_sesion = dif_activa
+            st.session_state.dificultad_sesion  = dif_activa
             st.rerun()
 
     elif st.session_state.evaluacion_actual:
-        st.markdown("<div class='section-label'>INFORME DE EVALUACION TACTICA</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-label'>INFORME DE EVALUACIÓN TÁCTICA</div>", unsafe_allow_html=True)
         st.markdown(st.session_state.evaluacion_actual)
         st.markdown("<br>", unsafe_allow_html=True)
         col_end1, col_end2 = st.columns(2)
         with col_end1:
-            if st.button("ARCHIVAR INFORME Y VOLVER AL MENU", use_container_width=True):
-                st.session_state.mision_iniciada  = False
+            if st.button("ARCHIVAR INFORME Y VOLVER AL MENÚ", use_container_width=True):
+                st.session_state.mision_iniciada   = False
                 st.session_state.evaluacion_actual = None
                 st.session_state.mensajes          = []
                 st.session_state.tarjeta_objetivo  = None
@@ -1069,11 +1204,11 @@ elif st.session_state.pantalla_actual == "simulador":
             )
 
     else:
-        dif_sesion = st.session_state.get("dificultad_sesion", "OPERATOR")
+        dif_sesion  = st.session_state.get("dificultad_sesion", "OPERATOR")
         dif_color_s = DIFICULTADES.get(dif_sesion, {}).get("color","#4F8EF7")
         st.markdown(f"""
         <div class='status-bar'>
-            LINEA SEGURA ACTIVA: {st.session_state.escenario_activo} — 
+            ● LÍNEA SEGURA ACTIVA: {st.session_state.escenario_activo} — 
             OPERADOR: {st.session_state.agente_activo.upper()} — 
             <span style="color:{dif_color_s};">DIFICULTAD: {dif_sesion}</span>
         </div>
@@ -1082,13 +1217,13 @@ elif st.session_state.pantalla_actual == "simulador":
         if st.session_state.tarjeta_objetivo:
             t = st.session_state.tarjeta_objetivo
             st.markdown(f"""<div style="display:flex; gap:15px; background:#0B0E1A; border:1px solid #18213A; border-left:3px solid #F0A500; border-radius:2px; padding:14px 20px; margin-bottom:20px;">
-                <div style="flex:1;"><div style="color:#F0A500; font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">IDENTIFICACION</div><div style="color:#E2EAF8;">{str(t.get('Nombre_Completo','N/A'))}</div></div>
-                <div style="flex:1;"><div style="color:#F0A500; font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">VINCULOS</div><div style="color:#B8C4DC; font-size:0.88rem;">{str(t.get('Familia','N/A'))}</div></div>
-                <div style="flex:1;"><div style="color:#F0A500; font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">ESTADO CLINICO</div><div style="color:#B8C4DC; font-size:0.88rem;">{str(t.get('Estado_Mental','N/A'))}</div></div>
+                <div style="flex:1;"><div style="color:#F0A500; font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">IDENTIFICACIÓN</div><div style="color:#E2EAF8;">{str(t.get('Nombre_Completo','N/A'))}</div></div>
+                <div style="flex:1;"><div style="color:#F0A500; font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">VÍNCULOS</div><div style="color:#B8C4DC; font-size:0.88rem;">{str(t.get('Familia','N/A'))}</div></div>
+                <div style="flex:1;"><div style="color:#F0A500; font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">ESTADO CLÍNICO</div><div style="color:#B8C4DC; font-size:0.88rem;">{str(t.get('Estado_Mental','N/A'))}</div></div>
             </div>""", unsafe_allow_html=True)
 
         for m in st.session_state.mensajes:
-            label  = "TU" if m["role"] == "user" else "SUJETO"
+            label  = "TÚ" if m["role"] == "user" else "SUJETO"
             bg     = "#0D1424" if m["role"] == "user" else "#0B0E1A"
             border = "#4F8EF7" if m["role"] == "user" else "#E8394A"
             align  = "flex-end" if m["role"] == "user" else "flex-start"
@@ -1098,12 +1233,12 @@ elif st.session_state.pantalla_actual == "simulador":
                 <div style="color:#B8C4DC; font-size:0.9rem; line-height:1.6;">{m['content']}</div>
             </div></div>""", unsafe_allow_html=True)
 
-        if prompt := st.chat_input("Introduzca directiva de respuesta..."):
+        if prompt := st.chat_input("Introduce tu mensaje al sujeto..."):
             st.session_state.mensajes.append({"role":"user","content":prompt}); st.rerun()
 
         if st.session_state.mensajes and st.session_state.mensajes[-1]["role"] == "user":
             if GROQ_API_KEY:
-                client     = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                client      = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
                 escenario_a = st.session_state.escenario_activo
                 base_prompt = TODAS_LAS_MISIONES[escenario_a]["prompt"]
                 dif_instruc = DIFICULTADES.get(dif_sesion, {}).get("instruccion","")
@@ -1126,47 +1261,33 @@ elif st.session_state.pantalla_actual == "simulador":
                 st.rerun()
         with col_end:
             if len(st.session_state.mensajes) > 0:
-                if st.button("SOLICITAR EVALUACION TACTICA", use_container_width=True):
-                    with st.spinner("Procesando auditoria lingüística..."):
+                if st.button("SOLICITAR EVALUACIÓN TÁCTICA", use_container_width=True):
+                    with st.spinner("Procesando auditoría lingüística..."):
                         client    = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
                         escenario = st.session_state.escenario_activo
                         info_ev   = TODAS_LAS_MISIONES[escenario]
                         dif_ev    = st.session_state.get("dificultad_sesion","OPERATOR")
                         dif_nivel = DIFICULTADES.get(dif_ev,{}).get("nivel",2)
                         hist_txt  = "\n".join([f"{'OPERADOR' if m['role']=='user' else 'SUJETO'}: {m['content']}" for m in st.session_state.mensajes])
-
                         umbral_excelente = {1:85, 2:80, 3:70, 4:60}.get(dif_nivel, 80)
                         umbral_correcto  = {1:65, 2:55, 3:45, 4:35}.get(dif_nivel, 55)
-
                         eval_prompt = f"""Eres un Analista de Inteligencia y Negociación Táctica altamente estricto.
 Evalúa el desempeño del OPERADOR en el escenario: {escenario}.
 Situación: {info_ev['contexto']}.
 Dificultad seleccionada: {dif_ev} (Nivel {dif_nivel}/4).
-
 AJUSTE POR DIFICULTAD:
-- En nivel {dif_ev}, una puntuación de {umbral_excelente} o más es EXCELENTE (sujeto muy difícil de manejar).
+- En nivel {dif_ev}, una puntuación de {umbral_excelente} o más es EXCELENTE.
 - Una puntuación de {umbral_correcto}-{umbral_excelente-1} es CORRECTA pero mejorable.
-- Por debajo de {umbral_correcto} es INSUFICIENTE incluso considerando la dificultad.
-- Penaliza proporcionalmente menos los errores menores en niveles altos.
-
-TRANSCRIPCION:
-{hist_txt}
-
-REGLAS DE EVALUACIÓN:
-1. NO regales puntuación por cortesía básica.
-2. Evalúa: control de la situación, técnicas de desescalada, resistencia a manipulación, lenguaje estratégico.
-3. Penaliza: ceder ante presión sin contrapartida, lenguaje amenazante, pérdida de control emocional.
-
-Estructura tu informe en:
-ANALISIS DE LENGUAJE / TACTICAS EMPLEADAS / ERRORES CRITICOS / VEREDICTO / COMO MEJORAR
-
-PUNTUACION FINAL: XX/100"""
-
+- Por debajo de {umbral_correcto} es INSUFICIENTE.
+TRANSCRIPCION: {hist_txt}
+REGLAS: NO regales puntuación. Evalúa: control de situación, desescalada, resistencia a manipulación, lenguaje estratégico.
+Penaliza: ceder sin contrapartida, lenguaje amenazante, pérdida de control emocional.
+Estructura: ANÁLISIS DE LENGUAJE / TÁCTICAS EMPLEADAS / ERRORES CRÍTICOS / VEREDICTO / CÓMO MEJORAR
+PUNTUACIÓN FINAL: XX/100"""
                         informe = client.chat.completions.create(
                             model="llama-3.3-70b-versatile",
                             messages=[{"role":"user","content":eval_prompt}]
                         ).choices[0].message.content
-
                         try:
                             match = re.search(r'PUNTUACI[OÓ]N FINAL[^\d]*(\d+)\s*\/?\s*100', informe, re.IGNORECASE)
                             nota  = min(int(match.group(1)), 100) if match else (
@@ -1174,17 +1295,16 @@ PUNTUACION FINAL: XX/100"""
                                 if re.search(r'(\d+)\s*/\s*100', informe) else 50)
                         except:
                             nota = 50
-
                         st.session_state.evaluacion_actual = informe
                         st.session_state.historial_sesiones.append({
-                            "Fecha":       datetime.now().strftime("%Y-%m-%d %H:%M"),
-                            "Agente":      st.session_state.agente_activo,
-                            "Escenario":   escenario,
-                            "Nota":        nota,
-                            "Evaluacion":  informe,
+                            "Fecha":        datetime.now().strftime("%Y-%m-%d %H:%M"),
+                            "Agente":       st.session_state.agente_activo,
+                            "Escenario":    escenario,
+                            "Nota":         nota,
+                            "Evaluacion":   informe,
                             "Transcripcion": st.session_state.mensajes,
-                            "Tipo_Mision": st.session_state.tipo_mision_actual,
-                            "Dificultad":  dif_ev,
+                            "Tipo_Mision":  st.session_state.tipo_mision_actual,
+                            "Dificultad":   dif_ev,
                         })
                         guardar_datos(); st.rerun()
 
@@ -1192,7 +1312,7 @@ PUNTUACION FINAL: XX/100"""
 # SÍNTESIS IA
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "sintesis":
-    st.markdown("<div class='section-header'><div><div class='section-code'>MOD-05</div><div class='section-title'>Generacion de Escenarios</div></div></div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'><div><div class='section-code'>MOD-05</div><div class='section-title'>Generación de Escenarios</div></div></div>", unsafe_allow_html=True)
 
     col_izq, col_der = st.columns([2, 1], gap="large")
     with col_izq:
@@ -1201,28 +1321,28 @@ elif st.session_state.pantalla_actual == "sintesis":
             st.markdown("<div class='section-label'>ESCENARIOS ACTIVOS</div>", unsafe_allow_html=True)
             for nombre_esc, datos_esc in mis_escenarios.items():
                 c_esc1, c_esc2 = st.columns([3, 1])
-                c_esc1.markdown(f"<span style='color:#B8C4DC;'>{nombre_esc}</span>", unsafe_allow_html=True)
+                c_esc1.markdown(f"""
+                <div style="background:var(--bg2); border:1px solid var(--border); border-radius:2px; padding:10px 14px; margin-bottom:4px;">
+                    <span style="color:var(--text-hi); font-size:0.85rem;">{nombre_esc}</span>
+                    <span style="color:var(--text-lo); font-family:var(--mono); font-size:0.55rem; margin-left:8px;">Creador: {datos_esc.get('Creador','—')}</span>
+                </div>
+                """, unsafe_allow_html=True)
                 if c_esc2.button("ELIMINAR", key=f"del_{nombre_esc}", type="secondary"):
                     del st.session_state.escenarios_custom[nombre_esc]; guardar_datos(); st.rerun()
             st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown("<div class='section-label'>NUEVA SIMULACION</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-label'>NUEVA SIMULACIÓN</div>", unsafe_allow_html=True)
 
         if mi_plan == "BASE" and u["Nombre"] != COMANDANTE_SUPREMO:
-            st.error("RESTRICCION: El Nivel BASE no posee autorización para el uso de IA Generativa.")
-            st.button("GENERAR NUEVA SIMULACION", disabled=True)
+            st.markdown("""<div class="alert-box error">RESTRICCIÓN: El nivel BASE no permite el uso de IA Generativa. Actualiza tu plan para desbloquear esta función.</div>""", unsafe_allow_html=True)
         else:
-            if u["Nombre"] == COMANDANTE_SUPREMO:
-                limite_esc = 99999
-            else:
-                limite_esc = escenarios_lim
-
+            limite_esc = 99999 if u["Nombre"] == COMANDANTE_SUPREMO else escenarios_lim
             if limite_esc != 99999 and creados >= limite_esc:
-                st.error(f"CUOTA DE SINTESIS ALCANZADA ({creados}/{limite_esc}). Elimina uno existente para crear otro.")
-                st.button("GENERAR NUEVA SIMULACION", disabled=True)
+                st.markdown(f"""<div class="alert-box warning">CUOTA ALCANZADA ({creados}/{limite_esc} escenarios). Elimina uno existente para crear otro.</div>""", unsafe_allow_html=True)
             else:
-                idea_prompt = st.text_area("Describe los parámetros del entorno táctico:", height=100)
-                if st.button("GENERAR NUEVA SIMULACION", use_container_width=True):
+                idea_prompt = st.text_area("Describe el entorno táctico y el tipo de sujeto:", height=100,
+                                           placeholder="Ej: Un ejecutivo corrupto atrapado en una negociación empresarial. Arrogante y calculador...")
+                if st.button("GENERAR NUEVA SIMULACIÓN", use_container_width=True):
                     if idea_prompt and GROQ_API_KEY:
                         with st.spinner("Enlazando con el motor de IA..."):
                             try:
@@ -1238,50 +1358,48 @@ elif st.session_state.pantalla_actual == "sintesis":
                                 nuevo_esc = json.loads(res)
                                 nuevo_esc["prompt"] += INSTRUCCION_ORTOGRAFIA
                                 st.session_state.escenarios_custom[nuevo_esc["nombre_op"]] = {
-                                    "contexto":       nuevo_esc["contexto"],
-                                    "perfil_sujeto":  nuevo_esc["perfil_sujeto"],
-                                    "objetivo":       nuevo_esc["objetivo"],
-                                    "prompt":         nuevo_esc["prompt"],
-                                    "Creador":        empresa_actual
+                                    "contexto":      nuevo_esc["contexto"],
+                                    "perfil_sujeto": nuevo_esc["perfil_sujeto"],
+                                    "objetivo":      nuevo_esc["objetivo"],
+                                    "prompt":        nuevo_esc["prompt"],
+                                    "Creador":       empresa_actual
                                 }
-                                guardar_datos(); st.success(f"Protocolo {nuevo_esc['nombre_op']} configurado."); st.rerun()
+                                guardar_datos(); st.success(f"Protocolo {nuevo_esc['nombre_op']} creado y activado."); st.rerun()
                             except Exception as e:
                                 st.error(f"Fallo del Motor IA: {e}")
                     elif not idea_prompt:
-                        st.warning("Escribe los parámetros base.")
+                        st.warning("Describe los parámetros del escenario.")
 
     with col_der:
         st.markdown("<div class='section-label'>NIVELES DE ACCESO IA</div>", unsafe_allow_html=True)
-        st.markdown("""
-        <div>
-            <div class="auth-tier"><div style="display:flex;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid #18213A;padding-bottom:6px;">
-                <span style="font-family:var(--mono);font-size:0.65rem;color:#E2EAF8;">BASE</span>
-                <span style="font-family:var(--mono);font-size:0.75rem;color:#3A4A6A;">0€</span></div>
-                <div class="tier-spec">Sin acceso a IA generativa</div><div class="tier-spec">1 op/mes</div></div>
-            <div class="auth-tier"><div style="display:flex;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid #18213A;padding-bottom:6px;">
-                <span style="font-family:var(--mono);font-size:0.65rem;color:#E2EAF8;">OPERADOR</span>
-                <span style="font-family:var(--mono);font-size:0.75rem;color:#4F8EF7;">19€/mes</span></div>
-                <div class="tier-spec">3 escenarios propios</div><div class="tier-spec">10 ops/mes</div></div>
-            <div class="auth-tier elite"><div style="display:flex;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid #18213A;padding-bottom:6px;">
-                <span style="font-family:var(--mono);font-size:0.65rem;color:#E2EAF8;">ELITE</span>
-                <span style="font-family:var(--mono);font-size:0.75rem;color:#F0A500;">49€/mes</span></div>
-                <div class="tier-spec">Escenarios ilimitados</div><div class="tier-spec">Ops ilimitadas</div></div>
-            <div class="auth-tier elite"><div style="display:flex;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid #18213A;padding-bottom:6px;">
-                <span style="font-family:var(--mono);font-size:0.65rem;color:#E2EAF8;">ESCUADRON</span>
-                <span style="font-family:var(--mono);font-size:0.75rem;color:#F0A500;">89€/mes</span></div>
-                <div class="tier-spec">15 agentes · IA ∞</div><div class="tier-spec">Ops ilimitadas</div></div>
-            <div class="auth-tier elite"><div style="display:flex;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid #18213A;padding-bottom:6px;">
-                <span style="font-family:var(--mono);font-size:0.65rem;color:#E2EAF8;">COMANDANCIA</span>
-                <span style="font-family:var(--mono);font-size:0.75rem;color:#F0A500;">199€/mes</span></div>
-                <div class="tier-spec">Agentes ∞ · IA ∞</div><div class="tier-spec">Ops ilimitadas</div></div>
-        </div>
-        """, unsafe_allow_html=True)
+        planes_der = [
+            ("BASE",        "0€",     False, ["Sin acceso a IA generativa", "1 op/mes"]),
+            ("OPERADOR",    "19€/mes", False, ["3 escenarios propios", "10 ops/mes"]),
+            ("ELITE",       "49€/mes", True,  ["Escenarios ilimitados", "Ops ilimitadas"]),
+            ("ESCUADRON",   "89€/mes", True,  ["15 agentes · IA ∞", "Ops ilimitadas"]),
+            ("COMANDANCIA", "199€/mes",True,  ["Agentes ∞ · IA ∞", "Ops ilimitadas"]),
+        ]
+        for nombre, precio, elite, specs in planes_der:
+            activo = mi_plan == nombre
+            color  = "#F0A500" if elite else "#4F8EF7"
+            border = "#00D4A0" if activo else ("#F0A500" if elite else "var(--border2)")
+            st.markdown(f"""
+            <div class="auth-tier {'elite' if elite else ''}" style="border-left-color:{border};">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid #18213A;padding-bottom:6px;">
+                    <span style="font-family:var(--mono);font-size:0.65rem;color:{'#00D4A0' if activo else 'var(--text-hi)'};">
+                        {'● ' if activo else ''}{nombre}
+                    </span>
+                    <span style="font-family:var(--mono);font-size:0.75rem;color:{color};">{precio}</span>
+                </div>
+                {''.join(f'<div class="tier-spec">{s}</div>' for s in specs)}
+            </div>
+            """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────
 # ADMIN — CONSOLA OMEGA
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_SUPREMO:
-    st.markdown("<div class='section-header'><div><div class='section-code'>MOD-06</div><div class='section-title'>Consola Omega — Administracion Global</div></div></div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'><div><div class='section-code'>MOD-06</div><div class='section-title'>Consola Omega — Administración Global</div></div></div>", unsafe_allow_html=True)
 
     _precio_plan = {"COMANDANCIA":199,"ESCUADRON":89,"ELITE":49,"OPERADOR":19,"BASE":0,
                     "Enterprise":199,"Pro":89,"Individual":19,"Gratis":0}
@@ -1313,7 +1431,8 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
                     plan_disp = _legacy.get(usr.get("Plan","BASE"), usr.get("Plan","BASE"))
                     c_u1.markdown(f"**{usr['Nombre']}** | {usr['Rol']} | {usr['Email']} | Plan: {plan_disp}")
                     if c_u2.button("PURGAR", key=f"del_g_{usr['Nombre']}_{i}", type="secondary"):
-                        st.session_state.empleados = [e for e in st.session_state.empleados if not (e["Nombre"] == usr["Nombre"] and e.get("Rol") == usr.get("Rol") and e.get("Empresa") == usr.get("Empresa"))]
+                        st.session_state.empleados = [e for e in st.session_state.empleados
+                                                       if not (e["Nombre"] == usr["Nombre"] and e.get("Rol") == usr.get("Rol") and e.get("Empresa") == usr.get("Empresa"))]
                         guardar_datos(); st.rerun()
 
         with st.expander("DIRECTORIO GLOBAL DE ESCENARIOS", expanded=False):
@@ -1326,15 +1445,14 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
                     del st.session_state.escenarios_custom[n_esc]; guardar_datos(); st.rerun()
 
     with col_adm2:
-        # ── EMITIR CREDENCIAL ──
-        with st.expander("EMITIR CREDENCIAL DE CORTESIA", expanded=True):
+        with st.expander("EMITIR CREDENCIAL DE CORTESÍA", expanded=True):
             with st.form("admin_create_user"):
-                new_n    = st.text_input("ID / Entidad", key="admin_new_n")
-                new_email= st.text_input("Correo",       key="admin_new_email")
-                new_pass = st.text_input("Contraseña", type="password", key="admin_new_pass")
-                new_rol  = st.selectbox("Rol", ["Individual","Empresa"], key="admin_new_rol")
-                new_plan = st.selectbox("Plan", ["BASE","OPERADOR","ELITE","ESCUADRON","COMANDANCIA"], key="admin_new_plan")
-                expira   = st.checkbox("Licencia temporal (30 dias)", value=False, key="admin_expira")
+                new_n     = st.text_input("ID / Entidad",   key="admin_new_n")
+                new_email = st.text_input("Correo",          key="admin_new_email")
+                new_pass  = st.text_input("Contraseña", type="password", key="admin_new_pass")
+                new_rol   = st.selectbox("Rol", ["Individual","Empresa"], key="admin_new_rol")
+                new_plan  = st.selectbox("Plan", ["BASE","OPERADOR","ELITE","ESCUADRON","COMANDANCIA"], key="admin_new_plan")
+                expira    = st.checkbox("Licencia temporal (30 días)", value=False, key="admin_expira")
                 if st.form_submit_button("GENERAR ACCESO", use_container_width=True):
                     if new_n and new_email and new_pass:
                         if any(e["Nombre"] == new_n for e in st.session_state.empleados):
@@ -1350,55 +1468,41 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
                     else:
                         st.warning("Rellena todos los campos.")
 
-        # ── ACTIVAR / CAMBIAR PLAN (SIN st.form) ──
         with st.expander("ACTIVAR / CAMBIAR PLAN", expanded=True):
             usuarios_no_admin = [e for e in st.session_state.empleados if e["Nombre"] != COMANDANTE_SUPREMO]
             if usuarios_no_admin:
                 opciones_labels = [
-                    f"{e['Nombre']} [{e.get('Rol','?')}] — Plan: {_legacy.get(e.get('Plan','BASE'), e.get('Plan','BASE'))}"
+                    f"{e['Nombre']} [{e.get('Rol','?')}] — {_legacy.get(e.get('Plan','BASE'), e.get('Plan','BASE'))}"
                     for e in usuarios_no_admin
                 ]
-                sel_idx = st.selectbox(
-                    "Usuario:",
-                    range(len(opciones_labels)),
-                    format_func=lambda i: opciones_labels[i],
-                    key="admin_sel_usuario_v2"
-                )
-                nuevo_plan_upg = st.selectbox(
-                    "Nuevo Plan:",
-                    ["BASE","OPERADOR","ELITE","ESCUADRON","COMANDANCIA"],
-                    key="admin_nuevo_plan_v2"
-                )
+                sel_idx = st.selectbox("Usuario:", range(len(opciones_labels)),
+                                       format_func=lambda i: opciones_labels[i], key="admin_sel_usuario_v2")
+                nuevo_plan_upg = st.selectbox("Nuevo Plan:", ["BASE","OPERADOR","ELITE","ESCUADRON","COMANDANCIA"],
+                                              key="admin_nuevo_plan_v2")
                 nueva_exp2 = st.checkbox("Añadir expiración (30 días)", value=False, key="admin_exp_check_v2")
-
                 if st.button("APLICAR PLAN", use_container_width=True, key="btn_aplicar_plan_v2"):
-                    usuario_obj   = usuarios_no_admin[sel_idx]
-                    nombre_target = usuario_obj["Nombre"]
-                    rol_target    = usuario_obj.get("Rol")
-                    empresa_target= usuario_obj.get("Empresa")
+                    usuario_obj    = usuarios_no_admin[sel_idx]
+                    nombre_target  = usuario_obj["Nombre"]
+                    rol_target     = usuario_obj.get("Rol")
+                    empresa_target = usuario_obj.get("Empresa")
                     fe = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d") if nueva_exp2 else None
                     actualizado = False
                     for e in st.session_state.empleados:
-                        if (e["Nombre"] == nombre_target
-                                and e.get("Rol") == rol_target
-                                and e.get("Empresa") == empresa_target):
+                        if (e["Nombre"] == nombre_target and e.get("Rol") == rol_target and e.get("Empresa") == empresa_target):
                             e["Plan"] = nuevo_plan_upg
-                            if fe:
-                                e["Expiracion"] = fe
-                            elif "Expiracion" in e:
-                                del e["Expiracion"]
-                            actualizado = True
-                            break
+                            if fe: e["Expiracion"] = fe
+                            elif "Expiracion" in e: del e["Expiracion"]
+                            actualizado = True; break
                     if actualizado:
                         guardar_datos()
-                        st.success(f"Plan de '{nombre_target}' actualizado a {nuevo_plan_upg}.")
-                        st.rerun()
+                        st.success(f"Plan de '{nombre_target}' actualizado a {nuevo_plan_upg}."); st.rerun()
                     else:
-                        st.error("No se encontró el usuario. Recarga la página.")
+                        st.error("No se encontró el usuario.")
             else:
                 st.info("No hay usuarios registrados.")
 
     st.markdown("<br><div class='section-label'>ZONA DE PELIGRO</div>", unsafe_allow_html=True)
+    st.markdown("""<div class="alert-box error">Esta acción destruirá todos los datos de la plataforma de forma irreversible.</div>""", unsafe_allow_html=True)
     if st.button("FORMATEAR PLATAFORMA COMPLETA", use_container_width=True, key="btn_formatear"):
         st.session_state.empleados          = []
         st.session_state.historial_sesiones = []
