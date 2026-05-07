@@ -206,8 +206,22 @@ def es_peticion_imagen_intel(texto):
 # ─────────────────────────────────────────
 def sanitizar_texto(texto):
     if not isinstance(texto, str): texto = str(texto)
-    texto = texto.replace('**','').replace('*','-').replace('•','-').replace('✅','[V]').replace('❌','[X]')
-    return texto.encode('latin-1','replace').decode('latin-1')
+    
+    # 1. Traducción táctica de caracteres problemáticos comunes
+    reemplazos = {
+        '“': '"', '”': '"', '‘': "'", '’': "'", 
+        '—': '-', '–': '-', '…': '...', 
+        '•': '-', '✅': '[V]', '❌': '[X]',
+        '€': 'EUR', '\u200b': '', '\ufeff': ''
+    }
+    for mal, bien in reemplazos.items():
+        texto = texto.replace(mal, bien)
+        
+    texto = texto.replace('**', '').replace('*', '-')
+    
+    # 2. Purga nuclear: Forzamos latin-1 y ELIMINAMOS lo que no encaje (como emojis ocultos)
+    # Usar 'ignore' en lugar de 'replace' evita que se cuelen símbolos extraños
+    return texto.encode('latin-1', 'ignore').decode('latin-1')
 
 def generar_pdf_dossier(sesion):
     pdf = FPDF()
