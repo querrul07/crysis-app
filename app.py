@@ -143,7 +143,7 @@ def generar_pdf_dossier(sesion):
     return out.encode('latin-1') if isinstance(out, str) else out
 
 # ─────────────────────────────────────────
-# CONFIG Y CSS
+# CONFIG Y CSS GLOBAL
 # ─────────────────────────────────────────
 st.set_page_config(page_title="CRYSIS | Intelligence Unit", layout="wide", initial_sidebar_state="collapsed")
 
@@ -206,35 +206,20 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
 .topbar-meta  { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.2em; color: var(--text-lo); margin-top: 3px; }
 
 /* ── CABECERA DEL MENÚ ── */
-.dashboard-header {
-    margin-bottom: 44px;
-}
-.dashboard-greeting {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-hi);
-    margin-bottom: 2px;
-}
-.dashboard-meta {
-    font-family: var(--mono);
-    font-size: 0.6rem;
-    letter-spacing: 0.15em;
-    color: var(--text-lo);
-    margin-bottom: 16px;
-}
+.dashboard-header { margin-bottom: 44px; }
+.dashboard-greeting { font-size: 2rem; font-weight: 700; color: var(--text-hi); margin-bottom: 2px; }
+.dashboard-meta { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.15em; color: var(--text-lo); margin-bottom: 16px; }
 .dashboard-status {
-    display: flex;
-    gap: 32px;
-    font-family: var(--mono);
-    font-size: 0.5rem;
-    letter-spacing: 0.15em;
-    color: var(--blue);
-    text-transform: uppercase;
-    border-top: 1px solid var(--border);
-    padding-top: 14px;
+    display: flex; gap: 32px; font-family: var(--mono); font-size: 0.5rem;
+    letter-spacing: 0.15em; color: var(--blue); text-transform: uppercase;
+    border-top: 1px solid var(--border); padding-top: 14px;
 }
 
-/* ── TARJETAS DEL MENÚ (ESTILO B SIN EMOJIS) ── */
+/* ── TARJETAS DEL MENÚ (ESTILO B + D SIN EMOJIS) ── */
+.card-wrapper {
+    position: relative;
+    margin-bottom: 20px;
+}
 .dashboard-card {
     position: relative;
     display: flex;
@@ -255,8 +240,7 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
     box-shadow: 0 8px 24px rgba(0,0,0,0.4);
     transform: translateY(-3px);
 }
-
-/* Indicador geométrico (círculo de color) */
+/* Círculo de color (indicador geométrico) */
 .dashboard-card::before {
     content: '';
     width: 12px;
@@ -269,8 +253,6 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
 .dashboard-card:hover::before {
     background: var(--blue);
 }
-
-/* Contenido de la tarjeta */
 .dashboard-card-content {
     flex: 1;
     display: flex;
@@ -295,8 +277,8 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
     text-transform: uppercase;
 }
 
-/* ── BOTÓN INVISIBLE SOBRE LA TARJETA ── */
-.dashboard-btn {
+/* Botón invisible encima de la tarjeta */
+.card-wrapper button {
     position: absolute !important;
     inset: 0 !important;
     width: 100% !important;
@@ -307,6 +289,10 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
     background: transparent !important;
     border: none !important;
     border-radius: 0 !important;
+}
+/* Oculta el texto del botón */
+.card-wrapper button p, .card-wrapper button span {
+    display: none !important;
 }
 
 /* ── SECTION HEADERS ── */
@@ -350,22 +336,12 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
 }
 .stButton > button:hover { background: #3A7AE4 !important; box-shadow: 0 0 24px rgba(79,142,247,0.25) !important; transform: translateY(-1px); }
 [data-testid="stButton"] button[disabled] { background: var(--border) !important; color: var(--text-lo) !important; box-shadow: none !important; }
-
-/* Botón secundario */
 button[kind="secondary"] { background: transparent !important; border: 1px solid var(--border2) !important; color: var(--text) !important; }
 button[kind="secondary"]:hover { border-color: var(--blue) !important; color: var(--text-hi) !important; background: var(--blue-dim) !important; }
 
 /* ── LOGIN TABS ── */
-.login-tab-active {
-  background: var(--blue) !important;
-  color: var(--bg) !important;
-  border: none !important;
-}
-.login-tab-inactive {
-  background: transparent !important;
-  color: var(--text-lo) !important;
-  border: 1px solid var(--border) !important;
-}
+.login-tab-active { background: var(--blue) !important; color: var(--bg) !important; border: none !important; }
+.login-tab-inactive { background: transparent !important; color: var(--text-lo) !important; border: 1px solid var(--border) !important; }
 
 /* ── AUTH TIERS ── */
 .auth-tier { background: var(--bg3); border: 1px solid var(--border); border-left: 3px solid var(--border2); padding: 20px; border-radius: 2px; transition: border-color 0.2s; margin-bottom: 8px; }
@@ -425,7 +401,7 @@ if "login_step"         not in st.session_state: st.session_state.login_step    
 if "pantalla_actual"    not in st.session_state: st.session_state.pantalla_actual    = "menu"
 if "login_modo"         not in st.session_state: st.session_state.login_modo         = "acceso"
 if "dificultad_actual"  not in st.session_state: st.session_state.dificultad_actual  = "OPERATOR"
-if "login_subpantalla"  not in st.session_state: st.session_state.login_subpantalla  = "main"  # main | forgot
+if "login_subpantalla"  not in st.session_state: st.session_state.login_subpantalla  = "main"
 
 try:    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except: GROQ_API_KEY = None
@@ -508,7 +484,6 @@ if st.session_state.usuario_actual is None:
     with col_form:
         st.markdown("<div style='padding: 60px 20px 60px 40px;'>", unsafe_allow_html=True)
 
-        # ── SUB-PANTALLA: RECUPERAR CONTRASEÑA ──
         if st.session_state.login_subpantalla == "forgot":
             st.markdown("<div class='section-label'>RECUPERACION DE ACCESO</div>", unsafe_allow_html=True)
             st.markdown("""
@@ -541,9 +516,7 @@ if st.session_state.usuario_actual is None:
                 if volver:
                     st.session_state.login_subpantalla = "main"; st.rerun()
 
-        # ── SUB-PANTALLA: PRINCIPAL (ACCESO / REGISTRO) ──
         else:
-            # Tabs de modo
             col_t1, col_t2 = st.columns(2)
             with col_t1:
                 if st.button("ACCESO", key="modo_acceso", use_container_width=True,
@@ -556,7 +529,6 @@ if st.session_state.usuario_actual is None:
 
             st.markdown("<div style='margin-top:32px;'></div>", unsafe_allow_html=True)
 
-            # ── MODO ACCESO ──
             if st.session_state.login_modo == "acceso":
                 if st.session_state.login_step == 1:
                     with st.form("login_form"):
@@ -584,7 +556,6 @@ if st.session_state.usuario_actual is None:
                             else:
                                 st.error("ID o contraseña incorrectos. Verifica tus credenciales.")
 
-                    # Enlace "Olvidé mi contraseña" FUERA del form
                     st.markdown("<div style='margin-top:12px; text-align:right;'>", unsafe_allow_html=True)
                     if st.button("¿Olvidaste tu contraseña?", key="btn_forgot"):
                         st.session_state.login_subpantalla = "forgot"; st.rerun()
@@ -612,7 +583,6 @@ if st.session_state.usuario_actual is None:
                         if colB.form_submit_button("CANCELAR", use_container_width=True):
                             st.session_state.login_step = 1; del st.session_state["correo_enviado"]; st.rerun()
 
-            # ── MODO REGISTRO ──
             else:
                 if st.session_state.get("mostrar_pago"):
                     info_pago = st.session_state.mostrar_pago
@@ -765,11 +735,8 @@ if st.session_state.pantalla_actual != "menu":
         if st.button("SALIR", key="btn_logout", type="secondary"):
             st.session_state.usuario_actual = None; st.session_state.login_step = 1; st.session_state.pantalla_actual = "menu"; st.rerun()
 
-def ir_a(p):
-    st.session_state.pantalla_actual = p; st.rerun()
-
 # ─────────────────────────────────────────
-# MENÚ PRINCIPAL — HÍBRIDO D+B (CORREGIDO)
+# MENÚ PRINCIPAL — DISEÑO B + D SIN ERRORES
 # ─────────────────────────────────────────
 if st.session_state.pantalla_actual == "menu":
     ahora = datetime.now()
@@ -785,7 +752,6 @@ if st.session_state.pantalla_actual == "menu":
     </div>
     """, unsafe_allow_html=True)
 
-    # Métricas reales
     total_ops    = len(historial_visible)
     media_global = int(sum(s["Nota"] for s in historial_visible) / total_ops) if total_ops > 0 else 0
     mes_actual   = datetime.now().strftime("%Y-%m")
@@ -813,12 +779,10 @@ if st.session_state.pantalla_actual == "menu":
     if u["Nombre"] == COMANDANTE_SUPREMO:
         tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR"))
 
-    # Grid de tarjetas (3 columnas)
     for fila in range(0, len(tarjetas), 3):
         cols = st.columns(3)
         for i, (destino, titulo, metrica) in enumerate(tarjetas[fila:fila+3]):
             with cols[i]:
-                # Contenedor relativo que abarcará la tarjeta y el botón invisible
                 st.markdown(f"""
                 <div class="card-wrapper">
                     <div class="dashboard-card">
@@ -827,34 +791,14 @@ if st.session_state.pantalla_actual == "menu":
                             <div class="dashboard-card-metric">{metrica}</div>
                         </div>
                     </div>
+                </div>
                 """, unsafe_allow_html=True)
-                # Botón invisible que cubre el contenedor
-                if st.button("", key=f"btn_{destino}", help=titulo, label_visibility="collapsed"):
+                if st.button(titulo, key=f"btn_{destino}"):
                     st.session_state.pantalla_actual = destino
                     st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)  # cierra card-wrapper
-
-    # CSS para posicionar el botón sobre la tarjeta
-    st.markdown("""
-    <style>
-    .card-wrapper {
-        position: relative;
-    }
-    .card-wrapper div[data-testid="stButton"] button {
-        position: absolute !important;
-        inset: 0 !important;
-        opacity: 0 !important;
-        z-index: 10 !important;
-        cursor: pointer !important;
-        background: transparent !important;
-        border: none !important;
-        border-radius: 0 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
     st.stop()
-# ─────────────────────────────────────────
+
 # ESTADÍSTICAS
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "estadisticas":
