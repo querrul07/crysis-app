@@ -1064,14 +1064,14 @@ elif st.session_state.pantalla_actual == "simulador":
                     except:
                         st.session_state.tarjeta_objetivo = {"Nombre_Completo":"Desconocido","Familia":"Clasificado","Estado_Mental":"Inestable"}
             st.session_state.mision_iniciada      = True
-                st.session_state.mensajes             = []
-                st.session_state.agente_activo        = ag_sel
-                st.session_state.escenario_activo     = es_sel
-                st.session_state.tipo_mision_actual   = tipo_mision_val
-                st.session_state.dificultad_sesion    = dif_activa
-                st.session_state.imagen_seed          = random.randint(1000, 9999)
-                st.session_state.imagenes_activas     = False # el usuario las activa manualmente
-                st.rerun()
+            st.session_state.mensajes             = []
+            st.session_state.agente_activo        = ag_sel
+            st.session_state.escenario_activo     = es_sel
+            st.session_state.tipo_mision_actual   = tipo_mision_val
+            st.session_state.dificultad_sesion    = dif_activa
+            st.session_state.imagen_seed          = random.randint(1000, 9999)
+            st.session_state.imagenes_activas     = False # el usuario las activa manualmente
+            st.rerun()
 
         # 👇 EL ELIF VUELVE AL MARGEN DEL IF PRINCIPAL (4 espacios) 👇
         elif st.session_state.evaluacion_actual:
