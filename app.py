@@ -1652,10 +1652,21 @@ elif st.session_state.pantalla_actual == "expedientes":
         st.markdown(f"<div style='text-align:center; padding:60px; color:var(--text-lo); font-family:var(--mono);'>{t('empty_dir')}</div>", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────
-# SIMULADOR TÁCTICO v2 — REDISEÑO VISUAL
+# SIMULADOR TÁCTICO v3 — REDISEÑO VISUAL (3 COLUMNAS)
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "simulador":
-    st.markdown(f"<div class='section-header'><div><div class='section-code'>{t('sim_code')}</div><div class='section-title'>{t('sim_title')}</div></div></div>", unsafe_allow_html=True)
+
+    # ── LÓGICA DE ALERTA ROJA (CSS DINÁMICO) ──
+    agitacion_actual = st.session_state.get("diagnostico_sujeto", {}).get("agitation", 0)
+    if agitacion_actual > 85:
+        st.markdown("""<style>
+            .stApp { border: 4px solid #E8394A; animation: border-pulse 1s infinite; }
+            @keyframes border-pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        </style>""", unsafe_allow_html=True)
+
+    # Solo mostramos el header si NO estamos en plena misión (evita la caja estancada arriba)
+    if not st.session_state.mision_iniciada and not st.session_state.evaluacion_actual:
+        st.markdown(f"<div class='section-header'><div><div class='section-code'>{t('sim_code')}</div><div class='section-title'>{t('sim_title')}</div></div></div>", unsafe_allow_html=True)
 
     # ── PANTALLA SETUP ──
     if not st.session_state.mision_iniciada:
@@ -1676,14 +1687,14 @@ elif st.session_state.pantalla_actual == "simulador":
 
         es_sel = c2.selectbox(t("select_proto"), list(TODAS_LAS_MISIONES.keys()))
 
-        st.markdown(f"<div style='font-family:var(--mono); font-size:0.5rem; letter-spacing:0.2em; color:var(--blue-tactical); margin: 20px 0 10px 0; border-bottom: 1px solid var(--border-dim); padding-bottom: 5px;'>{t('difficulty').upper()}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-family:var(--mono); font-size:0.5rem; letter-spacing:0.2em; color:var(--blue); margin: 20px 0 10px 0; border-bottom: 1px solid var(--border); padding-bottom: 5px;'>{t('difficulty').upper()}</div>", unsafe_allow_html=True)
         
         d_cols = st.columns(4)
         for i, (d_nombre, d_data) in enumerate(DIFICULTADES.items()):
             with d_cols[i]:
                 is_sel_d  = st.session_state.dificultad_actual == d_nombre
-                border_d  = d_data["color"] if is_sel_d else "var(--border-dim)"
-                bg_d      = f"rgba({int(d_data['color'][1:3],16)},{int(d_data['color'][3:5],16)},{int(d_data['color'][5:7],16)},0.1)" if is_sel_d else "var(--bg-card)"
+                border_d  = d_data["color"] if is_sel_d else "var(--border)"
+                bg_d      = f"rgba({int(d_data['color'][1:3],16)},{int(d_data['color'][3:5],16)},{int(d_data['color'][5:7],16)},0.1)" if is_sel_d else "var(--bg3)"
                 st.markdown(f"""
                 <div class="diff-card {'selected' if is_sel_d else ''}" style="border-color:{border_d}; background:{bg_d}; color:{d_data['color']};">
                     <div class="diff-name">{d_nombre}</div>
@@ -1694,7 +1705,7 @@ elif st.session_state.pantalla_actual == "simulador":
                 if st.button(f"{'▶ ' if is_sel_d else ''}{d_nombre}", key=f"diff_{d_nombre}", use_container_width=True):
                     st.session_state.dificultad_actual = d_nombre; st.rerun()
 
-        st.markdown("</div>", unsafe_allow_html=True) # Cierra el primer tac-panel
+        st.markdown("</div>", unsafe_allow_html=True)
 
         if u.get("Rol") == "Agente":
             tipo_despliegue = st.radio(t("privacy_level"), [t("official_mission"), t("private_training")], horizontal=True)
@@ -1707,12 +1718,12 @@ elif st.session_state.pantalla_actual == "simulador":
         dif_color  = DIFICULTADES[dif_activa]["color"]
         
         st.markdown(f"""
-        <div class="tac-panel" style="border-left: 4px solid var(--blue-tactical); min-height: auto; margin-bottom: 24px;">
-            <div style="font-family:var(--mono); font-size:0.55rem; letter-spacing:0.2em; color:var(--blue-tactical); margin-bottom:14px;">{t('situation_report').upper()}</div>
+        <div class="tac-panel" style="border-left: 4px solid var(--blue); min-height: auto; margin-bottom: 24px;">
+            <div style="font-family:var(--mono); font-size:0.55rem; letter-spacing:0.2em; color:var(--blue); margin-bottom:14px;">{t('situation_report').upper()}</div>
             <p style="margin-bottom: 8px; font-size: 0.9rem;"><b>{t('context')}</b> <span style="color:var(--text-lo);">{info['contexto']}</span></p>
             <p style="margin-bottom: 8px; font-size: 0.9rem;"><b>{t('target_profile')}</b> <span style="color:var(--text-lo);">{info['perfil_sujeto']}</span></p>
             <p style="margin-bottom: 8px; font-size: 0.9rem;"><b>{t('directive')}</b> <span style="color:var(--text-lo);">{info['objetivo']}</span></p>
-            <p style="margin-top: 16px; font-size: 0.9rem; border-top: 1px solid var(--border-dim); padding-top: 12px;">
+            <p style="margin-top: 16px; font-size: 0.9rem; border-top: 1px solid var(--border); padding-top: 12px;">
                 <b>{t('diff_label')}</b> <span style="color:{dif_color}; font-family:var(--mono); font-weight:700;">{dif_activa} (Nivel {DIFICULTADES[dif_activa]['nivel']})</span>
             </p>
         </div>
@@ -1727,7 +1738,7 @@ elif st.session_state.pantalla_actual == "simulador":
         if mi_plan != "COMANDANCIA" and u["Nombre"] != COMANDANTE_SUPREMO:
             if ops_este_mes >= ops_limite:
                 bloquear_inicio = True
-                st.markdown(f"""<div style="background:rgba(232,57,74,0.1); border:1px solid var(--red-alert); padding:12px; color:var(--red-alert); font-family:var(--mono); font-size:0.8rem; text-align:center; margin-bottom:16px;">{t('access_denied_quota')} ({ops_este_mes}/{ops_limite} ops).</div>""", unsafe_allow_html=True)
+                st.markdown(f"""<div style="background:rgba(232,57,74,0.1); border:1px solid var(--red); padding:12px; color:var(--red); font-family:var(--mono); font-size:0.8rem; text-align:center; margin-bottom:16px;">{t('access_denied_quota')} ({ops_este_mes}/{ops_limite} ops).</div>""", unsafe_allow_html=True)
 
         if st.button("INICIAR PROTOCOLO TÁCTICO", use_container_width=True, disabled=bloquear_inicio, type="primary"):
             if GROQ_API_KEY:
@@ -1753,8 +1764,9 @@ elif st.session_state.pantalla_actual == "simulador":
             st.session_state.quick_msg          = None
             st.rerun()
 
-    # ── PANTALLA EVALUACION ──
+    # ── PANTALLA EVALUACION FINAL ──
     elif st.session_state.evaluacion_actual:
+        st.markdown(f"<div class='section-header'><div><div class='section-code'>{t('sim_code')}</div><div class='section-title'>{t('sim_title')}</div></div></div>", unsafe_allow_html=True)
         st.markdown(f"<div class='section-label'>{t('tactical_eval')}</div>", unsafe_allow_html=True)
         st.markdown(st.session_state.evaluacion_actual)
         st.markdown("<br>", unsafe_allow_html=True)
@@ -1772,23 +1784,22 @@ elif st.session_state.pantalla_actual == "simulador":
             ultima_sesion = st.session_state.historial_sesiones[-1]
             st.download_button(label=t("download_pdf"), data=generar_pdf_dossier(ultima_sesion), file_name=f"CRYSIS_{ultima_sesion['Agente']}_Report.pdf", mime="application/pdf", use_container_width=True)
 
-    # ── PANTALLA SIMULADOR ACTIVO v2 ──
+    # ── PANTALLA SIMULADOR ACTIVO (3 COLUMNAS) ──
     else:
         dif_sesion  = st.session_state.get("dificultad_sesion", "OPERATOR")
         dif_color_s = DIFICULTADES.get(dif_sesion, {}).get("color","#4F8EF7")
         escenario_a = st.session_state.escenario_activo
         info_activa = TODAS_LAS_MISIONES.get(escenario_a, {})
 
-        # Handle quick message injection
+        # Inyección de comandos rápidos
         quick_to_inject = st.session_state.get("quick_msg", None)
         if quick_to_inject:
             st.session_state.mensajes.append({"role":"user","content": quick_to_inject})
             st.session_state.quick_msg = None
 
-        # ── 3-COLUMN LAYOUT ──
         col_left, col_center, col_right = st.columns([1, 1.6, 1], gap="small")
 
-        # ── COL LEFT: TACTICAL CONTEXT ──
+        # ── COLUMNA 1: CONTEXTO TÁCTICO Y BLUEPRINT ──
         with col_left:
             st.markdown(f"""
             <div class="tac-panel">
@@ -1798,10 +1809,21 @@ elif st.session_state.pantalla_actual == "simulador":
                 </div>
                 <div style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.15em; color:var(--text-lo); margin-bottom:8px;">{t('active_negotiation')}</div>
                 <div style="font-family:var(--cond); font-size:0.95rem; font-weight:700; color:var(--text-hi); margin-bottom:16px;">{escenario_a.replace('OPERACION: ','')}</div>
-                <div class="tac-map">
-                    <div class="tac-map-ping"></div>
-                    <div class="tac-map-label">GRID: {escenario_a[:3].upper()}-{random.randint(100,999) if not st.session_state.get('grid_id') else st.session_state.grid_id}</div>
+                
+                <div class="tac-map" style="height:160px; background:#050812; border:1px solid var(--border); position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; margin-bottom:14px;">
+                    <svg width="100%" height="100%" style="position:absolute; opacity:0.3;">
+                        <defs>
+                            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#4F8EF7" stroke-width="0.5"/>
+                            </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#grid)" />
+                        <path d="M20,20 L180,20 L180,120 L20,120 Z M60,60 L140,60 M60,90 L140,90" stroke="#4F8EF7" stroke-width="1" fill="none"/>
+                    </svg>
+                    <div style="width:10px; height:10px; background:var(--red); border-radius:50%; box-shadow:0 0 10px var(--red); animation: pulse-dot 1.5s infinite; position:absolute; left:{random.randint(40,60)}%; top:{random.randint(40,60)}%;"></div>
+                    <div style="position:absolute; bottom:6px; right:8px; font-family:var(--mono); font-size:0.42rem; color:var(--text-lo);">GRID: {escenario_a[:3].upper()}-{random.randint(100,999) if not st.session_state.get('grid_id') else st.session_state.grid_id}</div>
                 </div>
+
                 <div style="margin-bottom:12px;">
                     <div class="tac-obj"><div class="tac-obj-dot"></div>{t('obj1')}</div>
                     <div class="tac-obj"><div class="tac-obj-dot {'pending' if len(st.session_state.mensajes) < 4 else ''}"></div>{t('obj2')}</div>
@@ -1830,7 +1852,7 @@ elif st.session_state.pantalla_actual == "simulador":
             </div>
             """, unsafe_allow_html=True)
 
-            # Quick action buttons
+            # Botones Rápidos (Modo Comando)
             b1, b2 = st.columns(2)
             with b1:
                 if st.button(t("btn_contact"), key="qb1", use_container_width=True, type="secondary"):
@@ -1843,38 +1865,40 @@ elif st.session_state.pantalla_actual == "simulador":
                 if st.button(t("btn_crisis"), key="qb4", use_container_width=True, type="secondary"):
                     st.session_state.quick_msg = t("quick_crisis"); st.rerun()
 
-        # ── COL CENTER: LIVE FEED ──
+        # ── COLUMNA 2: CHAT Y ALIMENTACIÓN DE COMUNICACIONES ──
         with col_center:
             st.markdown(f"""
-            <div style="background:linear-gradient(135deg,var(--bg2),var(--bg3)); border:1px solid var(--border); border-radius:3px; padding:16px; min-height:520px;">
+            <div style="background:linear-gradient(135deg,var(--bg2),var(--bg3)); border:1px solid var(--border); border-radius:3px; padding:16px; min-height:520px; display:flex; flex-direction:column;">
                 <div class="tac-panel-header">
                     <span>{t('live_feed')}</span>
                     <span class="tac-badge red">{t('diff_short')} {dif_sesion}</span>
                 </div>
             """, unsafe_allow_html=True)
 
-            # Render messages
-            for m in st.session_state.mensajes:
-                label  = t("operator_short")[:-1] if m["role"] == "user" else "SUJETO"
-                bubble_class = "user" if m["role"] == "user" else "assistant"
-                role_color = "#4F8EF7" if m["role"] == "user" else "#E8394A"
-                st.markdown(f"""
-                <div class="chat-msg {bubble_class}">
-                    <div class="chat-bubble {bubble_class}">
-                        <div class="chat-role" style="color:{role_color};">{label}</div>
-                        <div class="chat-text">{m['content']}</div>
-                    </div>
-                </div>""", unsafe_allow_html=True)
+            # Render de mensajes
+            chat_container = st.container()
+            with chat_container:
+                for m in st.session_state.mensajes:
+                    label  = t("operator_short")[:-1] if m["role"] == "user" else "SUJETO"
+                    bubble_class = "user" if m["role"] == "user" else "assistant"
+                    role_color = "var(--blue)" if m["role"] == "user" else "var(--red)"
+                    st.markdown(f"""
+                    <div class="chat-msg {bubble_class}">
+                        <div class="chat-bubble {bubble_class}">
+                            <div class="chat-role" style="color:{role_color};">{label}</div>
+                            <div class="chat-text">{m['content']}</div>
+                        </div>
+                    </div>""", unsafe_allow_html=True)
 
             st.markdown("</div>", unsafe_allow_html=True)
 
-            # Chat input
+            # Input de usuario
             if prompt := st.chat_input(t("chat_placeholder")):
                 st.session_state.mensajes.append({"role":"user","content":prompt})
                 st.session_state.quick_msg = None
                 st.rerun()
 
-            # Control row
+            # Botones de control inferiores
             col_abort, col_eval = st.columns([1, 2])
             with col_abort:
                 if st.button(t("break_link"), type="secondary", use_container_width=True):
@@ -1885,7 +1909,7 @@ elif st.session_state.pantalla_actual == "simulador":
                     st.rerun()
             with col_eval:
                 if len(st.session_state.mensajes) > 0:
-                    if st.button(t("request_eval"), use_container_width=True):
+                    if st.button(t("request_eval"), use_container_width=True, type="primary"):
                         with st.spinner(t("processing")):
                             client    = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
                             info_ev   = TODAS_LAS_MISIONES[escenario_a]
@@ -1929,22 +1953,16 @@ PUNTUACIÓN FINAL: XX/100"""
                             })
                             guardar_datos(); st.rerun()
 
-        # ── COL RIGHT: SUBJECT DIAGNOSTICS ──
+        # ── COLUMNA 3: DIAGNÓSTICO DEL SUJETO (RENDER CSS) ──
         with col_right:
-            # Generate or update diagnostics after each AI response
             msgs = st.session_state.mensajes
             last_assistant = next((m["content"] for m in reversed(msgs) if m["role"] == "assistant"), None)
-
-            # Compute diagnostic metrics from conversation state
             n_msgs = len(msgs)
-            n_user = sum(1 for m in msgs if m["role"] == "user")
             n_asst = sum(1 for m in msgs if m["role"] == "assistant")
-
-            # Heuristic: tension based on difficulty + message count
             dif_nivel_s = DIFICULTADES.get(dif_sesion, {}).get("nivel", 2)
             base_tension = {1: 20, 2: 45, 3: 65, 4: 85}.get(dif_nivel_s, 45)
 
-            # Pull from stored diagnostics if available
+            # Lógica de Diagnóstico IA en segundo plano
             diag = st.session_state.get("diagnostico_sujeto") or {}
             agitation_val   = diag.get("agitation", min(base_tension + random.randint(-5,5), 100))
             index_val       = diag.get("index",     min(50 + random.randint(-10,10), 100))
@@ -1954,16 +1972,15 @@ PUNTUACIÓN FINAL: XX/100"""
             compliance_val  = diag.get("compliance", max(100 - base_tension + random.randint(-15,5), 0))
             latency_val     = diag.get("latency",   random.randint(20,80))
 
-            # Re-generate diagnostics via AI if there is a new assistant message
             if last_assistant and GROQ_API_KEY and n_asst > 0:
                 diag_key = f"diag_msg_{n_asst}"
                 if not st.session_state.get(diag_key):
                     try:
                         client_d = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
                         diag_prompt = f"""Analiza el último mensaje del sujeto y devuelve EXCLUSIVAMENTE JSON con estas claves numéricas de 0 a 100:
-'agitation' (agitación), 'index' (índice de riesgo), 'high' (hostilidad), 'receptivity' (receptividad al diálogo), 'rating' (evaluación general positiva), 'compliance' (tendencia a ceder), 'latency' (velocidad de respuesta percibida).
+'agitation', 'index', 'high', 'receptivity', 'rating', 'compliance', 'latency'.
 Último mensaje del sujeto: "{last_assistant[:300]}"
-Dificultad base: {dif_sesion} (nivel {dif_nivel_s}/4). Ajusta según el tono del mensaje."""
+Dificultad: Nivel {dif_nivel_s}/4."""
                         diag_res = client_d.chat.completions.create(
                             model="llama-3.3-70b-versatile",
                             messages=[{"role":"user","content": diag_prompt}],
@@ -1983,32 +2000,21 @@ Dificultad base: {dif_sesion} (nivel {dif_nivel_s}/4). Ajusta según el tono del
                     except:
                         pass
 
-            # Determine status
             mean_tension = (agitation_val + high_val) / 2
             if mean_tension >= 65:
-                status_text  = t("status_high")
-                status_color = "#E8394A"
+                status_text, status_color = t("status_high"), "#E8394A"
             elif mean_tension >= 40:
-                status_text  = t("status_med")
-                status_color = "#F0A500"
+                status_text, status_color = t("status_med"), "#F0A500"
             else:
-                status_text  = t("status_low")
-                status_color = "#00D4A0"
+                status_text, status_color = t("status_low"), "#00D4A0"
 
-            # Last known score
             prev_nota = historial_visible[-1]["Nota"] if historial_visible else None
             curr_est  = max(0, 100 - int(mean_tension * 0.6)) if n_asst > 0 else "—"
 
-            def bar_color(val):
-                if val >= 70: return "#E8394A"
-                elif val >= 40: return "#F0A500"
-                return "#00D4A0"
+            def bar_color(val): return "#E8394A" if val >= 70 else ("#F0A500" if val >= 40 else "#00D4A0")
+            def bar_color_pos(val): return "#00D4A0" if val >= 70 else ("#F0A500" if val >= 40 else "#E8394A")
 
-            def bar_color_pos(val):
-                if val >= 70: return "#00D4A0"
-                elif val >= 40: return "#F0A500"
-                return "#E8394A"
-
+            # Render de las barras del panel derecho (HTML/CSS)
             st.markdown(f"""
             <div class="diag-panel">
                 <div class="tac-panel-header">
@@ -2018,43 +2024,25 @@ Dificultad base: {dif_sesion} (nivel {dif_nivel_s}/4). Ajusta según el tono del
 
                 <div class="diag-section">
                     <div class="diag-label">{t('emotional_state')}</div>
-                    <div class="diag-metric-row">
-                        <span class="diag-metric-name">Agitation</span>
-                        <span class="diag-metric-val" style="color:{bar_color(agitation_val)};">{agitation_val}</span>
-                    </div>
+                    <div class="diag-metric-row"><span class="diag-metric-name">Agitation</span><span class="diag-metric-val" style="color:{bar_color(agitation_val)};">{agitation_val}%</span></div>
                     <div class="diag-status-bar"><div class="diag-status-fill" style="width:{agitation_val}%; background:{bar_color(agitation_val)};"></div></div>
-                    <div class="diag-metric-row" style="margin-top:6px;">
-                        <span class="diag-metric-name">Index</span>
-                        <span class="diag-metric-val" style="color:{bar_color(index_val)};">{index_val}</span>
-                    </div>
+                    <div class="diag-metric-row" style="margin-top:6px;"><span class="diag-metric-name">Index</span><span class="diag-metric-val" style="color:{bar_color(index_val)};">{index_val}%</span></div>
                     <div class="diag-status-bar"><div class="diag-status-fill" style="width:{index_val}%; background:{bar_color(index_val)};"></div></div>
-                    <div class="diag-metric-row" style="margin-top:6px;">
-                        <span class="diag-metric-name">High</span>
-                        <span class="diag-metric-val" style="color:{bar_color(high_val)};">{high_val}</span>
-                    </div>
+                    <div class="diag-metric-row" style="margin-top:6px;"><span class="diag-metric-name">High</span><span class="diag-metric-val" style="color:{bar_color(high_val)};">{high_val}%</span></div>
                     <div class="diag-status-bar"><div class="diag-status-fill" style="width:{high_val}%; background:{bar_color(high_val)};"></div></div>
                 </div>
 
                 <div class="diag-section">
                     <div class="diag-label">{t('response_latency')}</div>
-                    <div class="diag-metric-row">
-                        <span class="diag-metric-name">Receptiveness</span>
-                        <span class="diag-metric-val" style="color:{bar_color_pos(receptivity_val)};">{receptivity_val}</span>
-                    </div>
+                    <div class="diag-metric-row"><span class="diag-metric-name">Receptiveness</span><span class="diag-metric-val" style="color:{bar_color_pos(receptivity_val)};">{receptivity_val}%</span></div>
                     <div class="diag-status-bar"><div class="diag-status-fill" style="width:{receptivity_val}%; background:{bar_color_pos(receptivity_val)};"></div></div>
-                    <div class="diag-metric-row" style="margin-top:6px;">
-                        <span class="diag-metric-name">Rating</span>
-                        <span class="diag-metric-val" style="color:{bar_color_pos(rating_val)};">{rating_val}</span>
-                    </div>
+                    <div class="diag-metric-row" style="margin-top:6px;"><span class="diag-metric-name">Rating</span><span class="diag-metric-val" style="color:{bar_color_pos(rating_val)};">{rating_val}%</span></div>
                     <div class="diag-status-bar"><div class="diag-status-fill" style="width:{rating_val}%; background:{bar_color_pos(rating_val)};"></div></div>
                 </div>
 
                 <div class="diag-section">
                     <div class="diag-label">{t('compliance_trend')}</div>
-                    <div class="diag-metric-row">
-                        <span class="diag-metric-name">Compromise Extent</span>
-                        <span class="diag-metric-val" style="color:{bar_color_pos(compliance_val)};">{compliance_val}</span>
-                    </div>
+                    <div class="diag-metric-row"><span class="diag-metric-name">Compromise Extent</span><span class="diag-metric-val" style="color:{bar_color_pos(compliance_val)};">{compliance_val}%</span></div>
                     <div class="diag-status-bar"><div class="diag-status-fill" style="width:{compliance_val}%; background:{bar_color_pos(compliance_val)};"></div></div>
                 </div>
 
@@ -2067,17 +2055,17 @@ Dificultad base: {dif_sesion} (nivel {dif_nivel_s}/4). Ajusta según el tono del
                 <div class="diag-score-row">
                     <div class="diag-score-box">
                         <div class="diag-score-label">{t('prev_nota')}</div>
-                        <div class="diag-score-val" style="color:#4F8EF7;">{prev_nota if prev_nota else t('no_prev')}</div>
+                        <div class="diag-score-val" style="color:var(--blue);">{prev_nota if prev_nota else t('no_prev')}</div>
                     </div>
                     <div class="diag-score-box">
                         <div class="diag-score-label">{t('curr_perf')}</div>
-                        <div class="diag-score-val" style="color:#00D4A0;">{curr_est}</div>
+                        <div class="diag-score-val" style="color:var(--green);">{curr_est}</div>
                     </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-        # ── AI RESPONSE (triggers after user message) ──
+        # ── LLAMADA A LA IA DEL SUJETO ──
         if st.session_state.mensajes and st.session_state.mensajes[-1]["role"] == "user":
             if GROQ_API_KEY:
                 with st.spinner(t("ai_engine")):
