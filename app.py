@@ -674,7 +674,7 @@ if st.session_state.usuario_actual is None:
                             unsafe_allow_html=True
                         )
                         acepta_tyc = st.checkbox(
-                            "He leído y acepto los Términos y Condiciones y la Política de Privacidad",",
+                            "He leído y acepto los Términos y Condiciones y la Política de Privacidad",
                             key="check_tyc"
                         )
                         acepta_rgpd = st.checkbox(
