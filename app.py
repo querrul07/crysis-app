@@ -705,7 +705,7 @@ if menu_destino and st.session_state.usuario_actual is not None:
     st.rerun()
 
 # ─────────────────────────────────────────
-# RESOLUCIÓN DE PERMISOS (ya existente más abajo)
+# RESOLUCIÓN DE PERMISOS (BLINDAJE DE PRIVACIDAD)
 # ─────────────────────────────────────────
 u = st.session_state.usuario_actual
 
@@ -713,6 +713,9 @@ if u["Nombre"] == COMANDANTE_SUPREMO:
     es_empresa     = True
     mi_plan        = "COMANDANCIA"
     empresa_actual = u["Nombre"]
+    # 🛡️ PRIVACIDAD RADICAL: El Admin NO ve expedientes de empresas. Solo los suyos de prueba.
+    historial_visible     = [s for s in st.session_state.historial_sesiones if s["Agente"] == u["Nombre"]]
+    agentes_de_mi_empresa = [u["Nombre"]]
 else:
     es_empresa     = u.get("Rol") == "Empresa"
     empresa_actual = u.get("Empresa", u["Nombre"])
@@ -722,25 +725,29 @@ else:
     else:
         mi_plan = u.get("Plan", "BASE")
 
+# Normalizar planes legacy (Líneas 725-726 de tu código original)
 _legacy = {"Gratis": "BASE", "Individual": "OPERADOR", "Pro": "ESCUADRON", "Enterprise": "COMANDANCIA"}
 mi_plan = _legacy.get(mi_plan, mi_plan)
 
-ops_limite     = PLANES_INFO.get(mi_plan, {}).get("ops", 1)
-escenarios_lim = PLANES_INFO.get(mi_plan, {}).get("escenarios", 0)
-agentes_lim    = PLANES_INFO.get(mi_plan, {}).get("agentes", 0)
+# Límites de cuota (Línea 728 de tu código original)
+ops_limite      = PLANES_INFO.get(mi_plan, {}).get("ops", 1)
+escenarios_lim  = PLANES_INFO.get(mi_plan, {}).get("escenarios", 0)
+agentes_lim     = PLANES_INFO.get(mi_plan, {}).get("agentes", 0)
 
-if u["Nombre"] == COMANDANTE_SUPREMO:
-    historial_visible     = [s for s in st.session_state.historial_sesiones if s["Agente"] == u["Nombre"]]
-    agentes_de_mi_empresa = [u["Nombre"]]
-elif es_empresa:
-    agentes_de_mi_empresa = [e["Nombre"] for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]
-    historial_visible     = [s for s in st.session_state.historial_sesiones if s["Agente"] in agentes_de_mi_empresa and s.get("Tipo_Mision", "Corporativa") != "Personal"]
-else:
-    historial_visible     = [s for s in st.session_state.historial_sesiones if s["Agente"] == u["Nombre"]]
-    agentes_de_mi_empresa = [u["Nombre"]]
+# 🛡️ LÓGICA DE VISIBILIDAD PARA CLIENTES Y AGENTES
+if u["Nombre"] != COMANDANTE_SUPREMO:
+    if es_empresa:
+        agentes_de_mi_empresa = [e["Nombre"] for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]
+        # La empresa ve a sus agentes y SOLO misiones OFICIALES (Corporativas)
+        historial_visible = [s for s in st.session_state.historial_sesiones if s["Agente"] in agentes_de_mi_empresa and s.get("Tipo_Mision") == "Corporativa"]
+    else:
+        # El agente o cuenta individual solo ve sus propias misiones
+        historial_visible = [s for s in st.session_state.historial_sesiones if s["Agente"] == u["Nombre"]]
+        agentes_de_mi_empresa = [u["Nombre"]]
 
-mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items()
-                  if v.get("Creador") == empresa_actual}
+# Carga de escenarios disponibles
+mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items() 
+                  if v.get("Creador") == empresa_actual or u["Nombre"] == COMANDANTE_SUPREMO}
 TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **mis_escenarios}
 
 # ─────────────────────────────────────────
