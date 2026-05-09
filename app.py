@@ -492,10 +492,6 @@ if st.session_state.usuario_actual is None:
                         if not acepta_tyc_ag or not acepta_rgpd_ag:
                             st.error("Debes aceptar los Términos y la Política de Privacidad para continuar.")
                         elif n and p and email:
-                    if st.form_submit_button("REGISTRAR CREDENCIALES", use_container_width=True):
-                    if not acepta_tyc_ag or not acepta_rgpd_ag:
-                        st.error("Debes aceptar los Términos y la Política de Privacidad para continuar.")
-                    elif n and p and email:
                         if any(e["Nombre"] == n and e.get("Empresa") == empresa_invitada for e in st.session_state.empleados):
                             st.warning("Este ID ya está registrado en esta corporación.")
                         elif any(e["Nombre"] == n and e.get("Password") == p for e in st.session_state.empleados):
