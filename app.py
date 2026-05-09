@@ -695,9 +695,9 @@ if st.session_state.usuario_actual is None:
                                     st.warning("Ya existe una cuenta con ese identificador.")
                                 else:
                                     if es_corporativo:
-                                        nuevo_usuario = {"Nombre": n, "Email": email, "Departamento": "Administración", "Rol": "Empresa", "Plan": "BASE", "Empresa": n, "Password": p, "2FA_Verificado": True}
+                                        nuevo_usuario = {"Nombre": n, "Email": email, "Departamento": "Administración", "Rol": "Empresa", "Plan": "BASE", "Empresa": n, "Password": p, "2FA_Verificado": True, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
                                     else:
-                                        nuevo_usuario = {"Nombre": n, "Email": email, "Rol": "Individual", "Plan": "BASE", "Empresa": n, "Password": p, "2FA_Verificado": True}
+                                        nuevo_usuario = {"Nombre": n, "Email": email, "Rol": "Individual", "Plan": "BASE", "Empresa": n, "Password": p, "2FA_Verificado": True, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
                                     st.session_state.empleados.append(nuevo_usuario); guardar_datos()
                                     if es_pago:
                                         link_pago   = LINKS_PAGO.get(plan_sel, "#")
