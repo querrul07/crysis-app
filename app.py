@@ -105,7 +105,7 @@ def enviar_correo_2fa(destinatario, codigo):
         password  = st.secrets["SMTP_PASS"]
         msg = MIMEText(f"Tu código de autorización táctica para CRYSIS es: {codigo}\n\nSi no has solicitado este acceso, reporta una brecha de seguridad inmediatamente.")
         msg['Subject'] = 'CRYSIS | Código de Acceso 2FA'
-        msg['From']    = "CRYSIS Security <no-reply@comando-crysis.net>"
+        msg['From']    = "CRYSIS Security <crysisapp@outlook.com>"
         msg['To']      = destinatario
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
@@ -122,7 +122,7 @@ def enviar_correo_reset(destinatario, nueva_pass):
         password  = st.secrets["SMTP_PASS"]
         msg = MIMEText(f"Tu nueva contraseña temporal para CRYSIS es: {nueva_pass}\n\nCámbiala en Ajustes de Cuenta tras acceder.")
         msg['Subject'] = 'CRYSIS | Recuperación de Contraseña'
-        msg['From']    = "CRYSIS Security <no-reply@comando-crysis.net>"
+        msg['From']    = "CRYSIS Security <crysisapp@outlook.com>"
         msg['To']      = destinatario
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
@@ -441,6 +441,18 @@ if token_invitacion:
     except: pass
 
 if st.session_state.usuario_actual is None:
+    if not st.session_state.get("cookies_aceptadas"):
+        st.markdown("""
+        <div style="position:fixed; bottom:0; left:0; right:0; background:#0B0E1A; border-top:1px solid #18213A; 
+                    padding:12px 24px; z-index:9999; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-family:var(--mono); font-size:0.55rem; color:#3A4A6A; letter-spacing:0.1em;">
+                Esta plataforma usa cookies técnicas estrictamente necesarias para su funcionamiento.
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("ENTENDIDO", key="btn_cookies"):
+            st.session_state.cookies_aceptadas = True
+            st.rerun()
 
     # ── FLUJO INVITACIÓN ──
     if empresa_invitada:
@@ -468,8 +480,19 @@ if st.session_state.usuario_actual is None:
                 email = st.text_input("Correo Corporativo")
                 d     = st.text_input("Unidad / Departamento")
                 p     = st.text_input("Establecer Clave de Acceso", type="password")
+                acepta_tyc_ag = st.checkbox(
+                            "He leído y acepto los Términos y Condiciones y la Política de Privacidad",
+                            key="check_tyc_agente"
+                        )
+                        acepta_rgpd_ag = st.checkbox(
+                            "Consiento el tratamiento de mis datos personales conforme al RGPD (UE) 2016/679",
+                            key="check_rgpd_agente"
+                        )
                 if st.form_submit_button("REGISTRAR CREDENCIALES", use_container_width=True):
-                    if n and p and email:
+                    if st.form_submit_button("REGISTRAR CREDENCIALES", use_container_width=True):
+                            if not acepta_tyc_ag or not acepta_rgpd_ag:
+                                st.error("Debes aceptar los Términos y la Política de Privacidad para continuar.")
+                            elif n and p and email:
                         if any(e["Nombre"] == n and e.get("Empresa") == empresa_invitada for e in st.session_state.empleados):
                             st.warning("Este ID ya está registrado en esta corporación.")
                         elif any(e["Nombre"] == n and e.get("Password") == p for e in st.session_state.empleados):
