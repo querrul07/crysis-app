@@ -703,8 +703,8 @@ if st.session_state.usuario_actual is None:
                                     else:
                                         st.session_state.usuario_actual = nuevo_usuario
                                         st.session_state.pantalla_actual = "menu"; st.rerun()
-                            else:
-                                st.warning("Rellena todos los campos para continuar.")
+                                    else:
+                                        st.warning("Rellena todos los campos para continuar.")
 
         st.markdown("</div>", unsafe_allow_html=True)
 
