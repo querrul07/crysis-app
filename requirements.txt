@@ -6,3 +6,4 @@ supabase
 streamlit-authenticator
 fpdf
 supabase
+cryptography
