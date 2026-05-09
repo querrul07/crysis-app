@@ -1,4 +1,5 @@
 import streamlit as st
+from cryptography.fernet import Fernet
 from openai import OpenAI
 import json
 from datetime import datetime, timedelta
@@ -52,16 +53,37 @@ def init_supabase():
 
 supabase = init_supabase()
 
+# 🔐 MOTOR DE CIFRADO
+def obtener_fernet():
+    return Fernet(st.secrets["ENCRYPTION_KEY"])
+
+def cifrar_memoria(datos_dict):
+    f = obtener_fernet()
+    datos_json = json.dumps(datos_dict)
+    return f.encrypt(datos_json.encode()).decode()
+
+def descifrar_memoria(texto_cifrado):
+    f = obtener_fernet()
+    try:
+        decodificado = f.decrypt(texto_cifrado.encode()).decode()
+        return json.loads(decodificado)
+    except:
+        return None
+
 def cargar_datos():
     try:
         response = supabase.table("crysis_data").select("memoria").eq("id", "main").execute()
         if response.data:
-            datos = response.data[0]["memoria"]
+            contenido = response.data[0]["memoria"]
+            # Intentamos descifrar. Si falla (porque son datos viejos sin cifrar), cargamos normal.
+            datos = descifrar_memoria(contenido)
+            if datos is None: datos = contenido if isinstance(contenido, dict) else {"empleados": [], "historial_sesiones": [], "escenarios_custom": {}}
+            
             if "escenarios_custom" not in datos: datos["escenarios_custom"] = {}
             datos["empleados"] = [e for e in datos.get("empleados", []) if "Rol" in e]
             return datos
     except Exception as e:
-        st.error(f"Error al conectar con Base de Datos Central: {e}")
+        st.error(f"Error al conectar con Base de Datos: {e}")
     return {"empleados": [], "historial_sesiones": [], "escenarios_custom": {}}
 
 def guardar_datos():
@@ -71,7 +93,9 @@ def guardar_datos():
             "historial_sesiones": st.session_state.historial_sesiones,
             "escenarios_custom": st.session_state.escenarios_custom
         }
-        supabase.table("crysis_data").update({"memoria": datos_actualizados}).eq("id", "main").execute()
+        # Ciframos antes de enviar a Supabase
+        memoria_cifrada = cifrar_memoria(datos_actualizados)
+        supabase.table("crysis_data").update({"memoria": memoria_cifrada}).eq("id", "main").execute()
     except Exception as e:
         st.error(f"Fallo crítico al sincronizar: {e}")
 
