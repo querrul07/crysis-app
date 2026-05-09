@@ -669,8 +669,12 @@ if st.session_state.usuario_actual is None:
                         if es_corporativo:
                             st.markdown("""<div class="alert-box">Las cuentas corporativas pueden añadir agentes mediante enlace de invitación.</div>""", unsafe_allow_html=True)
                         st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)
+                        st.markdown(
+                            "📄 [Términos y Condiciones](/terminos) · [Política de Privacidad](/privacidad)",
+                            unsafe_allow_html=True
+                        )
                         acepta_tyc = st.checkbox(
-                            "He leído y acepto los [Términos y Condiciones](/terminos) y la [Política de Privacidad](/privacidad)",
+                            "He leído y acepto los Términos y Condiciones y la Política de Privacidad",",
                             key="check_tyc"
                         )
                         acepta_rgpd = st.checkbox(
