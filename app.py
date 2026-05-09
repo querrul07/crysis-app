@@ -492,15 +492,15 @@ if st.session_state.usuario_actual is None:
                         if not acepta_tyc_ag or not acepta_rgpd_ag:
                             st.error("Debes aceptar los Términos y la Política de Privacidad para continuar.")
                         elif n and p and email:
-                        if any(e["Nombre"] == n and e.get("Empresa") == empresa_invitada for e in st.session_state.empleados):
-                            st.warning("Este ID ya está registrado en esta corporación.")
-                        elif any(e["Nombre"] == n and e.get("Password") == p for e in st.session_state.empleados):
-                            st.warning("ID ya en uso. Utiliza una contraseña diferente.")
-                        else:
-                            nuevo_agente = {"Nombre": n, "Email": email, "Departamento": d, "Rol": "Agente", "Empresa": empresa_invitada, "Password": p, "2FA_Verificado": True}
-                            st.session_state.empleados.append(nuevo_agente); guardar_datos()
-                            st.session_state.registro_completado = True
-                            st.query_params.clear(); st.rerun()
+                            if any(e["Nombre"] == n and e.get("Empresa") == empresa_invitada for e in st.session_state.empleados):
+                                st.warning("Este ID ya está registrado en esta corporación.")
+                            elif any(e["Nombre"] == n and e.get("Password") == p for e in st.session_state.empleados):
+                                st.warning("ID ya en uso. Utiliza una contraseña diferente.")
+                            else:
+                                nuevo_agente = {"Nombre": n, "Email": email, "Departamento": d, "Rol": "Agente", "Empresa": empresa_invitada, "Password": p, "2FA_Verificado": True}
+                                st.session_state.empleados.append(nuevo_agente); guardar_datos()
+                                st.session_state.registro_completado = True
+                                st.query_params.clear(); st.rerun()
         st.stop()
 
     if st.session_state.get("registro_completado"):
