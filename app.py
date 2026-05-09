@@ -488,7 +488,6 @@ if st.session_state.usuario_actual is None:
                             "Consiento el tratamiento de mis datos personales conforme al RGPD (UE) 2016/679",
                             key="check_rgpd_agente"
                         )
-                if st.form_submit_button("REGISTRAR CREDENCIALES", use_container_width=True):
                     if st.form_submit_button("REGISTRAR CREDENCIALES", use_container_width=True):
                             if not acepta_tyc_ag or not acepta_rgpd_ag:
                                 st.error("Debes aceptar los Términos y la Política de Privacidad para continuar.")
