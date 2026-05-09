@@ -668,9 +668,25 @@ if st.session_state.usuario_actual is None:
                         p      = st.text_input("Contraseña", type="password")
                         if es_corporativo:
                             st.markdown("""<div class="alert-box">Las cuentas corporativas pueden añadir agentes mediante enlace de invitación.</div>""", unsafe_allow_html=True)
-                        lbl_btn = "CREAR CUENTA E IR AL PAGO" if es_pago else "CREAR CUENTA Y ENTRAR"
-                        if st.form_submit_button(lbl_btn, use_container_width=True):
-                            if n and p and email:
+                      st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)
+acepta_tyc = st.checkbox(
+    "He leído y acepto los Términos y Condiciones y la Política de Privacidad",
+    key="check_tyc"
+)
+acepta_rgpd = st.checkbox(
+    "Consiento el tratamiento de mis datos personales conforme al RGPD (UE) 2016/679",
+    key="check_rgpd"
+)
+acepta_comms = st.checkbox(
+    "Acepto recibir comunicaciones comerciales (opcional)",
+    key="check_comms"
+)
+
+lbl_btn = "CREAR CUENTA E IR AL PAGO" if es_pago else "CREAR CUENTA Y ENTRAR"
+if st.form_submit_button(lbl_btn, use_container_width=True):
+    if not acepta_tyc or not acepta_rgpd:
+        st.error("Debes aceptar los Términos y la Política de Privacidad para continuar.")
+    elif n and p and email:
                                 empresa_destino = n if es_corporativo else "Independiente"
                                 if any(e["Nombre"] == n and e.get("Empresa", "Independiente") == empresa_destino for e in st.session_state.empleados):
                                     st.warning("Ya existe una cuenta con ese identificador.")
