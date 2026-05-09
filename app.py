@@ -670,7 +670,7 @@ if st.session_state.usuario_actual is None:
                             st.markdown("""<div class="alert-box">Las cuentas corporativas pueden añadir agentes mediante enlace de invitación.</div>""", unsafe_allow_html=True)
                         st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)
                         st.markdown(
-                            "📄 [Términos y Condiciones](/terminos) · [Política de Privacidad](/privacidad)",
+                            "📄 [Términos y Condiciones](https://github.com/querrul07/crysis-app/blob/main/terminos_condiciones_crysis.md) · [Política de Privacidad](https://github.com/querrul07/crysis-app/blob/main/politica_privacidad_crysis.md)",
                             unsafe_allow_html=True
                         )
                         acepta_tyc = st.checkbox(
