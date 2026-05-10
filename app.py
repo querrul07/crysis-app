@@ -16,7 +16,7 @@ from supabase import create_client, Client
 import base64
 
 # ─────────────────────────────────────────
-# CONFIGURACIÓN DE SUPERUSUARIO
+# CONFIGURACIÓN DE SUPERUSUARIO Y PAGOS
 # ─────────────────────────────────────────
 COMANDANTE_SUPREMO = "CRYSIS"
 LINKS_PAGO = {
@@ -29,8 +29,8 @@ LINKS_PAGO = {
 PLANES_INFO = {
     "BASE":        {"precio": "0€",     "desc": "Individual · 1 op/mes · sin IA",        "ops": 1,     "escenarios": 0,     "agentes": 0,     "elite": False},
     "OPERADOR":    {"precio": "19€/mes","desc": "Individual · 10 ops/mes · 3 escenarios", "ops": 10,    "escenarios": 3,     "agentes": 0,     "elite": False},
-    "ELITE":       {"precio": "49€/mes","desc": "Individual · ilimitado · IA sin límite", "ops": 99999, "escenarios": 99999, "agentes": 0,     "elite": True},
-    "ESCUADRON":   {"precio": "89€/mes","desc": "Equipo · ilimitado · 15 agentes",        "ops": 99999, "escenarios": 99999, "agentes": 15,    "elite": True},
+    "ELITE":       {"precio": "49€/mes","desc": "Individual · ilimitado · IA sin límite", "ops": 99999, "escenarios": 99999, "agentes": 0,      "elite": True},
+    "ESCUADRON":   {"precio": "89€/mes","desc": "Equipo · ilimitado · 15 agentes",        "ops": 99999, "escenarios": 99999, "agentes": 15,     "elite": True},
     "COMANDANCIA": {"precio": "199€/mes","desc": "Enterprise · ilimitado · ∞ agentes",   "ops": 99999, "escenarios": 99999, "agentes": 99999, "elite": True},
 }
 
@@ -75,7 +75,6 @@ def cargar_datos():
         response = supabase.table("crysis_data").select("memoria").eq("id", "main").execute()
         if response.data:
             contenido = response.data[0]["memoria"]
-            # Intentamos descifrar. Si falla (porque son datos viejos sin cifrar), cargamos normal.
             datos = descifrar_memoria(contenido)
             if datos is None: datos = contenido if isinstance(contenido, dict) else {"empleados": [], "historial_sesiones": [], "escenarios_custom": {}}
             
@@ -93,7 +92,6 @@ def guardar_datos():
             "historial_sesiones": st.session_state.historial_sesiones,
             "escenarios_custom": st.session_state.escenarios_custom
         }
-        # Ciframos antes de enviar a Supabase
         memoria_cifrada = cifrar_memoria(datos_actualizados)
         supabase.table("crysis_data").update({"memoria": memoria_cifrada}).eq("id", "main").execute()
     except Exception as e:
@@ -167,48 +165,37 @@ def generar_pdf_dossier(sesion):
     return out.encode('latin-1') if isinstance(out, str) else out
 
 # ─────────────────────────────────────────
-# CONFIG Y CSS GLOBAL
+# CONFIG Y CSS GLOBAL (V3.2 CORPORATIVO)
 # ─────────────────────────────────────────
 st.set_page_config(page_title="CRYSIS | Intelligence Unit", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;500;700&display=swap');
 
 :root {
-  --bg:       #060810;
-  --bg2:      #0B0E1A;
-  --bg3:      #101525;
-  --border:   #18213A;
-  --border2:  #243050;
-  --blue:     #4F8EF7;
-  --blue-dim: rgba(79,142,247,0.12);
-  --green:    #00D4A0;
-  --red:      #E8394A;
-  --amber:    #F0A500;
-  --text:     #B8C4DC;
-  --text-hi:  #E2EAF8;
-  --text-lo:  #3A4A6A;
-  --mono:     'Share Tech Mono', monospace;
-  --sans:     'Syne', sans-serif;
+  --bg: #040508;
+  --card-bg: rgba(15, 18, 32, 0.8);
+  --border: rgba(79, 142, 247, 0.15);
+  --blue: #4F8EF7;
+  --stripe: #635bff;
+  --text-hi: #E2EAF8;
+  --text-dim: #7A869A;
+  --mono: 'Share Tech Mono', monospace;
+  --sans: 'Syne', sans-serif;
+  --green: #00D4A0;
+  --red: #E8394A;
+  --amber: #F0A500;
 }
 
 html, body, [class*="css"], .stApp {
-  background-color: var(--bg) !important;
-  color: var(--text) !important;
+  background: radial-gradient(circle at 50% 50%, #0B1026 0%, #040508 100%) !important;
+  color: var(--text-hi) !important;
   font-family: var(--sans) !important;
 }
-header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom: 1px solid var(--border); }
-.stDeployButton, #MainMenu, footer { display: none !important; }
 
-.stApp::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
-  pointer-events: none;
-  z-index: 9999;
-}
+header[data-testid="stHeader"] { background: transparent !important; border-bottom: none; }
+.stDeployButton, #MainMenu, footer { display: none !important; }
 
 /* ── BRAND ── */
 .brand-wordmark {
@@ -218,182 +205,81 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
   color: var(--text-hi);
   line-height: 1;
   margin-bottom: 12px;
-  text-shadow: 0 0 60px rgba(79,142,247,0.2);
+  text-shadow: 0 0 40px rgba(79,142,247,0.3);
 }
 .brand-sub { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.4em; color: var(--blue); margin-bottom: 40px; }
 .brand-line { width: 40px; height: 2px; background: var(--blue); margin-bottom: 24px; }
-.brand-desc { font-size: 0.78rem; color: var(--text-lo); line-height: 1.7; letter-spacing: 0.02em; font-family: var(--mono); }
+.brand-desc { font-size: 0.78rem; color: var(--text-dim); line-height: 1.7; letter-spacing: 0.02em; font-family: var(--mono); }
 
 /* ── TOPBAR ── */
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 0 12px 0; border-bottom: 1px solid var(--border); margin-bottom: 0; }
 .topbar-brand { font-family: var(--mono); font-size: 1.1rem; letter-spacing: 0.3em; color: var(--text-hi); }
-.topbar-meta  { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.2em; color: var(--text-lo); margin-top: 3px; }
+.topbar-meta  { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.2em; color: var(--text-dim); margin-top: 3px; }
 
 /* ── CABECERA DEL MENÚ ── */
-.dashboard-header { margin-bottom: 44px; }
+.dashboard-header { margin-bottom: 44px; border-bottom: 1px solid var(--border); padding-bottom: 20px;}
 .dashboard-greeting { font-size: 2rem; font-weight: 700; color: var(--text-hi); margin-bottom: 2px; }
-.dashboard-meta { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.15em; color: var(--text-lo); margin-bottom: 16px; }
-.dashboard-status {
-    display: flex; gap: 32px; font-family: var(--mono); font-size: 0.5rem;
-    letter-spacing: 0.15em; color: var(--blue); text-transform: uppercase;
-    border-top: 1px solid var(--border); padding-top: 14px;
-}
+.dashboard-meta { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.15em; color: var(--text-dim); }
 
-/* ── TARJETAS DEL MENÚ (ESTILO B + D SIN EMOJIS) ── */
+/* ── TARJETAS DEL MENÚ (GLASSMORPHISM) ── */
 .card-wrapper {
     position: relative;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
-.dashboard-card {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    background: linear-gradient(135deg, #0B0E1A 0%, #0F1425 100%);
-    border: 1px solid var(--border);
-    border-radius: 2px;
-    padding: 24px;
-    text-decoration: none !important;
-    transition: all 0.2s ease;
-    height: 140px;
-    cursor: pointer;
-    overflow: hidden;
-}
-.dashboard-card:hover {
-    border-color: var(--border2);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    transform: translateY(-3px);
-}
-/* Círculo de color (indicador geométrico) */
-.dashboard-card::before {
-    content: '';
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--border);
-    transition: background 0.2s ease;
-    flex-shrink: 0;
-}
-.dashboard-card:hover::before {
-    background: var(--blue);
-}
-.dashboard-card-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-.dashboard-card-title {
-    font-family: var(--mono);
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    color: var(--text-hi);
-    text-transform: uppercase;
-    margin-bottom: 8px;
-}
-.dashboard-card-metric {
-    font-family: var(--mono);
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--blue);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-/* Botón invisible encima de la tarjeta */
 .card-wrapper button {
-    position: absolute !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    opacity: 0 !important;
-    z-index: 10 !important;
-    cursor: pointer !important;
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
+    background: var(--card-bg) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border) !important;
+    border-top: 2px solid var(--card-color) !important;
+    border-radius: 4px !important;
+    padding: 24px 20px !important;
+    text-align: left !important;
+    white-space: pre-wrap !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    color: var(--text-hi) !important;
+    font-family: var(--mono) !important;
+    font-size: 0.9rem !important;
+    line-height: 1.8 !important;
 }
-/* Oculta el texto del botón */
-.card-wrapper button p, .card-wrapper button span {
-    display: none !important;
+.card-wrapper:hover button {
+    border-color: var(--card-color) !important;
+    background: rgba(20, 25, 45, 0.9) !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 15px rgba(79, 142, 247, 0.1) !important;
+    transform: translateY(-5px) !important;
 }
 
-/* ── SECTION HEADERS ── */
+/* ── COMPONENTES GENERALES ── */
 .section-header { padding: 28px 0 24px 0; border-bottom: 1px solid var(--border); margin-bottom: 32px; display: flex; align-items: flex-end; justify-content: space-between; }
 .section-title { font-size: 1.4rem; font-weight: 700; color: var(--text-hi); letter-spacing: 0.02em; }
-.section-code  { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.3em; color: var(--text-lo); margin-bottom: 4px; }
+.section-code  { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.3em; color: var(--text-dim); margin-bottom: 4px; }
+.section-label { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.25em; color: var(--blue); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 
-/* ── METRICS ── */
-.metric-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 2px; padding: 24px; position: relative; overflow: hidden; }
+.metric-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 4px; padding: 24px; position: relative; overflow: hidden; backdrop-filter: blur(5px);}
 .metric-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--blue); }
 .metric-label { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.22em; color: var(--blue); margin-bottom: 10px; }
 .metric-value { font-family: var(--mono); font-size: 2rem; font-weight: 700; color: var(--text-hi); line-height: 1; }
 
-/* ── BRIEFING / STATUS ── */
-.briefing-box { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--blue); padding: 20px 24px; border-radius: 2px; margin-bottom: 20px; }
-.briefing-box h4 { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.2em; color: var(--blue); margin-bottom: 12px; }
-.section-label { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.25em; color: var(--blue); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-.status-bar { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--green); padding: 10px 18px; border-radius: 2px; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.12em; color: var(--green); margin-bottom: 20px; }
+.briefing-box { background: rgba(15, 18, 32, 0.6); border: 1px solid var(--border); border-left: 3px solid var(--blue); padding: 20px 24px; border-radius: 4px; margin-bottom: 20px; }
+.status-bar { background: rgba(15, 18, 32, 0.6); border: 1px solid var(--border); border-left: 3px solid var(--green); padding: 10px 18px; border-radius: 4px; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.12em; color: var(--green); margin-bottom: 20px; }
 
-/* ── DIFFICULTY CARDS ── */
-.diff-card { border: 2px solid var(--border); border-radius: 2px; padding: 14px 16px; cursor: pointer; transition: all 0.2s; background: var(--bg3); text-align: center; }
-.diff-card:hover { transform: translateY(-2px); }
-.diff-card.selected { background: rgba(79,142,247,0.08); }
+.diff-card { border: 1px solid var(--border); border-radius: 4px; padding: 14px 16px; cursor: pointer; transition: all 0.2s; background: rgba(15, 18, 32, 0.4); text-align: center; }
+.diff-card.selected { background: rgba(79,142,247,0.08); border-color: var(--blue); }
 .diff-name  { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.18em; font-weight: 700; }
-.diff-desc  { font-family: var(--mono); font-size: 0.52rem; color: var(--text-lo); margin-top: 6px; line-height: 1.5; }
+.diff-desc  { font-family: var(--mono); font-size: 0.52rem; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
 
-/* ── INPUTS ── */
-.stTextInput input, .stSelectbox > div > div, .stTextArea textarea {
-  background: var(--bg3) !important; border: 1px solid var(--border2) !important;
-  color: var(--text) !important; border-radius: 2px !important; font-family: var(--sans) !important;
-}
-.stTextInput input:focus, .stTextArea textarea:focus { border-color: var(--blue) !important; box-shadow: 0 0 0 2px rgba(79,142,247,0.08) !important; }
-.stTextInput label, .stTextArea label, .stSelectbox label { color: var(--text-lo) !important; font-family: var(--mono) !important; font-size: 0.62rem !important; letter-spacing: 0.15em !important; }
+.stTextInput input, .stSelectbox > div > div, .stTextArea textarea { background: rgba(15, 18, 32, 0.8) !important; border: 1px solid rgba(79, 142, 247, 0.3) !important; color: var(--text-hi) !important; border-radius: 4px !important; font-family: var(--sans) !important; }
+.stTextInput input:focus, .stTextArea textarea:focus { border-color: var(--blue) !important; box-shadow: 0 0 0 2px rgba(79,142,247,0.15) !important; }
+.stTextInput label, .stTextArea label, .stSelectbox label { color: var(--text-dim) !important; font-family: var(--mono) !important; font-size: 0.62rem !important; letter-spacing: 0.15em !important; }
 
-/* ── BUTTONS ── */
-.stButton > button {
-  background: var(--blue) !important; color: var(--bg) !important;
-  font-family: var(--mono) !important; font-size: 0.65rem !important; font-weight: 700 !important;
-  letter-spacing: 0.2em !important; border: none !important; border-radius: 2px !important;
-  padding: 12px 28px !important; transition: all 0.2s !important;
-}
-.stButton > button:hover { background: #3A7AE4 !important; box-shadow: 0 0 24px rgba(79,142,247,0.25) !important; transform: translateY(-1px); }
-[data-testid="stButton"] button[disabled] { background: var(--border) !important; color: var(--text-lo) !important; box-shadow: none !important; }
-button[kind="secondary"] { background: transparent !important; border: 1px solid var(--border2) !important; color: var(--text) !important; }
-button[kind="secondary"]:hover { border-color: var(--blue) !important; color: var(--text-hi) !important; background: var(--blue-dim) !important; }
+.stButton > button { background: var(--blue) !important; color: #040508 !important; font-family: var(--mono) !important; font-size: 0.65rem !important; font-weight: 700 !important; letter-spacing: 0.2em !important; border: none !important; border-radius: 4px !important; padding: 12px 28px !important; transition: all 0.2s !important; }
+.stButton > button:hover { background: #6BA4FF !important; box-shadow: 0 0 20px rgba(79,142,247,0.3) !important; transform: translateY(-1px); }
+[data-testid="stButton"] button[disabled] { background: var(--border) !important; color: var(--text-dim) !important; box-shadow: none !important; }
+button[kind="secondary"] { background: transparent !important; border: 1px solid rgba(79, 142, 247, 0.3) !important; color: var(--text-hi) !important; }
+button[kind="secondary"]:hover { border-color: var(--blue) !important; background: rgba(79,142,247,0.1) !important; }
 
-/* ── LOGIN TABS ── */
-.login-tab-active { background: var(--blue) !important; color: var(--bg) !important; border: none !important; }
-.login-tab-inactive { background: transparent !important; color: var(--text-lo) !important; border: 1px solid var(--border) !important; }
-
-/* ── AUTH TIERS ── */
-.auth-tier { background: var(--bg3); border: 1px solid var(--border); border-left: 3px solid var(--border2); padding: 20px; border-radius: 2px; transition: border-color 0.2s; margin-bottom: 8px; }
-.auth-tier:hover { border-left-color: var(--blue); }
-.auth-tier.elite { border-left-color: var(--amber); }
-.tier-spec { font-size: 0.75rem; color: #8B9CC8; margin-bottom: 6px; display: flex; align-items: center; }
-.tier-spec::before { content: '—'; margin-right: 8px; color: var(--blue); font-size: 0.6rem; }
-
-/* ── ALERT/INFO BOXES ── */
-.alert-box { background: #0D1020; border: 1px solid var(--border); border-left: 3px solid var(--blue); padding: 14px 18px; border-radius: 2px; margin-bottom: 16px; font-family: var(--mono); font-size: 0.62rem; color: var(--text-lo); line-height: 1.6; }
+.alert-box { background: rgba(15, 18, 32, 0.9); border: 1px solid var(--border); border-left: 3px solid var(--blue); padding: 14px 18px; border-radius: 4px; margin-bottom: 16px; font-family: var(--mono); font-size: 0.62rem; color: var(--text-dim); line-height: 1.6; }
 .alert-box.warning { border-left-color: var(--amber); }
-.alert-box.error   { border-left-color: var(--red); background: #120808; }
-
-/* ── FORGOT PASSWORD ── */
-.link-btn { background: none; border: none; color: var(--text-lo); font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.1em; cursor: pointer; padding: 0; text-decoration: underline; transition: color 0.15s; }
-.link-btn:hover { color: var(--blue); }
-
-/* ── PLAN SELECTOR ── */
-.plan-card { border: 1px solid var(--border); background: var(--bg3); border-radius: 2px; padding: 12px 14px; margin-bottom: 4px; cursor: pointer; transition: all 0.15s; }
-.plan-card:hover { border-color: var(--border2); }
-.plan-card.selected-plan { border-color: var(--blue); background: rgba(79,142,247,0.08); }
-.plan-card.selected-plan.elite-plan { border-color: var(--amber); background: rgba(240,165,0,0.08); }
-
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: var(--blue); }
+.alert-box.error   { border-left-color: var(--red); background: rgba(232, 57, 74, 0.05); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -430,9 +316,8 @@ if "login_subpantalla"  not in st.session_state: st.session_state.login_subpanta
 try:    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except: GROQ_API_KEY = None
 
-
 # ─────────────────────────────────────────
-# LOGIN
+# LOGIN Y REGISTRO
 # ─────────────────────────────────────────
 token_invitacion = st.query_params.get("invite", None)
 empresa_invitada = None
@@ -445,7 +330,7 @@ if st.session_state.usuario_actual is None:
         st.markdown("""
         <div style="position:fixed; bottom:0; left:0; right:0; background:#0B0E1A; border-top:1px solid #18213A; 
                     padding:12px 24px; z-index:9999; display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-family:var(--mono); font-size:0.55rem; color:#3A4A6A; letter-spacing:0.1em;">
+            <span style="font-family:var(--mono); font-size:0.55rem; color:#7A869A; letter-spacing:0.1em;">
                 Esta plataforma usa cookies técnicas estrictamente necesarias para su funcionamiento.
             </span>
         </div>
@@ -466,7 +351,6 @@ if st.session_state.usuario_actual is None:
         with c2:
             empresa_obj = next((e for e in st.session_state.empleados if e["Rol"] == "Empresa" and e["Nombre"] == empresa_invitada), None)
             if empresa_obj:
-                # El comandante supremo nunca tiene límite de agentes
                 if empresa_obj["Nombre"] != COMANDANTE_SUPREMO:
                     agentes_actuales = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_invitada and e.get("Rol") == "Agente"])
                     plan_emp = empresa_obj.get("Plan", "BASE")
@@ -480,14 +364,8 @@ if st.session_state.usuario_actual is None:
                 email = st.text_input("Correo Corporativo")
                 d     = st.text_input("Unidad / Departamento")
                 p     = st.text_input("Establecer Clave de Acceso", type="password")
-                acepta_tyc_ag = st.checkbox(
-                            "He leído y acepto los Términos y Condiciones y la Política de Privacidad",
-                            key="check_tyc_agente"
-                        )
-                acepta_rgpd_ag = st.checkbox(
-                    "Consiento el tratamiento de mis datos personales conforme al RGPD (UE) 2016/679",
-                    key="check_rgpd_agente"
-                )
+                acepta_tyc_ag = st.checkbox("He leído y acepto los Términos y Condiciones y la Política de Privacidad", key="check_tyc_agente")
+                acepta_rgpd_ag = st.checkbox("Consiento el tratamiento de mis datos personales conforme al RGPD", key="check_rgpd_agente")
                 if st.form_submit_button("REGISTRAR CREDENCIALES", use_container_width=True):
                         if not acepta_tyc_ag or not acepta_rgpd_ag:
                             st.error("Debes aceptar los Términos y la Política de Privacidad para continuar.")
@@ -512,20 +390,20 @@ if st.session_state.usuario_actual is None:
 
     with col_brand:
         st.markdown("""
-        <div style="padding: 80px 40px 80px 20px; min-height: 80vh; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #18213A;">
+        <div style="padding: 80px 40px 80px 20px; min-height: 80vh; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid rgba(79, 142, 247, 0.15);">
             <div>
                 <div class="brand-wordmark">CRYSIS</div>
                 <div class="brand-sub">INTELLIGENCE UNIT</div>
                 <div class="brand-line"></div>
                 <div class="brand-desc">
                     Plataforma de simulación táctica avanzada para el entrenamiento en negociación,
-                    desescalada y comunicación bajo presión extrema.
+                    desescalada y comunicación corporativa bajo presión extrema.
                 </div>
             </div>
             <div>
-                <div style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.3em; color:#18213A; margin-bottom:8px;">ESTADO DEL SISTEMA</div>
-                <div style="font-family:var(--mono); font-size:0.58rem; color:#00D4A0; letter-spacing:0.15em;">● OPERATIVO · ACCESO SEGURO</div>
-                <div style="margin-top:16px; font-family:var(--mono); font-size:0.48rem; letter-spacing:0.25em; color:#18213A;">v3.1.0 · CLASIFICADO</div>
+                <div style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.3em; color:var(--text-dim); margin-bottom:8px;">ESTADO DEL SISTEMA</div>
+                <div style="font-family:var(--mono); font-size:0.58rem; color:#00D4A0; letter-spacing:0.15em;">● OPERATIVO · ACCESO CIFRADO</div>
+                <div style="margin-top:16px; font-family:var(--mono); font-size:0.48rem; letter-spacing:0.25em; color:var(--text-dim);">v3.2.0 · CORPORATE B2B</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -636,10 +514,10 @@ if st.session_state.usuario_actual is None:
                 if st.session_state.get("mostrar_pago"):
                     info_pago = st.session_state.mostrar_pago
                     st.markdown(f"""
-                    <div style="background:var(--bg3); border:1px solid var(--amber); border-left:3px solid var(--amber); padding:20px; border-radius:2px; margin-bottom:16px;">
+                    <div style="background:var(--card-bg); border:1px solid var(--amber); border-left:3px solid var(--amber); padding:20px; border-radius:4px; margin-bottom:16px;">
                         <div style="font-family:var(--mono); font-size:0.58rem; letter-spacing:0.2em; color:var(--amber); margin-bottom:10px;">ACTIVACION DE PLAN PENDIENTE</div>
-                        <p style="color:var(--text); font-size:0.82rem; margin-bottom:14px;">Cuenta <b style='color:var(--text-hi)'>{info_pago['id']}</b> creada. Tras el pago, tu plan se activará en máximo 24h.</p>
-                        <a href="{info_pago['link']}" target="_blank" style="display:inline-block; background:var(--amber); color:#060810; font-family:var(--mono); font-weight:700; font-size:0.65rem; letter-spacing:0.1em; padding:10px 20px; border-radius:2px; text-decoration:none;">IR AL PAGO — {info_pago['plan']}</a>
+                        <p style="color:var(--text-dim); font-size:0.82rem; margin-bottom:14px;">Cuenta <b style='color:var(--text-hi)'>{info_pago['id']}</b> creada. Tras el pago, tu plan se activará en máximo 24h.</p>
+                        <a href="{info_pago['link']}" target="_blank" style="display:inline-block; background:var(--stripe); color:white; font-family:var(--sans); font-weight:700; font-size:0.75rem; letter-spacing:0.05em; padding:12px 20px; border-radius:4px; text-decoration:none; transition: opacity 0.2s;">IR AL PAGO — {info_pago['plan']}</a>
                     </div>
                     """, unsafe_allow_html=True)
                     if st.button("ENTRAR CON NIVEL BASE", use_container_width=True):
@@ -664,14 +542,14 @@ if st.session_state.usuario_actual is None:
                         col = col1 if i % 2 == 0 else col2
                         with col:
                             is_sel     = st.session_state.plan_sel_reg == nombre
-                            border_col = "#F0A500" if elite and is_sel else ("#4F8EF7" if is_sel else "#18213A")
-                            bg_col     = "rgba(240,165,0,0.08)" if elite and is_sel else ("rgba(79,142,247,0.1)" if is_sel else "#101525")
+                            border_col = "#F0A500" if elite and is_sel else ("#4F8EF7" if is_sel else "rgba(79, 142, 247, 0.15)")
+                            bg_col     = "rgba(240,165,0,0.08)" if elite and is_sel else ("rgba(79,142,247,0.1)" if is_sel else "rgba(15, 18, 32, 0.6)")
                             check      = "✓ " if is_sel else ""
                             st.markdown(f"""
-                            <div style="border:1px solid {border_col}; background:{bg_col}; padding:10px 14px; border-radius:2px; margin-bottom:4px;">
+                            <div style="border:1px solid {border_col}; background:{bg_col}; padding:10px 14px; border-radius:4px; margin-bottom:8px; transition: all 0.2s;">
                                 <div style="font-family:var(--mono); font-size:0.6rem; letter-spacing:0.15em; color:var(--text-hi);">{check}{nombre}</div>
                                 <div style="font-size:0.85rem; color:{'#F0A500' if elite else '#4F8EF7'}; font-weight:700; margin-top:3px;">{precio}</div>
-                                <div style="font-family:var(--mono); font-size:0.5rem; color:var(--text-lo); margin-top:3px;">{desc}</div>
+                                <div style="font-family:var(--mono); font-size:0.5rem; color:var(--text-dim); margin-top:3px;">{desc}</div>
                             </div>
                             """, unsafe_allow_html=True)
                             if st.button(f"Seleccionar", key=f"plan_reg_{nombre}", use_container_width=True):
@@ -692,21 +570,12 @@ if st.session_state.usuario_actual is None:
                             st.markdown("""<div class="alert-box">Las cuentas corporativas pueden añadir agentes mediante enlace de invitación.</div>""", unsafe_allow_html=True)
                         st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)
                         st.markdown(
-                            "📄 [Términos y Condiciones](https://github.com/querrul07/crysis-app/blob/main/terminos_condiciones_crysis.md) · [Política de Privacidad](https://github.com/querrul07/crysis-app/blob/main/politica_privacidad_crysis.md)",
+                            "📄 [Términos y Condiciones](#) · [Política de Privacidad](#)",
                             unsafe_allow_html=True
                         )
-                        acepta_tyc = st.checkbox(
-                            "He leído y acepto los Términos y Condiciones y la Política de Privacidad",
-                            key="check_tyc"
-                        )
-                        acepta_rgpd = st.checkbox(
-                            "Consiento el tratamiento de mis datos personales conforme al RGPD (UE) 2016/679",
-                            key="check_rgpd"
-                        )
-                        acepta_comms = st.checkbox(
-                            "Acepto recibir comunicaciones comerciales (opcional)",
-                            key="check_comms"
-                        )
+                        acepta_tyc = st.checkbox("He leído y acepto los Términos y Condiciones y la Política de Privacidad", key="check_tyc")
+                        acepta_rgpd = st.checkbox("Consiento el tratamiento de mis datos personales conforme al RGPD (UE) 2016/679", key="check_rgpd")
+                        acepta_comms = st.checkbox("Acepto recibir comunicaciones comerciales (opcional)", key="check_comms")
                         lbl_btn = "CREAR CUENTA E IR AL PAGO" if es_pago else "CREAR CUENTA Y ENTRAR"
                         if st.form_submit_button(lbl_btn, use_container_width=True):
                             if not acepta_tyc or not acepta_rgpd:
@@ -717,9 +586,9 @@ if st.session_state.usuario_actual is None:
                                     st.warning("Ya existe una cuenta con ese identificador.")
                                 else:
                                     if es_corporativo:
-                                        nuevo_usuario = {"Nombre": n, "Email": email, "Departamento": "Administración", "Rol": "Empresa", "Plan": "BASE", "Empresa": n, "Password": p, "2FA_Verificado": True, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
+                                        nuevo_usuario = {"Nombre": n, "Email": email, "Departamento": "Administración", "Rol": "Empresa", "Plan": plan_sel, "Empresa": n, "Password": p, "2FA_Verificado": True, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
                                     else:
-                                        nuevo_usuario = {"Nombre": n, "Email": email, "Rol": "Individual", "Plan": "BASE", "Empresa": n, "Password": p, "2FA_Verificado": True, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
+                                        nuevo_usuario = {"Nombre": n, "Email": email, "Rol": "Individual", "Plan": plan_sel, "Empresa": n, "Password": p, "2FA_Verificado": True, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
                                     st.session_state.empleados.append(nuevo_usuario); guardar_datos()
                                     if es_pago:
                                         link_pago   = LINKS_PAGO.get(plan_sel, "#")
@@ -736,7 +605,7 @@ if st.session_state.usuario_actual is None:
     st.stop()   # fin del login
 
 # ═══════════════════════════════════════════
-# MANEJADOR DE NAVEGACIÓN POR TARJETAS (COLÓCALO AQUÍ)
+# MANEJADOR DE NAVEGACIÓN POR TARJETAS
 # ═══════════════════════════════════════════
 menu_destino = st.query_params.get("menu", None)
 if menu_destino and st.session_state.usuario_actual is not None:
@@ -753,7 +622,6 @@ if u["Nombre"] == COMANDANTE_SUPREMO:
     es_empresa     = True
     mi_plan        = "COMANDANCIA"
     empresa_actual = u["Nombre"]
-    # 🛡️ PRIVACIDAD RADICAL: El Admin NO ve expedientes de empresas. Solo los suyos de prueba.
     historial_visible     = [s for s in st.session_state.historial_sesiones if s["Agente"] == u["Nombre"]]
     agentes_de_mi_empresa = [u["Nombre"]]
 else:
@@ -765,27 +633,21 @@ else:
     else:
         mi_plan = u.get("Plan", "BASE")
 
-# Normalizar planes legacy (Líneas 725-726 de tu código original)
 _legacy = {"Gratis": "BASE", "Individual": "OPERADOR", "Pro": "ESCUADRON", "Enterprise": "COMANDANCIA"}
 mi_plan = _legacy.get(mi_plan, mi_plan)
 
-# Límites de cuota (Línea 728 de tu código original)
 ops_limite      = PLANES_INFO.get(mi_plan, {}).get("ops", 1)
 escenarios_lim  = PLANES_INFO.get(mi_plan, {}).get("escenarios", 0)
 agentes_lim     = PLANES_INFO.get(mi_plan, {}).get("agentes", 0)
 
-# 🛡️ LÓGICA DE VISIBILIDAD PARA CLIENTES Y AGENTES
 if u["Nombre"] != COMANDANTE_SUPREMO:
     if es_empresa:
         agentes_de_mi_empresa = [e["Nombre"] for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]
-        # La empresa ve a sus agentes y SOLO misiones OFICIALES (Corporativas)
         historial_visible = [s for s in st.session_state.historial_sesiones if s["Agente"] in agentes_de_mi_empresa and s.get("Tipo_Mision") == "Corporativa"]
     else:
-        # El agente o cuenta individual solo ve sus propias misiones
         historial_visible = [s for s in st.session_state.historial_sesiones if s["Agente"] == u["Nombre"]]
         agentes_de_mi_empresa = [u["Nombre"]]
 
-# Carga de escenarios disponibles
 mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items() 
                   if v.get("Creador") == empresa_actual or u["Nombre"] == COMANDANTE_SUPREMO}
 TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **mis_escenarios}
@@ -800,7 +662,7 @@ if st.session_state.pantalla_actual != "menu":
     col_top1, col_top2 = st.columns([8, 1])
     with col_top1:
         pantalla = st.session_state.pantalla_actual
-        nombres_pantalla = {"estadisticas": "ESTADÍSTICAS", "personal": "AGENTES", "expedientes": "EXPEDIENTES",
+        nombres_pantalla = {"estadisticas": "ESTADÍSTICAS", "personal": "GESTIÓN DE AGENTES", "expedientes": "EXPEDIENTES",
                             "simulador": "SIMULADOR", "sintesis": "SÍNTESIS IA", "admin": "ADMINISTRACIÓN", "cuenta": "CUENTA"}
         back_label = f"/ {nombres_pantalla.get(pantalla, pantalla.upper())}" if pantalla != "menu" else ""
         st.markdown(f"""
@@ -820,24 +682,19 @@ if st.session_state.pantalla_actual != "menu":
 
 def ir_a(p):
     st.session_state.pantalla_actual = p; st.rerun()
+
 # ─────────────────────────────────────────
-# MENÚ PRINCIPAL — TARJETAS CON COLOR, SIN BOTONES, SIN RECARGAR SESIÓN
+# MENÚ PRINCIPAL — DASHBOARD CORPORATIVO
 # ─────────────────────────────────────────
 if st.session_state.pantalla_actual == "menu":
-    ahora = datetime.now()
-    fecha_str = ahora.strftime("%H.%M - %d.%m.%Y")
     st.markdown(f"""
     <div class="dashboard-header">
+        <div style="font-family:var(--mono); color:var(--blue); font-size:0.7rem; letter-spacing:0.3em; margin-bottom:8px;">CENTRO DE OPERACIONES TÁCTICAS</div>
         <div class="dashboard-greeting">Bienvenido, {u['Nombre'].upper()}</div>
-        <div class="dashboard-meta">{fecha_str} · SISTEMA OPERATIVO</div>
-        <div class="dashboard-status">
-            <span>SYSTEM STATUS: SECURE</span>
-            <span>GLOBAL NETWORK: OPTIMIZED</span>
-        </div>
+        <div class="dashboard-meta">{datetime.now().strftime("%d.%m.%Y")} · PROTOCOLO DE PRIVACIDAD AES-256 ACTIVO</div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Métricas reales
     total_ops    = len(historial_visible)
     media_global = int(sum(s["Nota"] for s in historial_visible) / total_ops) if total_ops > 0 else 0
     mes_actual   = datetime.now().strftime("%Y-%m")
@@ -845,10 +702,7 @@ if st.session_state.pantalla_actual == "menu":
     agentes_act  = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"])
     esc_creados  = len(mis_escenarios)
 
-    # Métrica de la tarjeta "CUENTA"
     metrica_cuenta = f"{u['Nombre'].upper()} · {mi_plan}"
-
-    # Métrica de agentes (solo empresas)
     metrica_agentes = f"AGENTES ACTIVOS {agentes_act}"
 
     _precios = {"COMANDANCIA":199,"ESCUADRON":89,"ELITE":49,"OPERADOR":19,"BASE":0,
@@ -856,83 +710,32 @@ if st.session_state.pantalla_actual == "menu":
     mrr = sum(_precios.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
               for e in st.session_state.empleados)
 
-    # ---- Construcción de la lista de tarjetas ----
     tarjetas = [
-        ("estadisticas", "ANÁLISIS DE RENDIMIENTO",  f"RENDIMIENTO MEDIO {media_global}%",         "#4F8EF7"),
-        ("simulador",    "SIMULADOR TÁCTICO",         f"OPERACIONES ACTIVAS ESTE MES {ops_mes}",     "#00D4A0"),
-        ("expedientes",  "HISTORIAL DE EXPEDIENTES",  f"EXPEDIENTES TOTALES {total_ops}",            "#F0A500"),
+        ("simulador", "SIMULADOR TÁCTICO",  f"MISIONES REGISTRADAS: {len([s for s in st.session_state.historial_sesiones if s['Agente'] == u['Nombre']])}", "#4F8EF7"),
+        ("expedientes", "ARCHIVO OPERACIONAL", f"EXPEDIENTES TOTALES {total_ops}", "#F0A500"),
+        ("estadisticas", "MÉTRICAS DE RENDIMIENTO", f"RENDIMIENTO MEDIO {media_global}%", "#00D4A0"),
+        ("cuenta", "TU CUENTA", metrica_cuenta, "#6B7280"),
+        ("sintesis", "SÍNTESIS DE ESCENARIOS", f"MODELOS ACTIVOS {esc_creados}", "#A855F7")
     ]
 
-    # Tarjeta "TU CUENTA" para todos
-    tarjetas.append(("cuenta", "TU CUENTA", metrica_cuenta, "#6B7280"))
-
-    # Tarjeta "GESTIÓN DE AGENTES" solo para empresas
     if es_empresa:
         tarjetas.append(("personal", "GESTIÓN DE AGENTES", metrica_agentes, "#E8394A"))
-
-    # Tarjeta de escenarios (siempre)
-    tarjetas.append(("sintesis", "GENERACIÓN DE ESCENARIOS", f"ESCENARIOS ACTIVOS {esc_creados}", "#A855F7"))
-
-    # Consola Omega solo para el comandante supremo
     if u["Nombre"] == COMANDANTE_SUPREMO:
         tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR", "#F59E0B"))
 
-    # Grid de tarjetas (3 columnas)
     for fila in range(0, len(tarjetas), 3):
         cols = st.columns(3)
         for i, (destino, titulo, metrica, color) in enumerate(tarjetas[fila:fila+3]):
             with cols[i]:
                 st.markdown(f'<div class="card-wrapper" style="--card-color: {color};">', unsafe_allow_html=True)
-                if st.button(f"**{titulo}**\n\n{metrica}", key=f"btn_{destino}", use_container_width=True):
+                if st.button(f"● {titulo}\n\n{metrica}", key=f"btn_{destino}", use_container_width=True):
                     st.session_state.pantalla_actual = destino
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
-    # CSS (el mismo que ya tenías, lo conservamos)
-    st.markdown("""
-    <style>
-    .card-wrapper {
-        position: relative;
-        margin-bottom: 20px;
-        padding-left: 28px;
-    }
-    .card-wrapper button {
-        background: linear-gradient(135deg, #0B0E1A 0%, #0F1425 100%) !important;
-        border: 1px solid #18213A !important;
-        border-left: 4px solid var(--card-color, #4F8EF7) !important;
-        border-radius: 2px !important;
-        padding: 18px 16px !important;
-        text-align: left !important;
-        white-space: normal !important;
-        word-wrap: break-word !important;
-        transition: all 0.2s ease !important;
-    }
-    .card-wrapper:hover button {
-        background: linear-gradient(135deg, #111530 0%, #131A30 100%) !important;
-        border-color: var(--card-color) !important;
-        border-left-width: 6px !important;
-        box-shadow: 0 0 25px var(--card-color), 0 0 60px var(--card-color), 0 8px 24px rgba(0,0,0,0.5) !important;
-        transform: translateY(-4px) !important;
-    }
-    .card-wrapper::before {
-        content: '';
-        position: absolute;
-        left: 8px;
-        top: 24px;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: var(--card-color);
-        z-index: 2;
-        transition: box-shadow 0.2s ease;
-    }
-    .card-wrapper:hover::before {
-        box-shadow: 0 0 18px var(--card-color), 0 0 36px var(--card-color);
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
     st.stop()
+
+# ─────────────────────────────────────────
 # ESTADÍSTICAS
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "estadisticas":
@@ -950,7 +753,7 @@ elif st.session_state.pantalla_actual == "estadisticas":
 
     st.markdown("<br>", unsafe_allow_html=True)
     if not historial_visible:
-        st.markdown("<div style='text-align:center; padding:60px; color:#18213A; font-family:var(--mono); letter-spacing:0.2em;'>SIN REGISTROS OPERACIONALES</div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:center; padding:60px; color:var(--text-dim); font-family:var(--mono); letter-spacing:0.2em;'>SIN REGISTROS OPERACIONALES</div>", unsafe_allow_html=True)
     else:
         df = pd.DataFrame(historial_visible)
         df["Nota"] = pd.to_numeric(df["Nota"])
@@ -980,7 +783,7 @@ elif st.session_state.pantalla_actual == "estadisticas":
             st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
 
 # ─────────────────────────────────────────
-# PERSONAL
+# PERSONAL (GESTIÓN DE AGENTES)
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "personal":
     st.markdown("<div class='section-header'><div><div class='section-code'>AGENTES</div><div class='section-title'>Gestión de Operadores</div></div></div>", unsafe_allow_html=True)
@@ -1002,22 +805,41 @@ elif st.session_state.pantalla_actual == "personal":
             for ag in agentes_mios:
                 col_ag1, col_ag2 = st.columns([4, 1])
                 with col_ag1:
+                    mision_asig = ag.get("Mision_Asignada", "NINGUNA")
                     st.markdown(f"""
-                    <div style="background:var(--bg2); border:1px solid var(--border); border-radius:2px; padding:12px 16px; margin-bottom:6px;">
-                        <span style="color:var(--text-hi); font-weight:600;">{ag['Nombre']}</span>
-                        <span style="color:var(--text-lo); font-family:var(--mono); font-size:0.6rem; margin-left:12px;">
+                    <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:4px; padding:16px; margin-bottom:6px;">
+                        <span style="color:var(--text-hi); font-weight:700;">{ag['Nombre']}</span>
+                        <span style="color:var(--text-dim); font-family:var(--mono); font-size:0.65rem; margin-left:12px;">
                             {ag.get('Departamento','—')} · {ag['Email']}
                         </span>
+                        <div style="font-family:var(--mono); font-size:0.6rem; color:var(--blue); margin-top:8px;">
+                            TAREA ACTUAL: <span style="color:var(--text-hi);">{mision_asig}</span>
+                        </div>
                     </div>
                     """, unsafe_allow_html=True)
-            st.markdown("<br>", unsafe_allow_html=True)
-            with st.expander("REVOCAR ACCESO DE PERSONAL"):
-                ag_a_borrar = st.selectbox("Operador a revocar:", [a['Nombre'] for a in agentes_mios])
-                if st.button("REVOCAR CREDENCIALES", type="primary"):
-                    st.session_state.empleados = [e for e in st.session_state.empleados if e['Nombre'] != ag_a_borrar]
-                    guardar_datos(); st.success(f"Operador {ag_a_borrar} revocado."); st.rerun()
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # --- NUEVA SECCIÓN: ASIGNACIÓN DE ENTRENAMIENTO ---
+                with st.expander(f"🎯 ASIGNAR ENTRENAMIENTO A: {ag['Nombre']}"):
+                    opciones_misiones = ["Ninguna"] + list(mis_escenarios.keys())
+                    mision_actual = ag.get("Mision_Asignada", "Ninguna")
+                    idx_actual = opciones_misiones.index(mision_actual) if mision_actual in opciones_misiones else 0
+                    mision_sel = st.selectbox("Seleccionar Escenario Corporativo:", opciones_misiones, index=idx_actual, key=f"sel_{ag['Nombre']}")
+                    
+                    if st.button("CONFIRMAR ASIGNACIÓN", key=f"btn_asig_{ag['Nombre']}"):
+                        for e in st.session_state.empleados:
+                            if e["Nombre"] == ag["Nombre"] and e.get("Empresa") == empresa_actual:
+                                e["Mision_Asignada"] = mision_sel if mision_sel != "Ninguna" else None
+                        guardar_datos()
+                        st.success(f"Misión '{mision_sel}' asignada a {ag['Nombre']}")
+                        st.rerun()
+
+                with st.expander(f"REVOCAR ACCESO DE: {ag['Nombre']}"):
+                    if st.button("REVOCAR CREDENCIALES", type="primary", key=f"rev_{ag['Nombre']}"):
+                        st.session_state.empleados = [e for e in st.session_state.empleados if e['Nombre'] != ag['Nombre']]
+                        guardar_datos(); st.success(f"Operador {ag['Nombre']} revocado."); st.rerun()
         else:
-            st.markdown("<div style='color:var(--text-lo); font-family:var(--mono); font-size:0.65rem; padding:20px 0;'>No hay agentes activos en esta unidad.</div>", unsafe_allow_html=True)
+            st.markdown("<div style='color:var(--text-dim); font-family:var(--mono); font-size:0.65rem; padding:20px 0;'>No hay agentes activos en esta unidad.</div>", unsafe_allow_html=True)
     else:
         st.info("Esta sección solo está disponible para cuentas de empresa.")
 
@@ -1043,19 +865,19 @@ elif st.session_state.pantalla_actual == "expedientes":
                             c_nota     = "#00D4A0" if nota_ind >= 80 else ("#F0A500" if nota_ind >= 50 else "#E8394A")
                             modo_badge = "PRIVADO" if s.get("Tipo_Mision") == "Personal" else "OFICIAL"
                             dif_badge  = s.get("Dificultad", "—")
-                            dif_color  = DIFICULTADES.get(dif_badge, {}).get("color", "#3A4A6A")
+                            dif_color  = DIFICULTADES.get(dif_badge, {}).get("color", "var(--text-dim)")
                             puede_borrar = (s["Agente"] == u["Nombre"]) or (u["Nombre"] == COMANDANTE_SUPREMO)
 
                             st.markdown(f"""
-                            <div style="border-bottom: 1px solid #18213A; padding: 12px 0; margin-bottom: 12px;">
+                            <div style="border-bottom: 1px solid var(--border); padding: 12px 0; margin-bottom: 12px;">
                             <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                                <span style="color:#3A4A6A; font-size:0.8rem; font-family:var(--mono);">
+                                <span style="color:var(--text-dim); font-size:0.8rem; font-family:var(--mono);">
                                     {s['Fecha']} · {modo_badge} · 
                                     <span style="color:{dif_color};">{dif_badge}</span>
                                 </span>
                                 <span style="font-family:var(--mono); color:{c_nota}; font-weight:700;">{nota_ind}%</span>
                             </div>
-                            <div style="font-size:0.85rem; color:#B8C4DC; margin-bottom:10px;">{s['Evaluacion']}</div>
+                            <div style="font-size:0.85rem; color:var(--text-hi); margin-bottom:10px; line-height:1.6;">{s['Evaluacion']}</div>
                             """, unsafe_allow_html=True)
 
                             col_pdf, col_del = st.columns([3, 1])
@@ -1076,12 +898,12 @@ elif st.session_state.pantalla_actual == "expedientes":
                                             st.session_state[confirm_key] = True; st.rerun()
                                     else:
                                         st.markdown("""
-                                        <div style="background:#1A0A0A; border:1px solid #E8394A; border-left:3px solid #E8394A;
-                                                    padding:10px 12px; border-radius:2px; margin-bottom:6px;">
+                                        <div style="background:rgba(232, 57, 74, 0.1); border:1px solid var(--red); border-left:3px solid var(--red);
+                                                    padding:10px 12px; border-radius:4px; margin-bottom:6px;">
                                             <div style="font-family:var(--mono); font-size:0.5rem; letter-spacing:0.2em;
-                                                        color:#E8394A; margin-bottom:6px;">CONFIRMACIÓN REQUERIDA</div>
-                                            <div style="font-family:var(--mono); font-size:0.52rem; color:#3A4A6A; line-height:1.5;">
-                                                Escribe <b style="color:#B8C4DC;">CONFIRMAR BORRADO</b> y pulsa ejecutar.
+                                                        color:var(--red); margin-bottom:6px;">CONFIRMACIÓN REQUERIDA</div>
+                                            <div style="font-family:var(--mono); font-size:0.52rem; color:var(--text-hi); line-height:1.5;">
+                                                Escribe <b>CONFIRMAR BORRADO</b> y pulsa ejecutar.
                                             </div>
                                         </div>
                                         """, unsafe_allow_html=True)
@@ -1101,17 +923,18 @@ elif st.session_state.pantalla_actual == "expedientes":
                                                 del st.session_state[confirm_key]; st.rerun()
 
                             if es_empresa and mi_plan == "COMANDANCIA" and "Transcripcion" in s:
-                                st.markdown("<br><span style='color:#F0A500; font-size:0.65rem; font-family:var(--mono); letter-spacing:0.1em;'>AUDITORÍA DE COMUNICACIONES</span>", unsafe_allow_html=True)
+                                st.markdown("<br><span style='color:var(--amber); font-size:0.65rem; font-family:var(--mono); letter-spacing:0.1em;'>AUDITORÍA DE COMUNICACIONES</span>", unsafe_allow_html=True)
                                 for tr in s["Transcripcion"]:
                                     ag_tr = "OPERADOR" if tr["role"] == "user" else "SUJETO"
-                                    colr  = "#4F8EF7" if tr["role"] == "user" else "#E8394A"
-                                    st.markdown(f"<div style='font-size:0.8rem; margin-bottom:4px;'><b style='color:{colr}'>{ag_tr}:</b> <span style='color:#3A4A6A'>{tr['content']}</span></div>", unsafe_allow_html=True)
+                                    colr  = "var(--blue)" if tr["role"] == "user" else "var(--red)"
+                                    st.markdown(f"<div style='font-size:0.8rem; margin-bottom:4px; line-height:1.5;'><b style='color:{colr}'>{ag_tr}:</b> <span style='color:var(--text-hi)'>{tr['content']}</span></div>", unsafe_allow_html=True)
 
                             st.markdown("</div>", unsafe_allow_html=True)
     else:
-        st.markdown("<div style='text-align:center; padding:60px; color:#18213A; font-family:var(--mono);'>DIRECTORIO VACÍO</div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:center; padding:60px; color:var(--text-dim); font-family:var(--mono); letter-spacing:0.1em;'>DIRECTORIO VACÍO</div>", unsafe_allow_html=True)
+
 # ─────────────────────────────────────────
-# CUENTA (información personal / corporativa)
+# CUENTA
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "cuenta":
     st.markdown("<div class='section-header'><div><div class='section-code'>CUENTA</div><div class='section-title'>Tu Cuenta</div></div></div>", unsafe_allow_html=True)
@@ -1122,7 +945,6 @@ elif st.session_state.pantalla_actual == "cuenta":
     <p><b>Email:</b> {u.get('Email','—')}</p>
     </div>""", unsafe_allow_html=True)
 
-    # --- Cambiar Correo Electrónico ---
     st.markdown("<br><div class='section-label'>CAMBIAR CORREO ELECTRÓNICO</div>", unsafe_allow_html=True)
     with st.expander("ACTUALIZAR DIRECCIÓN DE CORREO"):
         nuevo_email = st.text_input("Nuevo Correo Electrónico", key="nuevo_email_cuenta")
@@ -1132,16 +954,13 @@ elif st.session_state.pantalla_actual == "cuenta":
             elif nuevo_email == u.get("Email", ""):
                 st.info("El nuevo correo es idéntico al actual.")
             else:
-                # Actualizar en la lista de empleados
                 for e in st.session_state.empleados:
                     if e["Nombre"] == u["Nombre"] and e.get("Empresa") == u.get("Empresa"):
                         e["Email"] = nuevo_email
-                # Actualizar en el usuario actual
                 st.session_state.usuario_actual["Email"] = nuevo_email
                 guardar_datos()
                 st.success(f"Correo actualizado a: {nuevo_email}")
 
-    # --- Cambiar Contraseña ---
     st.markdown("<br><div class='section-label'>CAMBIAR CONTRASEÑA</div>", unsafe_allow_html=True)
     with st.expander("ACTUALIZAR CLAVE DE ACCESO"):
         nueva_pass = st.text_input("Nueva Contraseña", type="password", key="nueva_pass_cuenta")
@@ -1159,7 +978,6 @@ elif st.session_state.pantalla_actual == "cuenta":
                 guardar_datos()
                 st.success("Contraseña actualizada correctamente.")
 
-    # --- Gestión de Suscripción (si no eres comandante supremo) ---
     if u["Nombre"] != COMANDANTE_SUPREMO:
         st.markdown("<br><div class='section-label'>GESTIÓN DE SUSCRIPCIÓN</div>", unsafe_allow_html=True)
         planes_suscripcion = [
@@ -1172,21 +990,39 @@ elif st.session_state.pantalla_actual == "cuenta":
         for col, (nombre, precio, desc, plan_key) in zip(cols_plan, planes_suscripcion):
             with col:
                 es_elite_p = plan_key in ["ELITE","ESCUADRON","COMANDANCIA"]
-                color_p    = "#F0A500" if es_elite_p else "#4F8EF7"
+                color_p    = "var(--amber)" if es_elite_p else "var(--blue)"
                 activo     = mi_plan == plan_key
-                border_col = "#00D4A0" if activo else ("#F0A500" if es_elite_p else "var(--border)")
-                st.markdown(f"""<div class="metric-card" style="border-left-color:{border_col}; {'border-color:#00D4A020;' if activo else ''}">
+                border_col = "var(--green)" if activo else ("var(--amber)" if es_elite_p else "var(--border)")
+                st.markdown(f"""<div class="metric-card" style="border-left-color:{border_col}; {'border-color:rgba(0, 212, 160, 0.3);' if activo else ''}">
                     <div class="metric-label">{nombre}</div>
                     <div class="metric-value" style="font-size:1.1rem; color:{color_p};">{precio}</div>
-                    <div style="font-family:var(--mono); font-size:0.52rem; color:#3A4A6A; margin-top:8px;">{desc}</div>
-                    {'<div style="font-family:var(--mono); font-size:0.52rem; color:#00D4A0; margin-top:10px;">● ACTIVO</div>' if activo else ''}
+                    <div style="font-family:var(--mono); font-size:0.52rem; color:var(--text-dim); margin-top:8px;">{desc}</div>
+                    {'<div style="font-family:var(--mono); font-size:0.52rem; color:var(--green); margin-top:10px;">● ACTIVO</div>' if activo else ''}
                 </div>""", unsafe_allow_html=True)
                 st.markdown("<br>", unsafe_allow_html=True)
                 if not activo:
                     link = LINKS_PAGO.get(plan_key, "#")
-                    st.markdown(f'<a href="{link}" target="_blank"><button style="background:#4F8EF7;color:#060810;font-family:var(--mono);font-weight:700;border:none;padding:10px;border-radius:2px;cursor:pointer;width:100%;font-size:0.6rem;letter-spacing:0.1em;">ACTIVAR</button></a>', unsafe_allow_html=True)
+                    st.markdown(f'''
+                        <a href="{link}" target="_blank" style="text-decoration: none;">
+                            <button style="
+                                background: var(--stripe); 
+                                color: white; 
+                                font-family: var(--sans); 
+                                font-weight: 700; 
+                                border: none; 
+                                padding: 12px; 
+                                border-radius: 4px; 
+                                cursor: pointer; 
+                                width: 100%; 
+                                font-size: 0.7rem; 
+                                letter-spacing: 0.05em;
+                                transition: opacity 0.2s;
+                            ">
+                                ACTIVAR CON STRIPE
+                            </button>
+                        </a>
+                    ''', unsafe_allow_html=True)
 
-    # --- Zona de Peligro (Eliminar cuenta) ---
     st.markdown("<br><div class='section-label'>ZONA DE RIESGO</div>", unsafe_allow_html=True)
     st.markdown("""<div class="alert-box error">Esta acción es irreversible. Se eliminarán todos los datos asociados a tu cuenta.</div>""", unsafe_allow_html=True)
     if st.button("ELIMINAR MI CUENTA DEFINITIVAMENTE", type="primary", key="btn_eliminar_cuenta"):
@@ -1199,28 +1035,48 @@ elif st.session_state.pantalla_actual == "cuenta":
         st.rerun()
 
 # ─────────────────────────────────────────
-# SIMULADOR TÁCTICO
+# SIMULADOR TÁCTICO (Asignación Dirigida)
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "simulador":
     st.markdown("<div class='section-header'><div><div class='section-code'>MOD-02</div><div class='section-title'>Simulador Táctico</div></div></div>", unsafe_allow_html=True)
 
     if not st.session_state.mision_iniciada:
-        c1, c2 = st.columns(2)
-        if es_empresa:
-            ag_sel = c1.selectbox("Asignar Operador:", agentes_de_mi_empresa)
-            if ag_sel is None: ag_sel = u["Nombre"]
+        # LÓGICA DE ASIGNACIÓN
+        if u.get("Rol") == "Agente":
+            mision_forzada = u.get("Mision_Asignada")
+            if not mision_forzada:
+                st.markdown("""
+                <div class="briefing-box" style="border-left-color: var(--amber);">
+                    <div style="font-family:var(--mono); color:var(--amber); font-size:0.6rem; margin-bottom:8px;">PENDIENTE DE ASIGNACIÓN</div>
+                    <div style="color:var(--text-hi); font-weight:700;">No tienes tareas de formación programadas.</div>
+                    <div style="color:var(--text-dim); font-size:0.8rem; margin-top:5px; line-height:1.5;">Contacta con tu supervisor de área para recibir tu protocolo de entrenamiento.</div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.stop()
+            es_sel = mision_forzada
+            ag_sel = u["Nombre"]
+            st.markdown(f"""
+            <div class="status-bar" style="border-left-color: var(--blue);">
+                🔹 TAREA ASIGNADA: <b style="color:var(--text-hi);">{es_sel}</b>
+            </div>
+            """, unsafe_allow_html=True)
+            tipo_mision_val = "Corporativa"
         else:
-            ag_sel = c1.text_input("Operador:", value=u["Nombre"], disabled=True)
-
-        es_sel = c2.selectbox("Seleccionar Protocolo:", list(TODAS_LAS_MISIONES.keys()))
+            c1, c2 = st.columns(2)
+            ag_sel = c1.selectbox("Probar como Operador:", agentes_de_mi_empresa if es_empresa else [u["Nombre"]])
+            es_sel = c2.selectbox("Seleccionar Protocolo:", list(mis_escenarios.keys()) if es_empresa else list(TODAS_LAS_MISIONES.keys()))
+            if es_empresa and not mis_escenarios:
+                st.warning("No has creado ningún escenario personalizado. Ve a 'SÍNTESIS DE ESCENARIOS' para crear uno.")
+                st.stop()
+            tipo_mision_val = "Personal"
 
         st.markdown("<br><div class='section-label'>NIVEL DE DIFICULTAD</div>", unsafe_allow_html=True)
         d_cols = st.columns(4)
         for i, (d_nombre, d_data) in enumerate(DIFICULTADES.items()):
             with d_cols[i]:
                 is_sel_d  = st.session_state.dificultad_actual == d_nombre
-                border_d  = d_data["color"] if is_sel_d else "#18213A"
-                bg_d      = f"rgba({','.join(str(int(d_data['color'].lstrip('#')[j:j+2],16)) for j in (0,2,4))},0.12)" if is_sel_d else "#101525"
+                border_d  = d_data["color"] if is_sel_d else "var(--border)"
+                bg_d      = f"rgba({','.join(str(int(d_data['color'].lstrip('#')[j:j+2],16)) for j in (0,2,4))},0.12)" if is_sel_d else "rgba(15, 18, 32, 0.6)"
                 st.markdown(f"""
                 <div class="diff-card {'selected' if is_sel_d else ''}" style="border-color:{border_d}; background:{bg_d};">
                     <div class="diff-name" style="color:{d_data['color']};">{d_nombre}</div>
@@ -1233,26 +1089,21 @@ elif st.session_state.pantalla_actual == "simulador":
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        if u.get("Rol") == "Agente":
-            tipo_despliegue = st.radio(
-                "Nivel de Privacidad:",
-                ["Misión Oficial (Auditable por el Mando)", "Entrenamiento Privado (Oculto en expediente corporativo)"],
-                horizontal=True
-            )
-            tipo_mision_val = "Corporativa" if "Oficial" in tipo_despliegue else "Personal"
-        else:
-            tipo_mision_val = "Personal"
-
-        info = TODAS_LAS_MISIONES[es_sel]
+        info = TODAS_LAS_MISIONES.get(es_sel, {"contexto": "Datos de misión corruptos.", "perfil_sujeto": "Desconocido.", "objetivo": "Contacte con soporte."})
         dif_activa = st.session_state.dificultad_actual
         dif_color  = DIFICULTADES[dif_activa]["color"]
+        
         st.markdown(f"""
         <div class="briefing-box">
-            <h4>REPORTE DE SITUACIÓN</h4>
-            <p><b>Contexto:</b> {info['contexto']}</p>
-            <p><b>Perfil del objetivo:</b> {info['perfil_sujeto']}</p>
-            <p><b>Directiva:</b> {info['objetivo']}</p>
-            <p><b>Dificultad:</b> <span style="color:{dif_color}; font-family:var(--mono); font-weight:700;">{dif_activa} (Nivel {DIFICULTADES[dif_activa]['nivel']})</span></p>
+            <h4 style="color:var(--blue); letter-spacing:0.1em; font-family:var(--sans);">OBJETIVOS DEL MÓDULO DE FORMACIÓN</h4>
+            <p style="margin-bottom:10px;"><b>Contexto de la Evaluación:</b> {info['contexto']}</p>
+            <p style="margin-bottom:10px;"><b>Interlocutor:</b> {info['perfil_sujeto']}</p>
+            <p style="margin-bottom:10px;"><b>Competencia a evaluar:</b> {info['objetivo']}</p>
+            <p style="margin-bottom:10px;"><b>Dificultad:</b> <span style="color:{dif_color}; font-family:var(--mono); font-weight:700;">{dif_activa} (Nivel {DIFICULTADES[dif_activa]['nivel']})</span></p>
+            <div style="font-size:0.7rem; color:var(--text-dim); border-top:1px solid var(--border); padding-top:10px; margin-top:10px; line-height:1.5;">
+                Este ejercicio monitorizará su capacidad de resolución de conflictos y comunicación asertiva. 
+                Los datos serán cifrados y enviados al departamento de formación tras su finalización.
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1290,7 +1141,7 @@ elif st.session_state.pantalla_actual == "simulador":
 
     elif st.session_state.evaluacion_actual:
         st.markdown("<div class='section-label'>INFORME DE EVALUACIÓN TÁCTICA</div>", unsafe_allow_html=True)
-        st.markdown(st.session_state.evaluacion_actual)
+        st.markdown(f"<div style='background:rgba(15, 18, 32, 0.8); padding:24px; border-radius:4px; border:1px solid var(--border); line-height:1.6;'>{st.session_state.evaluacion_actual}</div>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         col_end1, col_end2 = st.columns(2)
         with col_end1:
@@ -1313,7 +1164,7 @@ elif st.session_state.pantalla_actual == "simulador":
 
     else:
         dif_sesion  = st.session_state.get("dificultad_sesion", "OPERATOR")
-        dif_color_s = DIFICULTADES.get(dif_sesion, {}).get("color","#4F8EF7")
+        dif_color_s = DIFICULTADES.get(dif_sesion, {}).get("color","var(--blue)")
         st.markdown(f"""
         <div class='status-bar'>
             ● LÍNEA SEGURA ACTIVA: {st.session_state.escenario_activo} — 
@@ -1324,21 +1175,21 @@ elif st.session_state.pantalla_actual == "simulador":
 
         if st.session_state.tarjeta_objetivo:
             t = st.session_state.tarjeta_objetivo
-            st.markdown(f"""<div style="display:flex; gap:15px; background:#0B0E1A; border:1px solid #18213A; border-left:3px solid #F0A500; border-radius:2px; padding:14px 20px; margin-bottom:20px;">
-                <div style="flex:1;"><div style="color:#F0A500; font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">IDENTIFICACIÓN</div><div style="color:#E2EAF8;">{str(t.get('Nombre_Completo','N/A'))}</div></div>
-                <div style="flex:1;"><div style="color:#F0A500; font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">VÍNCULOS</div><div style="color:#B8C4DC; font-size:0.88rem;">{str(t.get('Familia','N/A'))}</div></div>
-                <div style="flex:1;"><div style="color:#F0A500; font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">ESTADO CLÍNICO</div><div style="color:#B8C4DC; font-size:0.88rem;">{str(t.get('Estado_Mental','N/A'))}</div></div>
+            st.markdown(f"""<div style="display:flex; gap:15px; background:var(--card-bg); border:1px solid var(--border); border-left:3px solid var(--amber); border-radius:4px; padding:14px 20px; margin-bottom:20px;">
+                <div style="flex:1;"><div style="color:var(--amber); font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">IDENTIFICACIÓN</div><div style="color:var(--text-hi);">{str(t.get('Nombre_Completo','N/A'))}</div></div>
+                <div style="flex:1;"><div style="color:var(--amber); font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">VÍNCULOS</div><div style="color:var(--text-dim); font-size:0.88rem;">{str(t.get('Familia','N/A'))}</div></div>
+                <div style="flex:1;"><div style="color:var(--amber); font-size:0.52rem; font-family:var(--mono); letter-spacing:0.2em; margin-bottom:4px;">ESTADO CLÍNICO</div><div style="color:var(--text-dim); font-size:0.88rem;">{str(t.get('Estado_Mental','N/A'))}</div></div>
             </div>""", unsafe_allow_html=True)
 
         for m in st.session_state.mensajes:
             label  = "TÚ" if m["role"] == "user" else "SUJETO"
-            bg     = "#0D1424" if m["role"] == "user" else "#0B0E1A"
-            border = "#4F8EF7" if m["role"] == "user" else "#E8394A"
+            bg     = "rgba(79, 142, 247, 0.05)" if m["role"] == "user" else "rgba(15, 18, 32, 0.8)"
+            border = "var(--blue)" if m["role"] == "user" else "var(--red)"
             align  = "flex-end" if m["role"] == "user" else "flex-start"
             st.markdown(f"""<div style="display:flex; justify-content:{align}; margin-bottom:12px;">
-            <div style="max-width:78%; background:{bg}; border:1px solid {border}22; border-left:3px solid {border}; border-radius:2px; padding:14px 18px;">
+            <div style="max-width:78%; background:{bg}; border:1px solid {border}33; border-left:3px solid {border}; border-radius:4px; padding:14px 18px;">
                 <div style="font-family:var(--mono); font-size:0.52rem; letter-spacing:0.22em; color:{border}; margin-bottom:8px;">{label}</div>
-                <div style="color:#B8C4DC; font-size:0.9rem; line-height:1.6;">{m['content']}</div>
+                <div style="color:var(--text-hi); font-size:0.95rem; line-height:1.6;">{m['content']}</div>
             </div></div>""", unsafe_allow_html=True)
 
         if prompt := st.chat_input("Introduce tu mensaje al sujeto..."):
@@ -1348,7 +1199,7 @@ elif st.session_state.pantalla_actual == "simulador":
             if GROQ_API_KEY:
                 client      = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
                 escenario_a = st.session_state.escenario_activo
-                base_prompt = TODAS_LAS_MISIONES[escenario_a]["prompt"]
+                base_prompt = TODAS_LAS_MISIONES.get(escenario_a, {}).get("prompt", "Escenario no encontrado. Sé un sujeto neutral.")
                 dif_instruc = DIFICULTADES.get(dif_sesion, {}).get("instruccion","")
                 base_prompt += f"\n\n[NIVEL DE DIFICULTAD: {dif_sesion}. {dif_instruc}]"
                 if st.session_state.tarjeta_objetivo:
@@ -1373,7 +1224,7 @@ elif st.session_state.pantalla_actual == "simulador":
                     with st.spinner("Procesando auditoría lingüística..."):
                         client    = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
                         escenario = st.session_state.escenario_activo
-                        info_ev   = TODAS_LAS_MISIONES[escenario]
+                        info_ev   = TODAS_LAS_MISIONES.get(escenario, {"contexto": "N/A"})
                         dif_ev    = st.session_state.get("dificultad_sesion","OPERATOR")
                         dif_nivel = DIFICULTADES.get(dif_ev,{}).get("nivel",2)
                         hist_txt  = "\n".join([f"{'OPERADOR' if m['role']=='user' else 'SUJETO'}: {m['content']}" for m in st.session_state.mensajes])
@@ -1420,7 +1271,7 @@ PUNTUACIÓN FINAL: XX/100"""
 # SÍNTESIS IA
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "sintesis":
-    st.markdown("<div class='section-header'><div><div class='section-code'>MOD-05</div><div class='section-title'>Generación de Escenarios</div></div></div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'><div><div class='section-code'>MOD-05</div><div class='section-title'>Síntesis de Escenarios</div></div></div>", unsafe_allow_html=True)
 
     col_izq, col_der = st.columns([2, 1], gap="large")
     with col_izq:
@@ -1430,16 +1281,16 @@ elif st.session_state.pantalla_actual == "sintesis":
             for nombre_esc, datos_esc in mis_escenarios.items():
                 c_esc1, c_esc2 = st.columns([3, 1])
                 c_esc1.markdown(f"""
-                <div style="background:var(--bg2); border:1px solid var(--border); border-radius:2px; padding:10px 14px; margin-bottom:4px;">
-                    <span style="color:var(--text-hi); font-size:0.85rem;">{nombre_esc}</span>
-                    <span style="color:var(--text-lo); font-family:var(--mono); font-size:0.55rem; margin-left:8px;">Creador: {datos_esc.get('Creador','—')}</span>
+                <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:4px; padding:12px 16px; margin-bottom:6px;">
+                    <span style="color:var(--text-hi); font-size:0.85rem; font-weight:700;">{nombre_esc}</span>
+                    <span style="color:var(--text-dim); font-family:var(--mono); font-size:0.55rem; margin-left:8px;">Creador: {datos_esc.get('Creador','—')}</span>
                 </div>
                 """, unsafe_allow_html=True)
                 if c_esc2.button("ELIMINAR", key=f"del_{nombre_esc}", type="secondary"):
                     del st.session_state.escenarios_custom[nombre_esc]; guardar_datos(); st.rerun()
             st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown("<div class='section-label'>NUEVA SIMULACIÓN</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-label'>NUEVO MÓDULO DE FORMACIÓN</div>", unsafe_allow_html=True)
 
         if mi_plan == "BASE" and u["Nombre"] != COMANDANTE_SUPREMO:
             st.markdown("""<div class="alert-box error">RESTRICCIÓN: El nivel BASE no permite el uso de IA Generativa. Actualiza tu plan para desbloquear esta función.</div>""", unsafe_allow_html=True)
@@ -1448,9 +1299,9 @@ elif st.session_state.pantalla_actual == "sintesis":
             if limite_esc != 99999 and creados >= limite_esc:
                 st.markdown(f"""<div class="alert-box warning">CUOTA ALCANZADA ({creados}/{limite_esc} escenarios). Elimina uno existente para crear otro.</div>""", unsafe_allow_html=True)
             else:
-                idea_prompt = st.text_area("Describe el entorno táctico y el tipo de sujeto:", height=100,
+                idea_prompt = st.text_area("Describe el entorno corporativo y el perfil del interlocutor:", height=100,
                                            placeholder="Ej: Un ejecutivo corrupto atrapado en una negociación empresarial. Arrogante y calculador...")
-                if st.button("GENERAR NUEVA SIMULACIÓN", use_container_width=True):
+                if st.button("GENERAR NUEVO MÓDULO", use_container_width=True):
                     if idea_prompt and GROQ_API_KEY:
                         with st.spinner("Enlazando con el motor de IA..."):
                             try:
@@ -1472,7 +1323,7 @@ elif st.session_state.pantalla_actual == "sintesis":
                                     "prompt":        nuevo_esc["prompt"],
                                     "Creador":       empresa_actual
                                 }
-                                guardar_datos(); st.success(f"Protocolo {nuevo_esc['nombre_op']} creado y activado."); st.rerun()
+                                guardar_datos(); st.success(f"Protocolo {nuevo_esc['nombre_op']} creado."); st.rerun()
                             except Exception as e:
                                 st.error(f"Fallo del Motor IA: {e}")
                     elif not idea_prompt:
@@ -1489,17 +1340,17 @@ elif st.session_state.pantalla_actual == "sintesis":
         ]
         for nombre, precio, elite, specs in planes_der:
             activo = mi_plan == nombre
-            color  = "#F0A500" if elite else "#4F8EF7"
-            border = "#00D4A0" if activo else ("#F0A500" if elite else "var(--border2)")
+            color  = "var(--amber)" if elite else "var(--blue)"
+            border = "var(--green)" if activo else ("var(--amber)" if elite else "var(--border2)")
             st.markdown(f"""
-            <div class="auth-tier {'elite' if elite else ''}" style="border-left-color:{border};">
-                <div style="display:flex;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid #18213A;padding-bottom:6px;">
-                    <span style="font-family:var(--mono);font-size:0.65rem;color:{'#00D4A0' if activo else 'var(--text-hi)'};">
+            <div style="background:var(--card-bg); border:1px solid var(--border); border-left:3px solid {border}; padding:20px; border-radius:4px; margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:6px;">
+                    <span style="font-family:var(--mono);font-size:0.65rem;color:{'var(--green)' if activo else 'var(--text-hi)'};">
                         {'● ' if activo else ''}{nombre}
                     </span>
                     <span style="font-family:var(--mono);font-size:0.75rem;color:{color};">{precio}</span>
                 </div>
-                {''.join(f'<div class="tier-spec">{s}</div>' for s in specs)}
+                {''.join(f'<div style="font-size:0.75rem; color:var(--text-dim); margin-bottom:6px; display:flex; align-items:center;"><span style="color:var(--blue); margin-right:8px; font-size:0.6rem;">—</span>{s}</div>' for s in specs)}
             </div>
             """, unsafe_allow_html=True)
 
@@ -1523,7 +1374,7 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
     total_agentes    = len([e for e in st.session_state.empleados if e["Rol"] == "Agente"])
 
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
-    col_m1.markdown(f"""<div class="metric-card" style="border-left-color:#F0A500;"><div class="metric-label" style="color:#F0A500;">MRR ESTIMADO</div><div class="metric-value">{mrr_estimado}€</div></div>""", unsafe_allow_html=True)
+    col_m1.markdown(f"""<div class="metric-card" style="border-left-color:var(--amber);"><div class="metric-label" style="color:var(--amber);">MRR ESTIMADO</div><div class="metric-value">{mrr_estimado}€</div></div>""", unsafe_allow_html=True)
     col_m2.markdown(f"""<div class="metric-card"><div class="metric-label">CUENTAS DE PAGO</div><div class="metric-value">{total_enterprise+total_escuadron+total_elite+total_operador}</div></div>""", unsafe_allow_html=True)
     col_m3.markdown(f"""<div class="metric-card"><div class="metric-label">AGENTES DESPLEGADOS</div><div class="metric-value">{total_agentes}</div></div>""", unsafe_allow_html=True)
     col_m4.markdown(f"""<div class="metric-card"><div class="metric-label">SESIONES TOTALES</div><div class="metric-value">{len(st.session_state.historial_sesiones)}</div></div>""", unsafe_allow_html=True)
@@ -1553,7 +1404,7 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
                     del st.session_state.escenarios_custom[n_esc]; guardar_datos(); st.rerun()
 
     with col_adm2:
-        with st.expander("EMITIR CREDENCIAL DE CORTESÍA", expanded=True):
+        with st.expander("EMITIR CREDENCIAL DE CORTESÍA / CREAR CUENTA", expanded=True):
             with st.form("admin_create_user"):
                 new_n     = st.text_input("ID / Entidad",   key="admin_new_n")
                 new_email = st.text_input("Correo",          key="admin_new_email")
@@ -1617,3 +1468,27 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
         st.session_state.escenarios_custom  = {}
         st.session_state.usuario_actual     = None
         guardar_datos(); st.rerun()
+
+# ─────────────────────────────────────────
+# PIE DE PÁGINA LEGAL
+# ─────────────────────────────────────────
+if st.session_state.pantalla_actual != "menu":
+    st.markdown('<div style="margin-top: 80px; padding: 40px 0; border-top: 1px solid var(--border);">', unsafe_allow_html=True)
+    col_l1, col_l2, col_l3 = st.columns(3)
+    with col_l1:
+        st.markdown("<div style='font-family:var(--mono); font-size:0.55rem; color:var(--text-dim); line-height:1.6;'>© 2026 CRYSIS Intelligence Unit.<br>Seguridad AES-256 Fernet habilitada.</div>", unsafe_allow_html=True)
+    with col_l2:
+        with st.expander("POLÍTICA DE PRIVACIDAD"):
+            st.write("""
+            **PRIVACIDAD POR DISEÑO:** CRYSIS Intelligence Unit cifra todos los datos de sesión localmente antes de su almacenamiento mediante el algoritmo Fernet (AES-256). 
+            El administrador de la plataforma NO tiene capacidad técnica para visualizar las transcripciones de conversaciones de agentes externos. 
+            Cumplimos con el RGPD mediante el derecho al olvido (Eliminar Cuenta) y la minimización de datos.
+            """)
+    with col_l3:
+        with st.expander("TÉRMINOS DE SERVICIO"):
+            st.write("""
+            CRYSIS es una herramienta de simulación basada en IA. Los resultados son generativos y deben usarse exclusivamente con fines de entrenamiento. 
+            El usuario es el único responsable de la aplicación de estas tácticas en entornos reales. 
+            Queda prohibido el uso de la plataforma para generar contenido violento o ilegal.
+            """)
+    st.markdown('</div>', unsafe_allow_html=True)
