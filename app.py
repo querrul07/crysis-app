@@ -62,10 +62,7 @@ def init_supabase_admin():
 
 supabase_admin = init_supabase_admin()
 
-@st.cache_resource
-def get_manager():
-    return stx.CookieManager()
-cookie_manager = get_manager()
+cookie_manager = stx.CookieManager()
 
 def obtener_plan_stripe(email):
     try:
