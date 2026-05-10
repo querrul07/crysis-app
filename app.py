@@ -14,7 +14,6 @@ import random
 from fpdf import FPDF
 from supabase import create_client, Client
 import base64
-import extra_streamlit_components as stx
 
 # ─────────────────────────────────────────
 # CONFIGURACIÓN DE SUPERUSUARIO
@@ -54,24 +53,6 @@ def init_supabase():
 
 supabase = init_supabase()
 
-@st.cache_resource
-def init_supabase_admin():
-    url: str = st.secrets["SUPABASE_URL"].strip().rstrip("/")
-    key: str = st.secrets["SUPABASE_SERVICE_KEY"].strip()
-    return create_client(url, key)
-
-supabase_admin = init_supabase_admin()
-
-cookie_manager = stx.CookieManager()
-
-def obtener_plan_stripe(email):
-    try:
-        res = supabase_admin.table("crysis_planes").select("plan").eq("email", email).execute()
-        if res.data:
-            return res.data[0]["plan"]
-    except:
-        pass
-    return None
 # 🔐 MOTOR DE CIFRADO
 def obtener_fernet():
     return Fernet(st.secrets["ENCRYPTION_KEY"])
@@ -458,23 +439,6 @@ empresa_invitada = None
 if token_invitacion:
     try: empresa_invitada = base64.urlsafe_b64decode(token_invitacion.encode()).decode()
     except: pass
-        # ── RESTAURAR SESIÓN DESDE COOKIE ──
-if st.session_state.usuario_actual is None:
-    try:
-        uid_cookie = cookie_manager.get(cookie="crysis_uid")
-        if uid_cookie:
-            agente_guardado = next((e for e in st.session_state.empleados if e["Nombre"] == uid_cookie), None)
-            if agente_guardado:
-                expiro = False
-                if "Expiracion" in agente_guardado:
-                    if datetime.now() > datetime.strptime(agente_guardado["Expiracion"], "%Y-%m-%d"):
-                        expiro = True
-                if not expiro:
-                    st.session_state.usuario_actual = agente_guardado
-                    st.session_state.pantalla_actual = "menu"
-                    st.rerun()
-    except:
-        pass
 
 if st.session_state.usuario_actual is None:
     if not st.session_state.get("cookies_aceptadas"):
@@ -633,7 +597,6 @@ if st.session_state.usuario_actual is None:
                                     st.error(f"ACCESO DENEGADO: Licencia expirada el {agente['Expiracion']}.")
                                 else:
                                     if agente.get("2FA_Verificado", False) == True or agente["Nombre"] == COMANDANTE_SUPREMO:
-                                        cookie_manager.set("crysis_uid", agente["Nombre"], expires_at=datetime.now() + timedelta(days=30))
                                         st.session_state.usuario_actual = agente; st.session_state.pantalla_actual = "menu"; st.rerun()
                                     else:
                                         st.session_state["2fa_code"]   = str(random.randint(100000, 999999))
@@ -663,7 +626,6 @@ if st.session_state.usuario_actual is None:
                             if u_code == st.session_state["2fa_code"]:
                                 st.session_state["2fa_agente"]["2FA_Verificado"] = True; guardar_datos()
                                 st.session_state.usuario_actual = st.session_state["2fa_agente"]
-                                cookie_manager.set("crysis_uid", st.session_state["2fa_agente"]["Nombre"], expires_at=datetime.now() + timedelta(days=30))
                                 st.session_state.pantalla_actual = "menu"
                                 st.session_state.login_step = 1; del st.session_state["correo_enviado"]; st.rerun()
                             else: st.error("Código incorrecto.")
@@ -800,14 +762,8 @@ else:
     if u.get("Rol") == "Agente":
         empresa_obj = next((e for e in st.session_state.empleados if e["Rol"] == "Empresa" and e["Nombre"] == empresa_actual), None)
         mi_plan = empresa_obj.get("Plan", "ESCUADRON") if empresa_obj else "ESCUADRON"
-        plan_stripe = obtener_plan_stripe(empresa_obj.get("Email","") if empresa_obj else "")
-        if plan_stripe:
-            mi_plan = plan_stripe
     else:
         mi_plan = u.get("Plan", "BASE")
-        plan_stripe = obtener_plan_stripe(u.get("Email", ""))
-        if plan_stripe:
-            mi_plan = plan_stripe
 
 # Normalizar planes legacy (Líneas 725-726 de tu código original)
 _legacy = {"Gratis": "BASE", "Individual": "OPERADOR", "Pro": "ESCUADRON", "Enterprise": "COMANDANCIA"}
@@ -860,7 +816,6 @@ if st.session_state.pantalla_actual != "menu":
         if pantalla != "menu":
             if st.button("← MENÚ", key="btn_menu"): st.session_state.pantalla_actual = "menu"; st.rerun()
         if st.button("SALIR", key="btn_logout", type="secondary"):
-            cookie_manager.delete("crysis_uid")
             st.session_state.usuario_actual = None; st.session_state.login_step = 1; st.session_state.pantalla_actual = "menu"; st.rerun()
 
 def ir_a(p):
