@@ -20,10 +20,10 @@ import base64
 # ─────────────────────────────────────────
 COMANDANTE_SUPREMO = "CRYSIS"
 LINKS_PAGO = {
-    "OPERADOR":    "https://crysisanalitics.lemonsqueezy.com/checkout/buy/1dba647d-e120-4816-9ea0-a25492650825",
-    "ELITE":       "https://crysisanalitics.lemonsqueezy.com/checkout/buy/PLACEHOLDER_ELITE",
-    "ESCUADRON":   "https://crysisanalitics.lemonsqueezy.com/checkout/buy/d864d72e-5ff1-4bac-966d-eafc555c5bd2",
-    "COMANDANCIA": "https://crysisanalitics.lemonsqueezy.com/checkout/buy/adfd50b4-b2e5-40fb-9ece-30717f8828ba",
+    "OPERADOR":    "https://buy.stripe.com/4gM28r2NU7b15Jf6wGc7u03",
+    "ELITE":       "https://buy.stripe.com/bJe3cv2NU3YP1sZ3kuc7u02",
+    "ESCUADRON":   "https://buy.stripe.com/dRm5kD3RY52T5Jf08ic7u01",
+    "COMANDANCIA": "https://buy.stripe.com/8x23cvfAGdzp7RnaMWc7u00",
 }
 
 PLANES_INFO = {
