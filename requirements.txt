@@ -8,3 +8,4 @@ fpdf
 supabase
 cryptography
 extra-streamlit-components
+bcrypt
