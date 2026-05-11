@@ -134,8 +134,38 @@ def enviar_codigo_sendgrid(destinatario, codigo):
         )
         response = sg.send(message)
         return response.status_code in (200, 202)
+    def enviar_codigo_sendgrid(destinatario, codigo):
+    try:
+        sg = sendgrid.SendGridAPIClient(api_key=st.secrets["SENDGRID_API_KEY"])
+        contenido = f"""
+Tu código de verificación para CRYSIS es: {codigo}
+
+Este código expira en 15 minutos.
+
+Si no has solicitado este registro, ignora este mensaje.
+        """
+        message = Mail(
+            from_email=FROM_EMAIL,
+            to_emails=destinatario,
+            subject="CRYSIS | Código de verificación de registro",
+            plain_text_content=contenido
+        )
+        response = sg.send(message)
+
+        # Log detallado para depuración
+        print(f"[SendGrid] Status: {response.status_code}")
+        print(f"[SendGrid] Headers: {response.headers}")
+
+        if response.status_code not in (200, 202):
+            st.error(f"SendGrid rechazó el envío. Código: {response.status_code}")
+            return False
+        return True
+
     except Exception as e:
+        # Muestra el cuerpo completo del error de SendGrid
+        body = getattr(e, 'body', None) or getattr(e, 'message', str(e))
         st.error(f"Error SendGrid: {e}")
+        st.error(f"Detalle: {body}")
         return False
 
 # ─────────────────────────────────────────
