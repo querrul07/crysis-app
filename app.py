@@ -14,7 +14,9 @@ import random
 from fpdf import FPDF
 from supabase import create_client, Client
 import base64
-import bcrypt  # <--- NUEVO para hash de contraseñas
+import bcrypt
+import sendgrid
+from sendgrid.helpers.mail import Mail
 
 # ─────────────────────────────────────────
 # CONFIGURACIÓN DE SUPERUSUARIO
@@ -47,14 +49,12 @@ DIFICULTADES = {
 }
 
 # ─────────────────────────────────────────
-# FUNCIONES DE HASH DE CONTRASEÑAS
+# FUNCIONES DE HASH (BCRYPT)
 # ─────────────────────────────────────────
 def hash_password(passwd):
-    """Convierte una contraseña en texto plano a hash bcrypt"""
     return bcrypt.hashpw(passwd.encode(), bcrypt.gensalt()).decode()
 
 def check_password(passwd, hashed):
-    """Verifica si la contraseña en texto plano coincide con el hash"""
     return bcrypt.checkpw(passwd.encode(), hashed.encode())
 
 # ─────────────────────────────────────────
@@ -111,44 +111,35 @@ def guardar_datos():
         st.error(f"Fallo crítico al sincronizar: {e}")
 
 # ─────────────────────────────────────────
-# CORREOS
+# ENVÍO DE CORREOS CON SENDGRID
 # ─────────────────────────────────────────
-def enviar_correo_2fa(destinatario, codigo):
-    try:
-        remitente = st.secrets["SMTP_EMAIL"]
-        password  = st.secrets["SMTP_PASS"]
-        msg = MIMEText(f"Tu código de autorización táctica para CRYSIS es: {codigo}\n\nSi no has solicitado este acceso, reporta una brecha de seguridad inmediatamente.")
-        msg['Subject'] = 'CRYSIS | Código de Acceso 2FA'
-        msg['From']    = "CRYSIS Security <crysisapp@outlook.com>"
-        msg['To']      = destinatario
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(remitente, password)
-        server.send_message(msg)
-        server.quit()
-        return True
-    except:
-        return False
+# CAMBIA ESTE CORREO POR EL QUE VERIFICASTE EN SENDGRID
+FROM_EMAIL = "crysisapp@outlook.com"
 
-def enviar_correo_reset(destinatario, nueva_pass):
+def enviar_codigo_sendgrid(destinatario, codigo):
     try:
-        remitente = st.secrets["SMTP_EMAIL"]
-        password  = st.secrets["SMTP_PASS"]
-        msg = MIMEText(f"Tu nueva contraseña temporal para CRYSIS es: {nueva_pass}\n\nCámbiala en Ajustes de Cuenta tras acceder.")
-        msg['Subject'] = 'CRYSIS | Recuperación de Contraseña'
-        msg['From']    = "CRYSIS Security <crysisapp@outlook.com>"
-        msg['To']      = destinatario
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(remitente, password)
-        server.send_message(msg)
-        server.quit()
-        return True
-    except:
+        sg = sendgrid.SendGridAPIClient(api_key=st.secrets["SENDGRID_API_KEY"])
+        contenido = f"""
+        Tu código de verificación para CRYSIS es: {codigo}
+
+        Este código expira en 15 minutos.
+
+        Si no has solicitado este registro, ignora este mensaje.
+        """
+        message = Mail(
+            from_email=FROM_EMAIL,
+            to_emails=destinatario,
+            subject="CRYSIS | Código de verificación de registro",
+            plain_text_content=contenido
+        )
+        response = sg.send(message)
+        return response.status_code in (200, 202)
+    except Exception as e:
+        st.error(f"Error SendGrid: {e}")
         return False
 
 # ─────────────────────────────────────────
-# UTILIDADES
+# UTILIDADES (PDF, etc.)
 # ─────────────────────────────────────────
 def sanitizar_texto(texto):
     if not isinstance(texto, str): texto = str(texto)
@@ -164,10 +155,10 @@ def generar_pdf_dossier(sesion):
     pdf.cell(0,8,"DOSSIER OPERACIONAL CLASIFICADO",ln=True,align='C'); pdf.ln(5)
     pdf.set_font("Arial",'B',10); pdf.set_text_color(0,0,0)
     pdf.cell(45,8,"OPERADOR:",border=1); pdf.set_font("Arial",'',10); pdf.cell(0,8,sanitizar_texto(sesion.get("Agente","N/A").upper()),border=1,ln=True)
-    pdf.set_font("Arial",'B',10); pdf.cell(45,8,"FECHA:",border=1); pdf.set_font("Arial",'',10); pdf.cell(0,8,sanitizar_texto(sesion.get("Fecha","N/A")),border=1,ln=True)
-    pdf.set_font("Arial",'B',10); pdf.cell(45,8,"PROTOCOLO:",border=1); pdf.set_font("Arial",'',10); pdf.cell(0,8,sanitizar_texto(sesion.get("Escenario","N/A")),border=1,ln=True)
-    pdf.set_font("Arial",'B',10); pdf.cell(45,8,"DIFICULTAD:",border=1); pdf.set_font("Arial",'',10); pdf.cell(0,8,sanitizar_texto(sesion.get("Dificultad","N/A")),border=1,ln=True)
-    pdf.set_font("Arial",'B',10); pdf.cell(45,8,"EVALUACION FINAL:",border=1); pdf.set_font("Arial",'B',10); pdf.cell(0,8,f"{sesion.get('Nota',0)}/100",border=1,ln=True); pdf.ln(10)
+    pdf.cell(45,8,"FECHA:",border=1); pdf.set_font("Arial",'',10); pdf.cell(0,8,sanitizar_texto(sesion.get("Fecha","N/A")),border=1,ln=True)
+    pdf.cell(45,8,"PROTOCOLO:",border=1); pdf.set_font("Arial",'',10); pdf.cell(0,8,sanitizar_texto(sesion.get("Escenario","N/A")),border=1,ln=True)
+    pdf.cell(45,8,"DIFICULTAD:",border=1); pdf.set_font("Arial",'',10); pdf.cell(0,8,sanitizar_texto(sesion.get("Dificultad","N/A")),border=1,ln=True)
+    pdf.cell(45,8,"EVALUACION FINAL:",border=1); pdf.set_font("Arial",'B',10); pdf.cell(0,8,f"{sesion.get('Nota',0)}/100",border=1,ln=True); pdf.ln(10)
     pdf.set_text_color(0,0,0); pdf.set_font("Arial",'B',12)
     pdf.cell(0,8,"1. INFORME DE EVALUACION TACTICA",ln=True); pdf.set_font("Arial",'',10)
     pdf.multi_cell(0,6,sanitizar_texto(sesion.get("Evaluacion",""))); pdf.ln(5)
@@ -256,7 +247,7 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
     border-top: 1px solid var(--border); padding-top: 14px;
 }
 
-/* ── TARJETAS DEL MENÚ (ESTILO B + D SIN EMOJIS) ── */
+/* ── TARJETAS DEL MENÚ ── */
 .card-wrapper {
     position: relative;
     margin-bottom: 20px;
@@ -281,7 +272,6 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
     box-shadow: 0 8px 24px rgba(0,0,0,0.4);
     transform: translateY(-3px);
 }
-/* Círculo de color (indicador geométrico) */
 .dashboard-card::before {
     content: '';
     width: 12px;
@@ -317,8 +307,6 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
-
-/* Botón invisible encima de la tarjeta */
 .card-wrapper button {
     position: absolute !important;
     inset: 0 !important;
@@ -331,7 +319,6 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
     border: none !important;
     border-radius: 0 !important;
 }
-/* Oculta el texto del botón */
 .card-wrapper button p, .card-wrapper button span {
     display: none !important;
 }
@@ -438,17 +425,17 @@ if "evaluacion_actual"  not in st.session_state: st.session_state.evaluacion_act
 if "mision_iniciada"    not in st.session_state: st.session_state.mision_iniciada    = False
 if "tarjeta_objetivo"   not in st.session_state: st.session_state.tarjeta_objetivo   = None
 if "usuario_actual"     not in st.session_state: st.session_state.usuario_actual     = None
-if "login_step"         not in st.session_state: st.session_state.login_step         = 1
 if "pantalla_actual"    not in st.session_state: st.session_state.pantalla_actual    = "menu"
 if "login_modo"         not in st.session_state: st.session_state.login_modo         = "acceso"
 if "dificultad_actual"  not in st.session_state: st.session_state.dificultad_actual  = "OPERATOR"
+if "esperando_codigo"   not in st.session_state: st.session_state.esperando_codigo   = False
 if "login_subpantalla"  not in st.session_state: st.session_state.login_subpantalla  = "main"
 
 try:    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except: GROQ_API_KEY = None
 
 # ─────────────────────────────────────────
-# LOGIN Y AUTENTICACIÓN (MODIFICADO CON BCRYPT)
+# LOGIN Y REGISTRO CON VERIFICACIÓN DE EMAIL
 # ─────────────────────────────────────────
 token_invitacion = st.query_params.get("invite", None)
 empresa_invitada = None
@@ -470,7 +457,7 @@ if st.session_state.usuario_actual is None:
             st.session_state.cookies_aceptadas = True
             st.rerun()
 
-    # ── FLUJO INVITACIÓN ──
+    # ── FLUJO INVITACIÓN (sin cambios, igual que original) ──
     if empresa_invitada:
         st.markdown(f"""
         <div style="text-align:center; padding: 60px 0 30px 0;">
@@ -495,29 +482,22 @@ if st.session_state.usuario_actual is None:
                 email = st.text_input("Correo Corporativo")
                 d     = st.text_input("Unidad / Departamento")
                 p     = st.text_input("Establecer Clave de Acceso", type="password")
-                acepta_tyc_ag = st.checkbox(
-                            "He leído y acepto los Términos y Condiciones y la Política de Privacidad",
-                            key="check_tyc_agente"
-                        )
-                acepta_rgpd_ag = st.checkbox(
-                    "Consiento el tratamiento de mis datos personales conforme al RGPD (UE) 2016/679",
-                    key="check_rgpd_agente"
-                )
+                acepta_tyc_ag = st.checkbox("He leído y acepto los Términos y Condiciones y la Política de Privacidad", key="check_tyc_agente")
+                acepta_rgpd_ag = st.checkbox("Consiento el tratamiento de mis datos personales conforme al RGPD (UE) 2016/679", key="check_rgpd_agente")
                 if st.form_submit_button("REGISTRAR CREDENCIALES", use_container_width=True):
-                        if not acepta_tyc_ag or not acepta_rgpd_ag:
-                            st.error("Debes aceptar los Términos y la Política de Privacidad para continuar.")
-                        elif n and p and email:
-                            if any(e["Nombre"] == n and e.get("Empresa") == empresa_invitada for e in st.session_state.empleados):
-                                st.warning("Este ID ya está registrado en esta corporación.")
-                            elif any(e["Nombre"] == n and e.get("Password") == p for e in st.session_state.empleados):
-                                st.warning("ID ya en uso. Utiliza una contraseña diferente.")
-                            else:
-                                # Hash de la contraseña
-                                hashed_pwd = hash_password(p)
-                                nuevo_agente = {"Nombre": n, "Email": email, "Departamento": d, "Rol": "Agente", "Empresa": empresa_invitada, "Password": hashed_pwd, "2FA_Verificado": True}
-                                st.session_state.empleados.append(nuevo_agente); guardar_datos()
-                                st.session_state.registro_completado = True
-                                st.query_params.clear(); st.rerun()
+                    if not acepta_tyc_ag or not acepta_rgpd_ag:
+                        st.error("Debes aceptar los Términos y la Política de Privacidad para continuar.")
+                    elif n and p and email:
+                        if any(e["Nombre"] == n and e.get("Empresa") == empresa_invitada for e in st.session_state.empleados):
+                            st.warning("Este ID ya está registrado en esta corporación.")
+                        elif any(e["Nombre"] == n and e.get("Password") == p for e in st.session_state.empleados):
+                            st.warning("ID ya en uso. Utiliza una contraseña diferente.")
+                        else:
+                            hashed_pwd = hash_password(p)
+                            nuevo_agente = {"Nombre": n, "Email": email, "Departamento": d, "Rol": "Agente", "Empresa": empresa_invitada, "Password": hashed_pwd, "email_verificado": True}
+                            st.session_state.empleados.append(nuevo_agente); guardar_datos()
+                            st.session_state.registro_completado = True
+                            st.query_params.clear(); st.rerun()
         st.stop()
 
     if st.session_state.get("registro_completado"):
@@ -526,7 +506,6 @@ if st.session_state.usuario_actual is None:
 
     # ── LAYOUT PRINCIPAL LOGIN ──
     col_brand, col_form = st.columns([1, 1])
-
     with col_brand:
         st.markdown("""
         <div style="padding: 80px 40px 80px 20px; min-height: 80vh; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #18213A;">
@@ -564,20 +543,24 @@ if st.session_state.usuario_actual is None:
                 enviar = col_f1.form_submit_button("ENVIAR CLAVE TEMPORAL", use_container_width=True)
                 volver = col_f2.form_submit_button("VOLVER", use_container_width=True)
                 if enviar:
-                    agente_r = next((e for e in st.session_state.empleados
-                                     if e["Nombre"] == r_id and e.get("Email","").lower() == r_email.lower()), None)
+                    agente_r = next((e for e in st.session_state.empleados if e["Nombre"] == r_id and e.get("Email","").lower() == r_email.lower()), None)
                     if agente_r:
                         nueva_pass = str(random.randint(100000, 999999))
-                        ok = enviar_correo_reset(r_email, nueva_pass)
-                        if ok:
-                            # Guardar la nueva contraseña hasheada
-                            for e in st.session_state.empleados:
-                                if e["Nombre"] == r_id:
-                                    e["Password"] = hash_password(nueva_pass)
-                            guardar_datos()
-                            st.success(f"Clave temporal enviada a {r_email}. Cámbiala tras acceder.")
-                        else:
-                            st.error("Error al enviar el correo. Contacta con soporte.")
+                        # Enviar correo con la nueva contraseña (usando SendGrid)
+                        try:
+                            sg = sendgrid.SendGridAPIClient(api_key=st.secrets["SENDGRID_API_KEY"])
+                            msg = Mail(from_email=FROM_EMAIL, to_emails=r_email, subject="CRYSIS | Nueva contraseña temporal", plain_text_content=f"Tu nueva contraseña temporal es: {nueva_pass}\n\nCámbiala al acceder.")
+                            response = sg.send(msg)
+                            if response.status_code in (200,202):
+                                for e in st.session_state.empleados:
+                                    if e["Nombre"] == r_id:
+                                        e["Password"] = hash_password(nueva_pass)
+                                guardar_datos()
+                                st.success(f"Clave temporal enviada a {r_email}. Cámbiala tras acceder.")
+                            else:
+                                st.error("Error al enviar el correo.")
+                        except Exception as e:
+                            st.error(f"Error SendGrid: {e}")
                     else:
                         st.error("No se encontró ninguna cuenta con ese ID y correo.")
                 if volver:
@@ -586,86 +569,55 @@ if st.session_state.usuario_actual is None:
         else:
             col_t1, col_t2 = st.columns(2)
             with col_t1:
-                if st.button("ACCESO", key="modo_acceso", use_container_width=True,
-                             type="primary" if st.session_state.login_modo == "acceso" else "secondary"):
+                if st.button("ACCESO", key="modo_acceso", use_container_width=True, type="primary" if st.session_state.login_modo == "acceso" else "secondary"):
                     st.session_state.login_modo = "acceso"; st.rerun()
             with col_t2:
-                if st.button("REGISTRO", key="modo_registro", use_container_width=True,
-                             type="primary" if st.session_state.login_modo == "registro" else "secondary"):
+                if st.button("REGISTRO", key="modo_registro", use_container_width=True, type="primary" if st.session_state.login_modo == "registro" else "secondary"):
                     st.session_state.login_modo = "registro"; st.rerun()
 
             st.markdown("<div style='margin-top:32px;'></div>", unsafe_allow_html=True)
 
+            # MODO ACCESO (sin 2FA)
             if st.session_state.login_modo == "acceso":
-                if st.session_state.login_step == 1:
-                    with st.form("login_form"):
-                        st.markdown("<div class='section-label'>IDENTIFICACIÓN DE OPERADOR</div>", unsafe_allow_html=True)
-                        u_id   = st.text_input("ID Operativo")
-                        u_pass = st.text_input("Clave de Seguridad", type="password")
-                        st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
-                        submitted = st.form_submit_button("INICIAR SESIÓN SEGURA", use_container_width=True)
-                        if submitted:
-                            # LOGIN CON BCrypt y migración automática
-                            agente = None
-                            for e in st.session_state.empleados:
-                                if e["Nombre"] == u_id:
-                                    stored = e.get("Password")
-                                    # Si ya es hash bcrypt (empieza por $2b$)
-                                    if stored and stored.startswith("$2b$"):
-                                        if check_password(u_pass, stored):
-                                            agente = e
-                                            break
-                                    # Si es texto plano (migración)
-                                    elif stored == u_pass:
-                                        e["Password"] = hash_password(u_pass)  # convertir a hash
+                with st.form("login_form"):
+                    st.markdown("<div class='section-label'>IDENTIFICACIÓN DE OPERADOR</div>", unsafe_allow_html=True)
+                    u_id   = st.text_input("ID Operativo")
+                    u_pass = st.text_input("Clave de Seguridad", type="password")
+                    submitted = st.form_submit_button("INICIAR SESIÓN SEGURA", use_container_width=True)
+                    if submitted:
+                        agente = None
+                        for e in st.session_state.empleados:
+                            if e["Nombre"] == u_id:
+                                stored = e.get("Password")
+                                if stored and stored.startswith("$2b$"):
+                                    if check_password(u_pass, stored):
                                         agente = e
-                                        guardar_datos()
                                         break
-                            if agente:
-                                expiro = False
-                                if "Expiracion" in agente:
-                                    fecha_exp = datetime.strptime(agente["Expiracion"], "%Y-%m-%d")
-                                    if datetime.now() > fecha_exp: expiro = True
-                                if expiro:
-                                    st.error(f"ACCESO DENEGADO: Licencia expirada el {agente['Expiracion']}.")
-                                else:
-                                    if agente.get("2FA_Verificado", False) == True or agente["Nombre"] == COMANDANTE_SUPREMO:
-                                        st.session_state.usuario_actual = agente; st.session_state.pantalla_actual = "menu"; st.rerun()
-                                    else:
-                                        st.session_state["2fa_code"]   = str(random.randint(100000, 999999))
-                                        st.session_state["2fa_agente"] = agente
-                                        st.session_state.login_step = 2; st.rerun()
+                                elif stored == u_pass:
+                                    e["Password"] = hash_password(u_pass)
+                                    agente = e
+                                    guardar_datos()
+                                    break
+                        if agente:
+                            expiro = False
+                            if "Expiracion" in agente:
+                                fecha_exp = datetime.strptime(agente["Expiracion"], "%Y-%m-%d")
+                                if datetime.now() > fecha_exp: expiro = True
+                            if expiro:
+                                st.error(f"ACCESO DENEGADO: Licencia expirada el {agente['Expiracion']}.")
                             else:
-                                st.error("ID o contraseña incorrectos. Verifica tus credenciales.")
-
-                    st.markdown("<div style='margin-top:12px; text-align:right;'>", unsafe_allow_html=True)
-                    if st.button("¿Olvidaste tu contraseña?", key="btn_forgot"):
-                        st.session_state.login_subpantalla = "forgot"; st.rerun()
-                    st.markdown("</div>", unsafe_allow_html=True)
-
-                elif st.session_state.login_step == 2:
-                    correo_dest = st.session_state["2fa_agente"].get("Email", "Desconocido")
-                    if "correo_enviado" not in st.session_state:
-                        exito = enviar_correo_2fa(correo_dest, st.session_state["2fa_code"])
-                        if exito: st.success(f"Código enviado a: {correo_dest}")
-                        else:     st.error("Fallo en el sistema de correo seguro.")
-                        st.session_state["correo_enviado"] = True
-                    with st.form("2fa_form"):
-                        st.markdown("<div class='section-label'>VERIFICACION DE DISPOSITIVO</div>", unsafe_allow_html=True)
-                        st.markdown("""<div class="alert-box">Autenticación de dos factores requerida la primera vez. Revisa tu correo.</div>""", unsafe_allow_html=True)
-                        u_code = st.text_input("Código de 6 dígitos")
-                        colA, colB = st.columns(2)
-                        if colA.form_submit_button("VERIFICAR", use_container_width=True):
-                            if u_code == st.session_state["2fa_code"]:
-                                st.session_state["2fa_agente"]["2FA_Verificado"] = True; guardar_datos()
-                                st.session_state.usuario_actual = st.session_state["2fa_agente"]
+                                st.session_state.usuario_actual = agente
                                 st.session_state.pantalla_actual = "menu"
-                                st.session_state.login_step = 1; del st.session_state["correo_enviado"]; st.rerun()
-                            else: st.error("Código incorrecto.")
-                        if colB.form_submit_button("CANCELAR", use_container_width=True):
-                            st.session_state.login_step = 1; del st.session_state["correo_enviado"]; st.rerun()
+                                st.rerun()
+                        else:
+                            st.error("ID o contraseña incorrectos.")
+                st.markdown("<div style='margin-top:12px; text-align:right;'>", unsafe_allow_html=True)
+                if st.button("¿Olvidaste tu contraseña?", key="btn_forgot"):
+                    st.session_state.login_subpantalla = "forgot"; st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
 
-            else:  # modo registro
+            # MODO REGISTRO con verificación de email
+            else:
                 if st.session_state.get("mostrar_pago"):
                     info_pago = st.session_state.mostrar_pago
                     st.markdown(f"""
@@ -679,9 +631,50 @@ if st.session_state.usuario_actual is None:
                         st.session_state.usuario_actual = info_pago["usuario"]
                         st.session_state.pantalla_actual = "menu"
                         del st.session_state.mostrar_pago; st.rerun()
+                elif st.session_state.esperando_codigo:
+                    # Formulario para introducir el código
+                    st.markdown("<div class='section-label'>VERIFICACIÓN DE CORREO</div>", unsafe_allow_html=True)
+                    with st.form("verifica_codigo"):
+                        codigo_ingresado = st.text_input("Introduce el código de 6 dígitos que enviamos a tu correo")
+                        if st.form_submit_button("ACTIVAR CUENTA"):
+                            if datetime.now() > st.session_state.reg_code_expira:
+                                st.error("El código ha expirado. Debes registrarte de nuevo.")
+                                for k in ["temp_user", "reg_code", "reg_code_expira", "esperando_codigo"]:
+                                    if k in st.session_state: del st.session_state[k]
+                                st.rerun()
+                            elif codigo_ingresado == st.session_state.reg_code:
+                                temp = st.session_state.temp_user
+                                temp["email_verificado"] = True
+                                st.session_state.empleados.append(temp)
+                                guardar_datos()
+                                st.session_state.usuario_actual = temp
+                                for k in ["temp_user", "reg_code", "reg_code_expira", "esperando_codigo"]:
+                                    if k in st.session_state: del st.session_state[k]
+                                st.session_state.pantalla_actual = "menu"
+                                st.rerun()
+                            else:
+                                st.error("Código incorrecto")
+                    col_r1, col_r2 = st.columns(2)
+                    with col_r1:
+                        if st.button("Reenviar código"):
+                            if "last_resend" in st.session_state and (datetime.now() - st.session_state.last_resend).seconds < 60:
+                                st.warning("Espera 1 minuto antes de reenviar.")
+                            else:
+                                nuevo_codigo = str(random.randint(100000, 999999))
+                                st.session_state.reg_code = nuevo_codigo
+                                st.session_state.reg_code_expira = datetime.now() + timedelta(minutes=15)
+                                if enviar_codigo_sendgrid(st.session_state.temp_user["Email"], nuevo_codigo):
+                                    st.success("Código reenviado. Revisa tu correo.")
+                                    st.session_state.last_resend = datetime.now()
+                                else:
+                                    st.error("Error al reenviar.")
+                    with col_r2:
+                        if st.button("Cancelar registro"):
+                            for k in ["temp_user", "reg_code", "reg_code_expira", "esperando_codigo"]:
+                                if k in st.session_state: del st.session_state[k]
+                            st.rerun()
                 else:
                     st.markdown("<div class='section-label'>SELECCIONAR NIVEL DE ACCESO</div>", unsafe_allow_html=True)
-
                     if "plan_sel_reg" not in st.session_state: st.session_state.plan_sel_reg = "BASE"
 
                     planes_registro = [
@@ -728,47 +721,41 @@ if st.session_state.usuario_actual is None:
                             "📄 [Términos y Condiciones](https://github.com/querrul07/crysis-app/blob/main/terminos_condiciones_crysis.md) · [Política de Privacidad](https://github.com/querrul07/crysis-app/blob/main/politica_privacidad_crysis.md)",
                             unsafe_allow_html=True
                         )
-                        acepta_tyc = st.checkbox(
-                            "He leído y acepto los Términos y Condiciones y la Política de Privacidad",
-                            key="check_tyc"
-                        )
-                        acepta_rgpd = st.checkbox(
-                            "Consiento el tratamiento de mis datos personales conforme al RGPD (UE) 2016/679",
-                            key="check_rgpd"
-                        )
-                        acepta_comms = st.checkbox(
-                            "Acepto recibir comunicaciones comerciales (opcional)",
-                            key="check_comms"
-                        )
+                        acepta_tyc = st.checkbox("He leído y acepto los Términos y Condiciones y la Política de Privacidad", key="check_tyc")
+                        acepta_rgpd = st.checkbox("Consiento el tratamiento de mis datos personales conforme al RGPD (UE) 2016/679", key="check_rgpd")
+                        acepta_comms = st.checkbox("Acepto recibir comunicaciones comerciales (opcional)", key="check_comms")
                         lbl_btn = "CREAR CUENTA E IR AL PAGO" if es_pago else "CREAR CUENTA Y ENTRAR"
                         if st.form_submit_button(lbl_btn, use_container_width=True):
                             if not acepta_tyc or not acepta_rgpd:
                                 st.error("Debes aceptar los Términos y la Política de Privacidad para continuar.")
                             elif n and p and email:
-                                empresa_destino = n if es_corporativo else "Independiente"
-                                if any(e["Nombre"] == n and e.get("Empresa", "Independiente") == empresa_destino for e in st.session_state.empleados):
+                                # Verificar que no exista el nombre o el email
+                                if any(e["Nombre"] == n for e in st.session_state.empleados):
                                     st.warning("Ya existe una cuenta con ese identificador.")
+                                elif any(e.get("Email") == email for e in st.session_state.empleados if e.get("Email")):
+                                    st.warning("El correo electrónico ya está registrado.")
                                 else:
-                                    # Guardar contraseña hasheada
                                     hashed_pwd = hash_password(p)
                                     if es_corporativo:
-                                        nuevo_usuario = {"Nombre": n, "Email": email, "Departamento": "Administración", "Rol": "Empresa", "Plan": "BASE", "Empresa": n, "Password": hashed_pwd, "2FA_Verificado": True, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
+                                        nuevo_usuario = {"Nombre": n, "Email": email, "Departamento": "Administración", "Rol": "Empresa", "Plan": "BASE", "Empresa": n, "Password": hashed_pwd, "email_verificado": False, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
                                     else:
-                                        nuevo_usuario = {"Nombre": n, "Email": email, "Rol": "Individual", "Plan": "BASE", "Empresa": n, "Password": hashed_pwd, "2FA_Verificado": True, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
-                                    st.session_state.empleados.append(nuevo_usuario); guardar_datos()
-                                    if es_pago:
-                                        link_pago   = LINKS_PAGO.get(plan_sel, "#")
-                                        nombre_plan = f"{plan_sel} ({PLANES_INFO[plan_sel]['precio']})"
-                                        st.session_state.mostrar_pago = {"id": n, "link": link_pago, "plan": nombre_plan, "usuario": nuevo_usuario}
+                                        nuevo_usuario = {"Nombre": n, "Email": email, "Rol": "Individual", "Plan": "BASE", "Empresa": n, "Password": hashed_pwd, "email_verificado": False, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
+                                    # Guardar temporalmente y enviar código
+                                    st.session_state.temp_user = nuevo_usuario
+                                    codigo = str(random.randint(100000, 999999))
+                                    st.session_state.reg_code = codigo
+                                    st.session_state.reg_code_expira = datetime.now() + timedelta(minutes=15)
+                                    if enviar_codigo_sendgrid(email, codigo):
+                                        st.success(f"Hemos enviado un código de verificación a {email}. Por favor, introdúcelo para activar tu cuenta.")
+                                        st.session_state.esperando_codigo = True
                                         st.rerun()
                                     else:
-                                        st.session_state.usuario_actual = nuevo_usuario
-                                        st.session_state.pantalla_actual = "menu"; st.rerun()
+                                        st.error("No se pudo enviar el correo. Revisa la configuración de SendGrid.")
+                                        del st.session_state.temp_user
                             else:
                                 st.warning("Rellena todos los campos para continuar.")
         st.markdown("</div>", unsafe_allow_html=True)
-
-    st.stop()   # fin del login
+    st.stop()
 
 # ═══════════════════════════════════════════
 # MANEJADOR DE NAVEGACIÓN POR TARJETAS
@@ -844,7 +831,7 @@ if st.session_state.pantalla_actual != "menu":
         if pantalla != "menu":
             if st.button("← MENÚ", key="btn_menu"): st.session_state.pantalla_actual = "menu"; st.rerun()
         if st.button("SALIR", key="btn_logout", type="secondary"):
-            st.session_state.usuario_actual = None; st.session_state.login_step = 1; st.session_state.pantalla_actual = "menu"; st.rerun()
+            st.session_state.usuario_actual = None; st.session_state.pantalla_actual = "menu"; st.rerun()
 
 def ir_a(p):
     st.session_state.pantalla_actual = p; st.rerun()
@@ -1004,7 +991,7 @@ elif st.session_state.pantalla_actual == "personal":
         st.markdown("<div class='section-label'>ENLACE SEGURO DE RECLUTAMIENTO</div>", unsafe_allow_html=True)
         if agentes_lim > 0 or u["Nombre"] == COMANDANTE_SUPREMO:
             token_cifrado   = base64.urlsafe_b64encode(empresa_actual.encode()).decode()
-            URL_BASE_APP    = "https://crysis.streamlit.app/"  # Cambia por tu URL real si es diferente
+            URL_BASE_APP    = "https://crysis.streamlit.app/"  # Cambia si tu URL es diferente
             enlace_completo = f"{URL_BASE_APP}?invite={token_cifrado}"
             st.markdown("""<div class="alert-box">Comparte este enlace con tus agentes para que se incorporen automáticamente a tu unidad.</div>""", unsafe_allow_html=True)
             st.code(enlace_completo, language="html")
@@ -1584,7 +1571,7 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
                             fecha_exp_str = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d") if expira else None
                             hashed_pwd_ad = hash_password(new_pass)
                             nuevo_u = {"Nombre": new_n, "Email": new_email, "Rol": new_rol,
-                                       "Plan": new_plan, "Empresa": new_n, "Password": hashed_pwd_ad, "2FA_Verificado": True}
+                                       "Plan": new_plan, "Empresa": new_n, "Password": hashed_pwd_ad, "email_verificado": True}
                             if new_rol == "Empresa": nuevo_u["Departamento"] = "Administración"
                             if fecha_exp_str: nuevo_u["Expiracion"] = fecha_exp_str
                             st.session_state.empleados.append(nuevo_u); guardar_datos()
