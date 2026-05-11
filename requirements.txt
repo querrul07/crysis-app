@@ -9,3 +9,4 @@ supabase
 cryptography
 extra-streamlit-components
 bcrypt
+sendgrid
