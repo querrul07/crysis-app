@@ -116,24 +116,6 @@ def guardar_datos():
 # CAMBIA ESTE CORREO POR EL QUE VERIFICASTE EN SENDGRID
 FROM_EMAIL = "crysisapp@outlook.com"
 
-def enviar_codigo_sendgrid(destinatario, codigo):
-    try:
-        sg = sendgrid.SendGridAPIClient(api_key=st.secrets["SENDGRID_API_KEY"])
-        contenido = f"""
-        Tu código de verificación para CRYSIS es: {codigo}
-
-        Este código expira en 15 minutos.
-
-        Si no has solicitado este registro, ignora este mensaje.
-        """
-        message = Mail(
-            from_email=FROM_EMAIL,
-            to_emails=destinatario,
-            subject="CRYSIS | Código de verificación de registro",
-            plain_text_content=contenido
-        )
-        response = sg.send(message)
-        return response.status_code in (200, 202)
     def enviar_codigo_sendgrid(destinatario, codigo):
     try:
         sg = sendgrid.SendGridAPIClient(api_key=st.secrets["SENDGRID_API_KEY"])
