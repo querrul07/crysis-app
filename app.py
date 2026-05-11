@@ -116,7 +116,7 @@ def guardar_datos():
 # CAMBIA ESTE CORREO POR EL QUE VERIFICASTE EN SENDGRID
 FROM_EMAIL = "crysisapp@outlook.com"
 
-    def enviar_codigo_sendgrid(destinatario, codigo):
+def enviar_codigo_sendgrid(destinatario, codigo):
     try:
         sg = sendgrid.SendGridAPIClient(api_key=st.secrets["SENDGRID_API_KEY"])
         contenido = f"""
