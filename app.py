@@ -14,6 +14,7 @@ import random
 from fpdf import FPDF
 from supabase import create_client, Client
 import base64
+import bcrypt  # <--- NUEVO para hash de contraseñas
 
 # ─────────────────────────────────────────
 # CONFIGURACIÓN DE SUPERUSUARIO
@@ -45,6 +46,20 @@ DIFICULTADES = {
                  "instruccion": "Eres extremadamente hostil e impenetrable. Usas silencios prolongados, amenazas veladas, manipulación psicológica avanzada y contradices absolutamente todo. Ceder es casi imposible. Solo capitulas ante una negociación perfecta y sostenida."},
 }
 
+# ─────────────────────────────────────────
+# FUNCIONES DE HASH DE CONTRASEÑAS
+# ─────────────────────────────────────────
+def hash_password(passwd):
+    """Convierte una contraseña en texto plano a hash bcrypt"""
+    return bcrypt.hashpw(passwd.encode(), bcrypt.gensalt()).decode()
+
+def check_password(passwd, hashed):
+    """Verifica si la contraseña en texto plano coincide con el hash"""
+    return bcrypt.checkpw(passwd.encode(), hashed.encode())
+
+# ─────────────────────────────────────────
+# CONEXIÓN SUPABASE Y CIFRADO
+# ─────────────────────────────────────────
 @st.cache_resource
 def init_supabase():
     url: str = st.secrets["SUPABASE_URL"].strip().rstrip("/")
@@ -53,7 +68,6 @@ def init_supabase():
 
 supabase = init_supabase()
 
-# 🔐 MOTOR DE CIFRADO
 def obtener_fernet():
     return Fernet(st.secrets["ENCRYPTION_KEY"])
 
@@ -75,10 +89,8 @@ def cargar_datos():
         response = supabase.table("crysis_data").select("memoria").eq("id", "main").execute()
         if response.data:
             contenido = response.data[0]["memoria"]
-            # Intentamos descifrar. Si falla (porque son datos viejos sin cifrar), cargamos normal.
             datos = descifrar_memoria(contenido)
             if datos is None: datos = contenido if isinstance(contenido, dict) else {"empleados": [], "historial_sesiones": [], "escenarios_custom": {}}
-            
             if "escenarios_custom" not in datos: datos["escenarios_custom"] = {}
             datos["empleados"] = [e for e in datos.get("empleados", []) if "Rol" in e]
             return datos
@@ -93,12 +105,14 @@ def guardar_datos():
             "historial_sesiones": st.session_state.historial_sesiones,
             "escenarios_custom": st.session_state.escenarios_custom
         }
-        # Ciframos antes de enviar a Supabase
         memoria_cifrada = cifrar_memoria(datos_actualizados)
         supabase.table("crysis_data").update({"memoria": memoria_cifrada}).eq("id", "main").execute()
     except Exception as e:
         st.error(f"Fallo crítico al sincronizar: {e}")
 
+# ─────────────────────────────────────────
+# CORREOS
+# ─────────────────────────────────────────
 def enviar_correo_2fa(destinatario, codigo):
     try:
         remitente = st.secrets["SMTP_EMAIL"]
@@ -133,6 +147,9 @@ def enviar_correo_reset(destinatario, nueva_pass):
     except:
         return False
 
+# ─────────────────────────────────────────
+# UTILIDADES
+# ─────────────────────────────────────────
 def sanitizar_texto(texto):
     if not isinstance(texto, str): texto = str(texto)
     texto = texto.replace('**','').replace('*','-').replace('•','-').replace('✅','[V]').replace('❌','[X]')
@@ -167,7 +184,7 @@ def generar_pdf_dossier(sesion):
     return out.encode('latin-1') if isinstance(out, str) else out
 
 # ─────────────────────────────────────────
-# CONFIG Y CSS GLOBAL
+# CONFIGURACIÓN Y CSS GLOBAL
 # ─────────────────────────────────────────
 st.set_page_config(page_title="CRYSIS | Intelligence Unit", layout="wide", initial_sidebar_state="collapsed")
 
@@ -410,7 +427,7 @@ PLOTLY_THEME = dict(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
 AXIS_STYLE   = dict(gridcolor='#1A2035', zeroline=False, color='#4A5568', linecolor='#1A2035')
 
 # ─────────────────────────────────────────
-# ESTADOS
+# INICIALIZACIÓN DE ESTADOS EN SESSION_STATE
 # ─────────────────────────────────────────
 datos_guardados = cargar_datos()
 if "empleados"          not in st.session_state: st.session_state.empleados          = datos_guardados["empleados"]
@@ -430,9 +447,8 @@ if "login_subpantalla"  not in st.session_state: st.session_state.login_subpanta
 try:    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except: GROQ_API_KEY = None
 
-
 # ─────────────────────────────────────────
-# LOGIN
+# LOGIN Y AUTENTICACIÓN (MODIFICADO CON BCRYPT)
 # ─────────────────────────────────────────
 token_invitacion = st.query_params.get("invite", None)
 empresa_invitada = None
@@ -466,7 +482,6 @@ if st.session_state.usuario_actual is None:
         with c2:
             empresa_obj = next((e for e in st.session_state.empleados if e["Rol"] == "Empresa" and e["Nombre"] == empresa_invitada), None)
             if empresa_obj:
-                # El comandante supremo nunca tiene límite de agentes
                 if empresa_obj["Nombre"] != COMANDANTE_SUPREMO:
                     agentes_actuales = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_invitada and e.get("Rol") == "Agente"])
                     plan_emp = empresa_obj.get("Plan", "BASE")
@@ -497,7 +512,9 @@ if st.session_state.usuario_actual is None:
                             elif any(e["Nombre"] == n and e.get("Password") == p for e in st.session_state.empleados):
                                 st.warning("ID ya en uso. Utiliza una contraseña diferente.")
                             else:
-                                nuevo_agente = {"Nombre": n, "Email": email, "Departamento": d, "Rol": "Agente", "Empresa": empresa_invitada, "Password": p, "2FA_Verificado": True}
+                                # Hash de la contraseña
+                                hashed_pwd = hash_password(p)
+                                nuevo_agente = {"Nombre": n, "Email": email, "Departamento": d, "Rol": "Agente", "Empresa": empresa_invitada, "Password": hashed_pwd, "2FA_Verificado": True}
                                 st.session_state.empleados.append(nuevo_agente); guardar_datos()
                                 st.session_state.registro_completado = True
                                 st.query_params.clear(); st.rerun()
@@ -553,9 +570,10 @@ if st.session_state.usuario_actual is None:
                         nueva_pass = str(random.randint(100000, 999999))
                         ok = enviar_correo_reset(r_email, nueva_pass)
                         if ok:
+                            # Guardar la nueva contraseña hasheada
                             for e in st.session_state.empleados:
                                 if e["Nombre"] == r_id:
-                                    e["Password"] = nueva_pass
+                                    e["Password"] = hash_password(nueva_pass)
                             guardar_datos()
                             st.success(f"Clave temporal enviada a {r_email}. Cámbiala tras acceder.")
                         else:
@@ -587,7 +605,22 @@ if st.session_state.usuario_actual is None:
                         st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
                         submitted = st.form_submit_button("INICIAR SESIÓN SEGURA", use_container_width=True)
                         if submitted:
-                            agente = next((e for e in st.session_state.empleados if e["Nombre"] == u_id and e.get("Password") == u_pass), None)
+                            # LOGIN CON BCrypt y migración automática
+                            agente = None
+                            for e in st.session_state.empleados:
+                                if e["Nombre"] == u_id:
+                                    stored = e.get("Password")
+                                    # Si ya es hash bcrypt (empieza por $2b$)
+                                    if stored and stored.startswith("$2b$"):
+                                        if check_password(u_pass, stored):
+                                            agente = e
+                                            break
+                                    # Si es texto plano (migración)
+                                    elif stored == u_pass:
+                                        e["Password"] = hash_password(u_pass)  # convertir a hash
+                                        agente = e
+                                        guardar_datos()
+                                        break
                             if agente:
                                 expiro = False
                                 if "Expiracion" in agente:
@@ -632,7 +665,7 @@ if st.session_state.usuario_actual is None:
                         if colB.form_submit_button("CANCELAR", use_container_width=True):
                             st.session_state.login_step = 1; del st.session_state["correo_enviado"]; st.rerun()
 
-            else:
+            else:  # modo registro
                 if st.session_state.get("mostrar_pago"):
                     info_pago = st.session_state.mostrar_pago
                     st.markdown(f"""
@@ -716,10 +749,12 @@ if st.session_state.usuario_actual is None:
                                 if any(e["Nombre"] == n and e.get("Empresa", "Independiente") == empresa_destino for e in st.session_state.empleados):
                                     st.warning("Ya existe una cuenta con ese identificador.")
                                 else:
+                                    # Guardar contraseña hasheada
+                                    hashed_pwd = hash_password(p)
                                     if es_corporativo:
-                                        nuevo_usuario = {"Nombre": n, "Email": email, "Departamento": "Administración", "Rol": "Empresa", "Plan": "BASE", "Empresa": n, "Password": p, "2FA_Verificado": True, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
+                                        nuevo_usuario = {"Nombre": n, "Email": email, "Departamento": "Administración", "Rol": "Empresa", "Plan": "BASE", "Empresa": n, "Password": hashed_pwd, "2FA_Verificado": True, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
                                     else:
-                                        nuevo_usuario = {"Nombre": n, "Email": email, "Rol": "Individual", "Plan": "BASE", "Empresa": n, "Password": p, "2FA_Verificado": True, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
+                                        nuevo_usuario = {"Nombre": n, "Email": email, "Rol": "Individual", "Plan": "BASE", "Empresa": n, "Password": hashed_pwd, "2FA_Verificado": True, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
                                     st.session_state.empleados.append(nuevo_usuario); guardar_datos()
                                     if es_pago:
                                         link_pago   = LINKS_PAGO.get(plan_sel, "#")
@@ -736,7 +771,7 @@ if st.session_state.usuario_actual is None:
     st.stop()   # fin del login
 
 # ═══════════════════════════════════════════
-# MANEJADOR DE NAVEGACIÓN POR TARJETAS (COLÓCALO AQUÍ)
+# MANEJADOR DE NAVEGACIÓN POR TARJETAS
 # ═══════════════════════════════════════════
 menu_destino = st.query_params.get("menu", None)
 if menu_destino and st.session_state.usuario_actual is not None:
@@ -745,7 +780,7 @@ if menu_destino and st.session_state.usuario_actual is not None:
     st.rerun()
 
 # ─────────────────────────────────────────
-# RESOLUCIÓN DE PERMISOS (BLINDAJE DE PRIVACIDAD)
+# RESOLUCIÓN DE PERMISOS (PRIVACIDAD)
 # ─────────────────────────────────────────
 u = st.session_state.usuario_actual
 
@@ -753,7 +788,6 @@ if u["Nombre"] == COMANDANTE_SUPREMO:
     es_empresa     = True
     mi_plan        = "COMANDANCIA"
     empresa_actual = u["Nombre"]
-    # 🛡️ PRIVACIDAD RADICAL: El Admin NO ve expedientes de empresas. Solo los suyos de prueba.
     historial_visible     = [s for s in st.session_state.historial_sesiones if s["Agente"] == u["Nombre"]]
     agentes_de_mi_empresa = [u["Nombre"]]
 else:
@@ -765,33 +799,27 @@ else:
     else:
         mi_plan = u.get("Plan", "BASE")
 
-# Normalizar planes legacy (Líneas 725-726 de tu código original)
 _legacy = {"Gratis": "BASE", "Individual": "OPERADOR", "Pro": "ESCUADRON", "Enterprise": "COMANDANCIA"}
 mi_plan = _legacy.get(mi_plan, mi_plan)
 
-# Límites de cuota (Línea 728 de tu código original)
 ops_limite      = PLANES_INFO.get(mi_plan, {}).get("ops", 1)
 escenarios_lim  = PLANES_INFO.get(mi_plan, {}).get("escenarios", 0)
 agentes_lim     = PLANES_INFO.get(mi_plan, {}).get("agentes", 0)
 
-# 🛡️ LÓGICA DE VISIBILIDAD PARA CLIENTES Y AGENTES
 if u["Nombre"] != COMANDANTE_SUPREMO:
     if es_empresa:
         agentes_de_mi_empresa = [e["Nombre"] for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]
-        # La empresa ve a sus agentes y SOLO misiones OFICIALES (Corporativas)
         historial_visible = [s for s in st.session_state.historial_sesiones if s["Agente"] in agentes_de_mi_empresa and s.get("Tipo_Mision") == "Corporativa"]
     else:
-        # El agente o cuenta individual solo ve sus propias misiones
         historial_visible = [s for s in st.session_state.historial_sesiones if s["Agente"] == u["Nombre"]]
         agentes_de_mi_empresa = [u["Nombre"]]
 
-# Carga de escenarios disponibles
 mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items() 
                   if v.get("Creador") == empresa_actual or u["Nombre"] == COMANDANTE_SUPREMO}
 TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **mis_escenarios}
 
 # ─────────────────────────────────────────
-# TOPBAR (oculta en el menú)
+# TOPBAR (solo visible si no estamos en menú)
 # ─────────────────────────────────────────
 if st.session_state.pantalla_actual != "menu":
     rol_label = ("OMNISCIENCIA GLOBAL" if u["Nombre"] == COMANDANTE_SUPREMO
@@ -820,8 +848,9 @@ if st.session_state.pantalla_actual != "menu":
 
 def ir_a(p):
     st.session_state.pantalla_actual = p; st.rerun()
+
 # ─────────────────────────────────────────
-# MENÚ PRINCIPAL — TARJETAS CON COLOR, SIN BOTONES, SIN RECARGAR SESIÓN
+# MENÚ PRINCIPAL — TARJETAS
 # ─────────────────────────────────────────
 if st.session_state.pantalla_actual == "menu":
     ahora = datetime.now()
@@ -837,18 +866,13 @@ if st.session_state.pantalla_actual == "menu":
     </div>
     """, unsafe_allow_html=True)
 
-    # Métricas reales
     total_ops    = len(historial_visible)
     media_global = int(sum(s["Nota"] for s in historial_visible) / total_ops) if total_ops > 0 else 0
     mes_actual   = datetime.now().strftime("%Y-%m")
     ops_mes      = len([s for s in historial_visible if str(s.get("Fecha","")).startswith(mes_actual)])
     agentes_act  = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"])
     esc_creados  = len(mis_escenarios)
-
-    # Métrica de la tarjeta "CUENTA"
     metrica_cuenta = f"{u['Nombre'].upper()} · {mi_plan}"
-
-    # Métrica de agentes (solo empresas)
     metrica_agentes = f"AGENTES ACTIVOS {agentes_act}"
 
     _precios = {"COMANDANCIA":199,"ESCUADRON":89,"ELITE":49,"OPERADOR":19,"BASE":0,
@@ -856,28 +880,18 @@ if st.session_state.pantalla_actual == "menu":
     mrr = sum(_precios.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
               for e in st.session_state.empleados)
 
-    # ---- Construcción de la lista de tarjetas ----
     tarjetas = [
         ("estadisticas", "ANÁLISIS DE RENDIMIENTO",  f"RENDIMIENTO MEDIO {media_global}%",         "#4F8EF7"),
         ("simulador",    "SIMULADOR TÁCTICO",         f"OPERACIONES ACTIVAS ESTE MES {ops_mes}",     "#00D4A0"),
         ("expedientes",  "HISTORIAL DE EXPEDIENTES",  f"EXPEDIENTES TOTALES {total_ops}",            "#F0A500"),
+        ("cuenta",       "TU CUENTA",                 metrica_cuenta,                                 "#6B7280"),
     ]
-
-    # Tarjeta "TU CUENTA" para todos
-    tarjetas.append(("cuenta", "TU CUENTA", metrica_cuenta, "#6B7280"))
-
-    # Tarjeta "GESTIÓN DE AGENTES" solo para empresas
     if es_empresa:
         tarjetas.append(("personal", "GESTIÓN DE AGENTES", metrica_agentes, "#E8394A"))
-
-    # Tarjeta de escenarios (siempre)
     tarjetas.append(("sintesis", "GENERACIÓN DE ESCENARIOS", f"ESCENARIOS ACTIVOS {esc_creados}", "#A855F7"))
-
-    # Consola Omega solo para el comandante supremo
     if u["Nombre"] == COMANDANTE_SUPREMO:
         tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR", "#F59E0B"))
 
-    # Grid de tarjetas (3 columnas)
     for fila in range(0, len(tarjetas), 3):
         cols = st.columns(3)
         for i, (destino, titulo, metrica, color) in enumerate(tarjetas[fila:fila+3]):
@@ -888,7 +902,6 @@ if st.session_state.pantalla_actual == "menu":
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
-    # CSS (el mismo que ya tenías, lo conservamos)
     st.markdown("""
     <style>
     .card-wrapper {
@@ -933,6 +946,8 @@ if st.session_state.pantalla_actual == "menu":
     """, unsafe_allow_html=True)
 
     st.stop()
+
+# ─────────────────────────────────────────
 # ESTADÍSTICAS
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "estadisticas":
@@ -980,7 +995,7 @@ elif st.session_state.pantalla_actual == "estadisticas":
             st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
 
 # ─────────────────────────────────────────
-# PERSONAL
+# PERSONAL (GESTIÓN DE AGENTES)
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "personal":
     st.markdown("<div class='section-header'><div><div class='section-code'>AGENTES</div><div class='section-title'>Gestión de Operadores</div></div></div>", unsafe_allow_html=True)
@@ -989,7 +1004,7 @@ elif st.session_state.pantalla_actual == "personal":
         st.markdown("<div class='section-label'>ENLACE SEGURO DE RECLUTAMIENTO</div>", unsafe_allow_html=True)
         if agentes_lim > 0 or u["Nombre"] == COMANDANTE_SUPREMO:
             token_cifrado   = base64.urlsafe_b64encode(empresa_actual.encode()).decode()
-            URL_BASE_APP    = "https://crysis.streamlit.app/"
+            URL_BASE_APP    = "https://crysis.streamlit.app/"  # Cambia por tu URL real si es diferente
             enlace_completo = f"{URL_BASE_APP}?invite={token_cifrado}"
             st.markdown("""<div class="alert-box">Comparte este enlace con tus agentes para que se incorporen automáticamente a tu unidad.</div>""", unsafe_allow_html=True)
             st.code(enlace_completo, language="html")
@@ -1022,7 +1037,7 @@ elif st.session_state.pantalla_actual == "personal":
         st.info("Esta sección solo está disponible para cuentas de empresa.")
 
 # ─────────────────────────────────────────
-# EXPEDIENTES
+# EXPEDIENTES (HISTORIAL)
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "expedientes":
     st.markdown("<div class='section-header'><div><div class='section-code'>MOD-03</div><div class='section-title'>Archivo Operacional</div></div></div>", unsafe_allow_html=True)
@@ -1110,8 +1125,9 @@ elif st.session_state.pantalla_actual == "expedientes":
                             st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div style='text-align:center; padding:60px; color:#18213A; font-family:var(--mono);'>DIRECTORIO VACÍO</div>", unsafe_allow_html=True)
+
 # ─────────────────────────────────────────
-# CUENTA (información personal / corporativa)
+# CUENTA (información personal, cambio de contraseña, etc.)
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "cuenta":
     st.markdown("<div class='section-header'><div><div class='section-code'>CUENTA</div><div class='section-title'>Tu Cuenta</div></div></div>", unsafe_allow_html=True)
@@ -1122,7 +1138,7 @@ elif st.session_state.pantalla_actual == "cuenta":
     <p><b>Email:</b> {u.get('Email','—')}</p>
     </div>""", unsafe_allow_html=True)
 
-    # --- Cambiar Correo Electrónico ---
+    # Cambiar correo
     st.markdown("<br><div class='section-label'>CAMBIAR CORREO ELECTRÓNICO</div>", unsafe_allow_html=True)
     with st.expander("ACTUALIZAR DIRECCIÓN DE CORREO"):
         nuevo_email = st.text_input("Nuevo Correo Electrónico", key="nuevo_email_cuenta")
@@ -1132,16 +1148,14 @@ elif st.session_state.pantalla_actual == "cuenta":
             elif nuevo_email == u.get("Email", ""):
                 st.info("El nuevo correo es idéntico al actual.")
             else:
-                # Actualizar en la lista de empleados
                 for e in st.session_state.empleados:
                     if e["Nombre"] == u["Nombre"] and e.get("Empresa") == u.get("Empresa"):
                         e["Email"] = nuevo_email
-                # Actualizar en el usuario actual
                 st.session_state.usuario_actual["Email"] = nuevo_email
                 guardar_datos()
                 st.success(f"Correo actualizado a: {nuevo_email}")
 
-    # --- Cambiar Contraseña ---
+    # Cambiar contraseña (usando hash)
     st.markdown("<br><div class='section-label'>CAMBIAR CONTRASEÑA</div>", unsafe_allow_html=True)
     with st.expander("ACTUALIZAR CLAVE DE ACCESO"):
         nueva_pass = st.text_input("Nueva Contraseña", type="password", key="nueva_pass_cuenta")
@@ -1152,14 +1166,15 @@ elif st.session_state.pantalla_actual == "cuenta":
             elif nueva_pass != confirmar:
                 st.error("Las contraseñas no coinciden.")
             else:
+                hashed = hash_password(nueva_pass)
                 for e in st.session_state.empleados:
                     if e["Nombre"] == u["Nombre"] and e.get("Empresa") == u.get("Empresa"):
-                        e["Password"] = nueva_pass
-                st.session_state.usuario_actual["Password"] = nueva_pass
+                        e["Password"] = hashed
+                st.session_state.usuario_actual["Password"] = hashed
                 guardar_datos()
                 st.success("Contraseña actualizada correctamente.")
 
-    # --- Gestión de Suscripción (si no eres comandante supremo) ---
+    # Gestión de suscripción
     if u["Nombre"] != COMANDANTE_SUPREMO:
         st.markdown("<br><div class='section-label'>GESTIÓN DE SUSCRIPCIÓN</div>", unsafe_allow_html=True)
         planes_suscripcion = [
@@ -1186,7 +1201,7 @@ elif st.session_state.pantalla_actual == "cuenta":
                     link = LINKS_PAGO.get(plan_key, "#")
                     st.markdown(f'<a href="{link}" target="_blank"><button style="background:#4F8EF7;color:#060810;font-family:var(--mono);font-weight:700;border:none;padding:10px;border-radius:2px;cursor:pointer;width:100%;font-size:0.6rem;letter-spacing:0.1em;">ACTIVAR</button></a>', unsafe_allow_html=True)
 
-    # --- Zona de Peligro (Eliminar cuenta) ---
+    # Zona de peligro (eliminar cuenta)
     st.markdown("<br><div class='section-label'>ZONA DE RIESGO</div>", unsafe_allow_html=True)
     st.markdown("""<div class="alert-box error">Esta acción es irreversible. Se eliminarán todos los datos asociados a tu cuenta.</div>""", unsafe_allow_html=True)
     if st.button("ELIMINAR MI CUENTA DEFINITIVAMENTE", type="primary", key="btn_eliminar_cuenta"):
@@ -1417,7 +1432,7 @@ PUNTUACIÓN FINAL: XX/100"""
                         guardar_datos(); st.rerun()
 
 # ─────────────────────────────────────────
-# SÍNTESIS IA
+# SÍNTESIS IA (GENERACIÓN DE ESCENARIOS)
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "sintesis":
     st.markdown("<div class='section-header'><div><div class='section-code'>MOD-05</div><div class='section-title'>Generación de Escenarios</div></div></div>", unsafe_allow_html=True)
@@ -1567,8 +1582,9 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
                             st.warning("ID ya registrado.")
                         else:
                             fecha_exp_str = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d") if expira else None
+                            hashed_pwd_ad = hash_password(new_pass)
                             nuevo_u = {"Nombre": new_n, "Email": new_email, "Rol": new_rol,
-                                       "Plan": new_plan, "Empresa": new_n, "Password": new_pass, "2FA_Verificado": True}
+                                       "Plan": new_plan, "Empresa": new_n, "Password": hashed_pwd_ad, "2FA_Verificado": True}
                             if new_rol == "Empresa": nuevo_u["Departamento"] = "Administración"
                             if fecha_exp_str: nuevo_u["Expiracion"] = fecha_exp_str
                             st.session_state.empleados.append(nuevo_u); guardar_datos()
@@ -1617,4 +1633,3 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
         st.session_state.escenarios_custom  = {}
         st.session_state.usuario_actual     = None
         guardar_datos(); st.rerun()
-
