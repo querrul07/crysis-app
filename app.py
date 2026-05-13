@@ -442,19 +442,7 @@ if token_invitacion:
     except: pass
 
 if st.session_state.usuario_actual is None:
-    if not st.session_state.get("cookies_aceptadas"):
-        st.markdown("""
-        <div style="position:fixed; bottom:0; left:0; right:0; background:#0B0E1A; border-top:1px solid #18213A; 
-                    padding:12px 24px; z-index:9999; display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-family:var(--mono); font-size:0.55rem; color:#3A4A6A; letter-spacing:0.1em;">
-                Esta plataforma usa cookies técnicas estrictamente necesarias para su funcionamiento.
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("ENTENDIDO", key="btn_cookies"):
-            st.session_state.cookies_aceptadas = True
-            st.rerun()
-
+    
     # ── FLUJO INVITACIÓN ──
     if empresa_invitada:
         st.markdown(f"""
