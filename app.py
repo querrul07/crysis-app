@@ -904,8 +904,38 @@ if st.session_state.pantalla_actual == "menu":
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
-    # CSS (el mismo que ya tenías, lo conservamos)
-    if "login_subpantalla"  not in st.session_state: st.session_state.login_subpantalla  = "main"
+    st.markdown("""
+    <style>
+    @keyframes ring{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(2.8)}}
+    .card-wrapper { position:relative; margin-bottom:20px; padding-left:28px; }
+    .card-wrapper::before {
+        content:''; position:absolute; left:8px; top:22px;
+        width:10px; height:10px; border-radius:50%;
+        background:var(--card-color,#4F8EF7); z-index:2;
+    }
+    .card-wrapper::after {
+        content:''; position:absolute; left:4px; top:18px;
+        width:18px; height:18px; border-radius:50%;
+        border:1px solid var(--card-color,#4F8EF7);
+        animation:ring 2.2s ease-out infinite; z-index:1;
+    }
+    .card-wrapper button {
+        background:linear-gradient(135deg,#0B0E1A 0%,#0F1425 100%) !important;
+        border:1px solid #18213A !important;
+        border-left:4px solid var(--card-color,#4F8EF7) !important;
+        border-radius:2px !important; padding:20px 18px !important;
+        text-align:left !important; white-space:normal !important;
+        word-wrap:break-word !important; transition:all 0.25s ease !important;
+    }
+    .card-wrapper:hover button {
+        background:linear-gradient(135deg,#0F1530 0%,#131A35 100%) !important;
+        border-color:var(--card-color) !important;
+        border-left-width:6px !important;
+        box-shadow:0 0 30px var(--card-color),0 0 70px var(--card-color),0 10px 30px rgba(0,0,0,.6) !important;
+        transform:translateY(-5px) !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     st.stop()
 # ESTADÍSTICAS
 # ─────────────────────────────────────────
