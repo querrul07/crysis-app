@@ -321,23 +321,6 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
     text-transform: uppercase;
 }
 
-/* Botón invisible encima de la tarjeta */
-.card-wrapper button {
-    position: absolute !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    opacity: 0 !important;
-    z-index: 10 !important;
-    cursor: pointer !important;
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-}
-/* Oculta el texto del botón */
-.card-wrapper button p, .card-wrapper button span {
-    display: none !important;
-}
 
 /* ── SECTION HEADERS ── */
 .section-header { padding: 28px 0 24px 0; border-bottom: 1px solid var(--border); margin-bottom: 32px; display: flex; align-items: flex-end; justify-content: space-between; }
@@ -1440,7 +1423,7 @@ elif st.session_state.pantalla_actual == "simulador":
                 # ── Cálculo de tensión ──
                 _t = st.session_state.tension_actual
                 res_lower = res.lower()
-                prompt_lower = prompt.lower()
+                prompt_lower = prompt.lower() if prompt else ""
 
                 # Palabras hostiles en el MENSAJE DEL OPERADOR (suben mucho)
                 _hostil_op = ['mierdas','mierda','idiota','imbécil','imbecil','gilipollas',
