@@ -414,6 +414,47 @@ button[kind="secondary"]:hover { border-color: var(--blue) !important; color: va
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--blue); }
+
+/* ── MENU CARDS ── */
+@keyframes ring{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(2.5)}}
+.card-wrapper { position:relative; margin-bottom:14px; }
+.card-wrapper button {
+    background:linear-gradient(135deg,#0B0E1A,#0F1425) !important;
+    border:1px solid #18213A !important;
+    border-left:5px solid var(--card-color,#4F8EF7) !important;
+    border-radius:2px !important;
+    padding:28px 20px 24px !important;
+    text-align:left !important;
+    white-space:normal !important;
+    min-height:140px !important;
+    position:relative !important;
+    overflow:hidden !important;
+    transition:all 0.25s ease !important;
+    font-size:0.75rem !important;
+    line-height:1.8 !important;
+}
+.card-wrapper button::after {
+    content:'';position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.06) 3px,rgba(0,0,0,.06) 4px);
+}
+.card-wrapper:hover button {
+    border-left-color:var(--card-color,#4F8EF7) !important;
+    border-color:var(--card-color,#4F8EF7) !important;
+    box-shadow:0 16px 48px rgba(0,0,0,.6), 0 0 30px var(--card-color,#4F8EF7)33 !important;
+    transform:translateY(-4px) !important;
+}
+.card-wrapper::before {
+    content:''; position:absolute; right:20px; top:20px; z-index:5; pointer-events:none;
+    width:8px; height:8px; border-radius:50%;
+    background:var(--card-color,#4F8EF7); opacity:.9;
+    box-shadow:0 0 8px var(--card-color,#4F8EF7);
+}
+.card-wrapper::after {
+    content:''; position:absolute; right:16px; top:16px; z-index:4; pointer-events:none;
+    width:16px; height:16px; border-radius:50%;
+    border:1px solid var(--card-color,#4F8EF7);
+    animation:ring 2.2s ease-out infinite;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -904,43 +945,6 @@ if st.session_state.pantalla_actual == "menu":
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown("""
-    <style>
-    @keyframes ring{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(2.5)}}
-    .card-wrapper { position:relative; margin-bottom:4px; }
-    .card-wrapper button {
-        background:linear-gradient(135deg,#0B0E1A,#0F1425) !important;
-        border:1px solid #18213A !important;
-        border-left:5px solid var(--card-color,#4F8EF7) !important;
-        border-radius:2px !important; padding:22px 20px 18px !important;
-        text-align:left !important; white-space:normal !important;
-        min-height:130px !important; position:relative !important; overflow:hidden !important;
-        transition:all 0.25s ease !important;
-    }
-    .card-wrapper button::after {
-        content:'';position:absolute;inset:0;pointer-events:none;
-        background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.04) 3px,rgba(0,0,0,.04) 4px);
-    }
-    .card-wrapper:hover button {
-        border-color:var(--card-color,#4F8EF7) !important;
-        box-shadow:0 12px 40px rgba(0,0,0,.5), 0 0 24px var(--card-color,#4F8EF7)44 !important;
-        transform:translateY(-3px) !important;
-    }
-    /* Pulse dot */
-    .card-wrapper::before {
-        content:''; position:absolute; right:18px; top:18px; z-index:5; pointer-events:none;
-        width:7px; height:7px; border-radius:50%;
-        background:var(--card-color,#4F8EF7); opacity:.8;
-    }
-    .card-wrapper::after {
-        content:''; position:absolute; right:14px; top:14px; z-index:4; pointer-events:none;
-        width:15px; height:15px; border-radius:50%;
-        border:1px solid var(--card-color,#4F8EF7);
-        animation:ring 2.2s ease-out infinite;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    st.stop()
 # ESTADÍSTICAS
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "estadisticas":
@@ -1434,13 +1438,41 @@ elif st.session_state.pantalla_actual == "simulador":
                 ).choices[0].message.content
                 st.session_state.mensajes.append({"role":"assistant","content":res})
                 # ── Cálculo de tensión ──
-                _subida  = ['no','jamás','nunca','imposible','amenaza','guerra','fuera','traidor','silencio','fin']
-                _bajada  = ['acuerdo','entiendo','posible','juntos','paz','dialogar','comprender','cooperar','dispuesto']
                 _t = st.session_state.tension_actual
-                for _p in _subida:
-                    if _p in res.lower(): _t = min(100, _t + 8)
-                for _p in _bajada:
-                    if _p in res.lower(): _t = max(0, _t - 5)
+                res_lower = res.lower()
+                prompt_lower = prompt.lower()
+
+                # Palabras hostiles en el MENSAJE DEL OPERADOR (suben mucho)
+                _hostil_op = ['mierdas','mierda','idiota','imbécil','imbecil','gilipollas',
+                              'estúpido','estupido','inútil','inutíl','incompetente',
+                              'amenaza','amenaza','mato','muerto','destruir','atacar',
+                              'guerra','bomba','ultimátum','ultimatum','rendirse','rendición']
+                # Palabras hostiles en respuesta del SUJETO (suben moderado)
+                _subida_sujeto = ['no','jamás','jamas','nunca','imposible','inaceptable',
+                                  'traidor','silencio','fin','fuera','advertencia','consecuencias',
+                                  'cuidado','error','peligro','ataque','ruptura']
+                # Palabras de desescalada (bajan poco — la tensión es pegajosa)
+                _bajada = ['acuerdo','entiendo','comprendo','posible','juntos','paz',
+                           'dialogar','cooperar','dispuesto','escucho','propongo',
+                           'solución','solucion','negociar','respetar']
+
+                # El operador es grosero/hostil → subida fuerte
+                for _p in _hostil_op:
+                    if _p in prompt_lower:
+                        _t = min(100, _t + 15)
+
+                # El sujeto responde con hostilidad → subida media
+                hits_subida = sum(1 for _p in _subida_sujeto if _p in res_lower)
+                _t = min(100, _t + hits_subida * 6)
+
+                # Desescalada → bajada pequeña (máx -10 por turno)
+                hits_bajada = sum(1 for _p in _bajada if _p in res_lower)
+                _t = max(0, _t - min(hits_bajada * 4, 10))
+
+                # Decay natural muy leve si el turno es neutro
+                if hits_subida == 0 and hits_bajada == 0:
+                    _t = max(0, _t - 1)
+
                 st.session_state.tension_actual = _t
                 st.rerun()
 
