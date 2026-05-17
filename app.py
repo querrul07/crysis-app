@@ -906,35 +906,37 @@ if st.session_state.pantalla_actual == "menu":
 
     st.markdown("""
     <style>
-    @keyframes ring{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(2.8)}}
-    .card-wrapper { position:relative; margin-bottom:20px; padding-left:28px; }
-    .card-wrapper::before {
-        content:''; position:absolute; left:8px; top:22px;
-        width:10px; height:10px; border-radius:50%;
-        background:var(--card-color,#4F8EF7); z-index:2;
-        box-shadow: 0 0 10px var(--card-color,#4F8EF7);
-    }
-    .card-wrapper::after {
-        content:''; position:absolute; left:4px; top:18px;
-        width:18px; height:18px; border-radius:50%;
-        border:1px solid var(--card-color,#4F8EF7);
-        animation:ring 2.2s ease-out infinite; z-index:1;
-    }
+    @keyframes ring{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(2.5)}}
+    .card-wrapper { position:relative; margin-bottom:4px; }
     .card-wrapper button {
-        background:linear-gradient(135deg,#0B0E1A 0%,#0F1425 100%) !important;
+        background:linear-gradient(135deg,#0B0E1A,#0F1425) !important;
         border:1px solid #18213A !important;
-        border-left:6px solid var(--card-color,#4F8EF7) !important;
-        border-radius:2px !important; padding:24px 20px !important;
+        border-left:5px solid var(--card-color,#4F8EF7) !important;
+        border-radius:2px !important; padding:22px 20px 18px !important;
         text-align:left !important; white-space:normal !important;
-        word-wrap:break-word !important; transition:all 0.25s ease !important;
-        box-shadow: 0 0 12px var(--card-color,#4F8EF7) !important;
+        min-height:130px !important; position:relative !important; overflow:hidden !important;
+        transition:all 0.25s ease !important;
+    }
+    .card-wrapper button::after {
+        content:'';position:absolute;inset:0;pointer-events:none;
+        background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.04) 3px,rgba(0,0,0,.04) 4px);
     }
     .card-wrapper:hover button {
-        background:linear-gradient(135deg,#0F1530 0%,#131A35 100%) !important;
-        border-color:var(--card-color) !important;
-        border-left-width:8px !important;
-        box-shadow:0 0 40px var(--card-color),0 0 80px var(--card-color),0 10px 30px rgba(0,0,0,.6) !important;
-        transform:translateY(-5px) !important;
+        border-color:var(--card-color,#4F8EF7) !important;
+        box-shadow:0 12px 40px rgba(0,0,0,.5), 0 0 24px var(--card-color,#4F8EF7)44 !important;
+        transform:translateY(-3px) !important;
+    }
+    /* Pulse dot */
+    .card-wrapper::before {
+        content:''; position:absolute; right:18px; top:18px; z-index:5; pointer-events:none;
+        width:7px; height:7px; border-radius:50%;
+        background:var(--card-color,#4F8EF7); opacity:.8;
+    }
+    .card-wrapper::after {
+        content:''; position:absolute; right:14px; top:14px; z-index:4; pointer-events:none;
+        width:15px; height:15px; border-radius:50%;
+        border:1px solid var(--card-color,#4F8EF7);
+        animation:ring 2.2s ease-out infinite;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -1329,23 +1331,68 @@ elif st.session_state.pantalla_actual == "simulador":
         """, unsafe_allow_html=True)
         t = st.session_state.tension_actual
         t_c = "#00D4A0" if t < 35 else ("#F0A500" if t < 65 else "#E8394A")
-        t_txt = "SITUACIÓN CONTROLADA" if t < 35 else ("TENSIÓN MODERADA" if t < 65 else "⚠ ZONA CRÍTICA")
+
+        if t < 20:   t_txt, t_status = "SITUACIÓN CONTROLADA", "00D4A0"
+        elif t < 45: t_txt, t_status = "TENSIÓN MODERADA",     "F0A500"
+        elif t < 70: t_txt, t_status = "TENSIÓN ELEVADA",      "F0A500"
+        elif t < 85: t_txt, t_status = "ZONA CRÍTICA",         "E8394A"
+        else:        t_txt, t_status = "⚡ RUPTURA INMINENTE", "E8394A"
+
+        estabilidad     = max(5, min(95, int(100 - t * 1.1)))
+        ventana_neg     = max(5, min(95, int(100 - t * 0.9)))
+        riesgo_escalada = max(5, min(95, int(t * 0.8)))
+        c_estab   = "#00D4A0" if estabilidad     > 50 else ("#F0A500" if estabilidad     > 30 else "#E8394A")
+        c_ventana = "#00D4A0" if ventana_neg     > 50 else ("#F0A500" if ventana_neg     > 30 else "#E8394A")
+        c_riesgo  = "#00D4A0" if riesgo_escalada < 40 else ("#F0A500" if riesgo_escalada < 65 else "#E8394A")
+
         segs_html = "".join([
-            f'<div style="flex:1;height:16px;background:{t_c};border-radius:1px;opacity:{0.4+0.6*(i/20):.2f}"></div>'
-            if i < round(t/100*20) else
-            '<div style="flex:1;height:16px;background:#18213A;border-radius:1px"></div>'
+            f'<div style="flex:1;height:18px;background:{t_c};border-radius:1px;position:relative;overflow:hidden;">'
+            f'<div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent 40%,rgba(255,255,255,.1))"></div></div>'
+            if i < round(t / 100 * 20) else
+            '<div style="flex:1;height:18px;background:#18213A;border-radius:1px"></div>'
             for i in range(20)
         ])
+
         st.markdown(f"""
-        <div style="background:#0B0E1A;border:1px solid #18213A;border-left:3px solid {t_c};
-                    border-radius:2px;padding:14px 18px;margin-bottom:16px">
-            <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-                <span style="font-family:'Share Tech Mono',monospace;font-size:9px;
-                             letter-spacing:.22em;color:#3A4A6A">ÍNDICE DE TENSIÓN TÁCTICA</span>
-                <span style="font-family:'Share Tech Mono',monospace;font-size:9px;
-                             letter-spacing:.15em;color:{t_c}">● {t_txt} &nbsp;·&nbsp; {t}/100</span>
+        <div style="background:#0B0E1A;border:1px solid #18213A;border-left:3px solid #{t_status};border-radius:2px;padding:20px;margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px">
+            <div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.25em;color:#3A4A6A;margin-bottom:6px">ÍNDICE DE TENSIÓN TÁCTICA</div>
+              <div style="display:flex;align-items:baseline;gap:12px">
+                <div style="font-family:'Share Tech Mono',monospace;font-size:26px;font-weight:700;color:#{t_status};line-height:1">{t}</div>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.2em;color:#{t_status}">● {t_txt}</div>
+              </div>
             </div>
-            <div style="display:flex;gap:3px">{segs_html}</div>
+            <div style="text-align:right">
+              <div style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.2em;color:#3A4A6A">PROTOCOLO ACTIVO</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#E2EAF8;margin-top:4px">{st.session_state.escenario_activo}</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:{dif_color_s};margin-top:2px">DIFICULTAD: {dif_sesion}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:3px;margin-bottom:16px">{segs_html}</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+            <div style="background:#101525;border:1px solid #18213A;border-radius:2px;padding:10px 12px">
+              <div style="font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.2em;color:#3A4A6A;margin-bottom:6px">ESTABILIDAD OBJETIVO</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:14px;font-weight:700;color:{c_estab}">{estabilidad}%</div>
+              <div style="height:2px;background:#18213A;margin-top:6px;border-radius:1px;overflow:hidden">
+                <div style="height:100%;width:{estabilidad}%;background:{c_estab};border-radius:1px"></div>
+              </div>
+            </div>
+            <div style="background:#101525;border:1px solid #18213A;border-radius:2px;padding:10px 12px">
+              <div style="font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.2em;color:#3A4A6A;margin-bottom:6px">VENTANA DE NEGOCIACIÓN</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:14px;font-weight:700;color:{c_ventana}">{ventana_neg}%</div>
+              <div style="height:2px;background:#18213A;margin-top:6px;border-radius:1px;overflow:hidden">
+                <div style="height:100%;width:{ventana_neg}%;background:{c_ventana};border-radius:1px"></div>
+              </div>
+            </div>
+            <div style="background:#101525;border:1px solid #18213A;border-radius:2px;padding:10px 12px">
+              <div style="font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.2em;color:#3A4A6A;margin-bottom:6px">RIESGO DE ESCALADA</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:14px;font-weight:700;color:{c_riesgo}">{riesgo_escalada}%</div>
+              <div style="height:2px;background:#18213A;margin-top:6px;border-radius:1px;overflow:hidden">
+                <div style="height:100%;width:{riesgo_escalada}%;background:{c_riesgo};border-radius:1px"></div>
+              </div>
+            </div>
+          </div>
         </div>
         """, unsafe_allow_html=True)
 
