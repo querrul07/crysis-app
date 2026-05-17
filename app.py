@@ -446,6 +446,7 @@ if "pantalla_actual"    not in st.session_state: st.session_state.pantalla_actua
 if "login_modo"         not in st.session_state: st.session_state.login_modo         = "acceso"
 if "dificultad_actual"  not in st.session_state: st.session_state.dificultad_actual  = "OPERATOR"
 if "login_subpantalla"  not in st.session_state: st.session_state.login_subpantalla  = "main"
+if "tension_actual"     not in st.session_state: st.session_state.tension_actual      = 0   # ← AÑADE ESTA
 
 try:    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except: GROQ_API_KEY = None
@@ -904,49 +905,7 @@ if st.session_state.pantalla_actual == "menu":
                 st.markdown('</div>', unsafe_allow_html=True)
 
     # CSS (el mismo que ya tenías, lo conservamos)
-    st.markdown("""
-    <style>
-    .card-wrapper {
-        position: relative;
-        margin-bottom: 20px;
-        padding-left: 28px;
-    }
-    .card-wrapper button {
-        background: linear-gradient(135deg, #0B0E1A 0%, #0F1425 100%) !important;
-        border: 1px solid #18213A !important;
-        border-left: 4px solid var(--card-color, #4F8EF7) !important;
-        border-radius: 2px !important;
-        padding: 18px 16px !important;
-        text-align: left !important;
-        white-space: normal !important;
-        word-wrap: break-word !important;
-        transition: all 0.2s ease !important;
-    }
-    .card-wrapper:hover button {
-        background: linear-gradient(135deg, #111530 0%, #131A30 100%) !important;
-        border-color: var(--card-color) !important;
-        border-left-width: 6px !important;
-        box-shadow: 0 0 25px var(--card-color), 0 0 60px var(--card-color), 0 8px 24px rgba(0,0,0,0.5) !important;
-        transform: translateY(-4px) !important;
-    }
-    .card-wrapper::before {
-        content: '';
-        position: absolute;
-        left: 8px;
-        top: 24px;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: var(--card-color);
-        z-index: 2;
-        transition: box-shadow 0.2s ease;
-    }
-    .card-wrapper:hover::before {
-        box-shadow: 0 0 18px var(--card-color), 0 0 36px var(--card-color);
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
+    if "login_subpantalla"  not in st.session_state: st.session_state.login_subpantalla  = "main"
     st.stop()
 # ESTADÍSTICAS
 # ─────────────────────────────────────────
@@ -1336,6 +1295,27 @@ elif st.session_state.pantalla_actual == "simulador":
             <span style="color:{dif_color_s};">DIFICULTAD: {dif_sesion}</span>
         </div>
         """, unsafe_allow_html=True)
+        t = st.session_state.tension_actual
+        t_c = "#00D4A0" if t < 35 else ("#F0A500" if t < 65 else "#E8394A")
+        t_txt = "SITUACIÓN CONTROLADA" if t < 35 else ("TENSIÓN MODERADA" if t < 65 else "⚠ ZONA CRÍTICA")
+        segs_html = "".join([
+            f'<div style="flex:1;height:16px;background:{t_c};border-radius:1px;opacity:{0.4+0.6*(i/20):.2f}"></div>'
+            if i < round(t/100*20) else
+            '<div style="flex:1;height:16px;background:#18213A;border-radius:1px"></div>'
+            for i in range(20)
+        ])
+        st.markdown(f"""
+        <div style="background:#0B0E1A;border:1px solid #18213A;border-left:3px solid {t_c};
+                    border-radius:2px;padding:14px 18px;margin-bottom:16px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+                <span style="font-family:'Share Tech Mono',monospace;font-size:9px;
+                             letter-spacing:.22em;color:#3A4A6A">ÍNDICE DE TENSIÓN TÁCTICA</span>
+                <span style="font-family:'Share Tech Mono',monospace;font-size:9px;
+                             letter-spacing:.15em;color:{t_c}">● {t_txt} &nbsp;·&nbsp; {t}/100</span>
+            </div>
+            <div style="display:flex;gap:3px">{segs_html}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
         if st.session_state.tarjeta_objetivo:
             t = st.session_state.tarjeta_objetivo
@@ -1373,7 +1353,17 @@ elif st.session_state.pantalla_actual == "simulador":
                     model="llama-3.3-70b-versatile",
                     messages=[{"role":"system","content": base_prompt}] + st.session_state.mensajes
                 ).choices[0].message.content
-                st.session_state.mensajes.append({"role":"assistant","content":res}); st.rerun()
+                st.session_state.mensajes.append({"role":"assistant","content":res})
+                # ── Cálculo de tensión ──
+                _subida  = ['no','jamás','nunca','imposible','amenaza','guerra','fuera','traidor','silencio','fin']
+                _bajada  = ['acuerdo','entiendo','posible','juntos','paz','dialogar','comprender','cooperar','dispuesto']
+                _t = st.session_state.tension_actual
+                for _p in _subida:
+                    if _p in res.lower(): _t = min(100, _t + 8)
+                for _p in _bajada:
+                    if _p in res.lower(): _t = max(0, _t - 5)
+                st.session_state.tension_actual = _t
+                st.rerun()
 
         col_end, col_abort = st.columns([3, 1])
         with col_abort:
