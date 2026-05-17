@@ -15,6 +15,25 @@ from fpdf import FPDF
 from supabase import create_client, Client
 import base64
 import bcrypt
+import requests
+from urllib.parse import quote
+
+@st.cache_data(ttl=86400)
+def buscar_wikipedia(nombre: str):
+    try:
+        url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{quote(nombre)}"
+        r = requests.get(url, timeout=5)
+        if r.status_code == 200:
+            data = r.json()
+            if 'extract' in data:
+                return {
+                    "titulo": data.get('title', nombre),
+                    "resumen": data['extract'][:500],
+                    "url": data.get('content_urls', {}).get('desktop', {}).get('page', '')
+                }
+    except:
+        pass
+    return None
 
 # ─────────────────────────────────────────
 # CONFIGURACIÓN DE SUPERUSUARIO
@@ -775,8 +794,15 @@ if u["Nombre"] != COMANDANTE_SUPREMO:
         agentes_de_mi_empresa = [u["Nombre"]]
 
 # Carga de escenarios disponibles
-mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items() 
-                  if v.get("Creador") == empresa_actual or u["Nombre"] == COMANDANTE_SUPREMO}
+if u["Nombre"] == COMANDANTE_SUPREMO:
+    # CRYSIS solo ve escenarios que él mismo creó
+    mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items() 
+                      if v.get("Creador") == COMANDANTE_SUPREMO}
+else:
+    # Los demás ven escenarios creados por su empresa/entidad
+    mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items() 
+                      if v.get("Creador") == empresa_actual}
+
 TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **mis_escenarios}
 
 # ─────────────────────────────────────────
@@ -1428,64 +1454,115 @@ elif st.session_state.pantalla_actual == "sintesis":
                     del st.session_state.escenarios_custom[nombre_esc]; guardar_datos(); st.rerun()
             st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown("<div class='section-label'>NUEVA SIMULACIÓN</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-label'>NUEVA SIMULACIÓN AVANZADA</div>", unsafe_allow_html=True)
 
         if mi_plan == "BASE" and u["Nombre"] != COMANDANTE_SUPREMO:
-            st.markdown("""<div class="alert-box error">RESTRICCIÓN: El nivel BASE no permite el uso de IA Generativa. Actualiza tu plan para desbloquear esta función.</div>""", unsafe_allow_html=True)
+            st.markdown("""<div class="alert-box error">RESTRICCIÓN: El nivel BASE no permite el uso de IA Generativa.</div>""", unsafe_allow_html=True)
         else:
             limite_esc = 99999 if u["Nombre"] == COMANDANTE_SUPREMO else escenarios_lim
             if limite_esc != 99999 and creados >= limite_esc:
-                st.markdown(f"""<div class="alert-box warning">CUOTA ALCANZADA ({creados}/{limite_esc} escenarios). Elimina uno existente para crear otro.</div>""", unsafe_allow_html=True)
+                st.markdown(f"""<div class="alert-box warning">CUOTA ALCANZADA ({creados}/{limite_esc}). Elimina uno para crear otro.</div>""", unsafe_allow_html=True)
             else:
-                idea_prompt = st.text_area("Describe el entorno táctico y el tipo de sujeto:", height=100,
-                                           placeholder="Ej: Un ejecutivo corrupto atrapado en una negociación empresarial. Arrogante y calculador...")
-                if st.button("GENERAR NUEVA SIMULACIÓN", use_container_width=True):
+                idea_prompt = st.text_area("Describe el escenario o la persona real:", height=120,
+                                           placeholder="Ej: Negociación con Pablo Escobar, líder del cartel de Medellín, carácter violento pero inteligente. Objetivo: rendición pacífica.")
+
+                # Detección automática de nombre propio (primera palabra mayúscula que no sea artículo)
+                palabras = idea_prompt.split() if idea_prompt else []
+                nombre_candidato = None
+                for p in palabras:
+                    if p[0].isupper() and len(p) > 2 and p.lower() not in ['un','una','el','la','los','las','de','del','y','a','ante','con','sin','por','para']:
+                        nombre_candidato = p.strip(',.;:')
+                        break
+
+                wiki_data = None
+                if nombre_candidato and len(nombre_candidato) > 3:
+                    with st.spinner(f"Consultando Wikipedia sobre {nombre_candidato}..."):
+                        wiki_data = buscar_wikipedia(nombre_candidato)
+                    if wiki_data:
+                        st.success(f"✅ Datos reales cargados: {wiki_data['titulo']}")
+                        with st.expander("Ver biografía (fuente Wikipedia)"):
+                            st.caption(wiki_data['resumen'])
+                elif idea_prompt and not nombre_candidato:
+                    st.info("No se detectó un nombre propio. Se generará un escenario original.")
+
+                if st.button("GENERAR ESCENARIO PROFESIONAL", use_container_width=True):
                     if idea_prompt and GROQ_API_KEY:
-                        with st.spinner("Enlazando con el motor de IA..."):
+                        with st.spinner("Motor táctico IA en funcionamiento..."):
                             try:
                                 client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                                contexto_wiki = ""
+                                if wiki_data:
+                                    contexto_wiki = f"""
+DATOS REALES DE WIKIPEDIA:
+- Nombre: {wiki_data['titulo']}
+- Biografía: {wiki_data['resumen']}
+DEBES USAR ESTOS DATOS PARA CARACTERIZAR AL SUJETO.
+"""
+                                super_prompt = f"""Eres un experto generador de escenarios tácticos de élite. Crea una simulación profesional y realista.
+
+INSTRUCCIONES:
+- Nombra la operación con un nombre clave atractivo (ej: OPERACIÓN: NIEVE NEGRA, OPERACIÓN: ECO ROTO).
+- El OPERADOR (usuario) es quien ACTÚA en la descripción. Si dice "comprar", operador es comprador; si dice "vender", operador es vendedor. El SUJETO (IA) es la contraparte.
+- Contexto serio, de inteligencia o negociación de alto nivel.
+- Perfil del sujeto detallado (motivaciones, debilidades, estilo).
+- Objetivo claro y medible.
+- Prompt del sujeto en PRIMERA PERSONA, sin acotaciones, solo diálogo.
+
+{contexto_wiki}
+
+DESCRIPCIÓN DEL USUARIO: {idea_prompt}
+
+DEVUELVE SOLO JSON:
+{{
+    "nombre_op": "OPERACIÓN: [NOMBRE]",
+    "contexto": "texto",
+    "perfil_sujeto": "texto detallado",
+    "objetivo": "texto",
+    "prompt": "Instrucciones para la IA: eres [nombre]. [rol]. Responde en español. Sin paréntesis."
+}}
+"""
                                 res = client.chat.completions.create(
                                     model="llama-3.3-70b-versatile",
-                                    messages=[
-                                        {"role":"system","content":"Devuelve JSON: {'nombre_op': 'OPERACION: [NOMBRE]', 'contexto': '...', 'perfil_sujeto': '...', 'objetivo': '...', 'prompt': '...'}"},
-                                        {"role":"user","content": idea_prompt}
-                                    ],
+                                    messages=[{"role":"user","content": super_prompt}],
                                     response_format={"type":"json_object"}
                                 ).choices[0].message.content
                                 nuevo_esc = json.loads(res)
-                                nuevo_esc["prompt"] += INSTRUCCION_ORTOGRAFIA
+                                nuevo_esc["prompt"] += " Escribe en español correcto. Solo diálogo directo, sin acotaciones entre paréntesis."
                                 st.session_state.escenarios_custom[nuevo_esc["nombre_op"]] = {
-                                    "contexto":      nuevo_esc["contexto"],
+                                    "contexto": nuevo_esc["contexto"],
                                     "perfil_sujeto": nuevo_esc["perfil_sujeto"],
-                                    "objetivo":      nuevo_esc["objetivo"],
-                                    "prompt":        nuevo_esc["prompt"],
-                                    "Creador":       empresa_actual
+                                    "objetivo": nuevo_esc["objetivo"],
+                                    "prompt": nuevo_esc["prompt"],
+                                    "Creador": empresa_actual
                                 }
-                                guardar_datos(); st.success(f"Protocolo {nuevo_esc['nombre_op']} creado y activado."); st.rerun()
+                                guardar_datos()
+                                st.success(f"✅ Creado: {nuevo_esc['nombre_op']}")
+                                st.balloons()
+                                st.rerun()
                             except Exception as e:
-                                st.error(f"Fallo del Motor IA: {e}")
+                                st.error(f"Error: {e}")
                     elif not idea_prompt:
-                        st.warning("Describe los parámetros del escenario.")
+                        st.warning("Escribe una descripción.")
+                    elif not GROQ_API_KEY:
+                        st.error("API key no configurada.")
 
     with col_der:
-        st.markdown("<div class='section-label'>NIVELES DE ACCESO IA</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-label'>NIVELES DE ACCESO</div>", unsafe_allow_html=True)
         planes_der = [
-            ("BASE",        "0€",     False, ["Sin acceso a IA generativa", "1 op/mes"]),
-            ("OPERADOR",    "19€/mes", False, ["3 escenarios propios", "10 ops/mes"]),
-            ("ELITE",       "49€/mes", True,  ["Escenarios ilimitados", "Ops ilimitadas"]),
-            ("ESCUADRON",   "89€/mes", True,  ["15 agentes · IA ∞", "Ops ilimitadas"]),
-            ("COMANDANCIA", "199€/mes",True,  ["Agentes ∞ · IA ∞", "Ops ilimitadas"]),
+            ("BASE", "0€", False, ["Sin IA generativa", "1 op/mes"]),
+            ("OPERADOR", "19€/mes", False, ["3 escenarios", "10 ops/mes"]),
+            ("ELITE", "49€/mes", True, ["Ilimitado", "IA ∞"]),
+            ("ESCUADRON", "89€/mes", True, ["15 agentes", "IA ∞"]),
+            ("COMANDANCIA", "199€/mes", True, ["Agentes ∞", "IA ∞"]),
         ]
         for nombre, precio, elite, specs in planes_der:
             activo = mi_plan == nombre
-            color  = "#F0A500" if elite else "#4F8EF7"
+            color = "#F0A500" if elite else "#4F8EF7"
             border = "#00D4A0" if activo else ("#F0A500" if elite else "var(--border2)")
             st.markdown(f"""
             <div class="auth-tier {'elite' if elite else ''}" style="border-left-color:{border};">
-                <div style="display:flex;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid #18213A;padding-bottom:6px;">
-                    <span style="font-family:var(--mono);font-size:0.65rem;color:{'#00D4A0' if activo else 'var(--text-hi)'};">
-                        {'● ' if activo else ''}{nombre}
-                    </span>
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid #18213A;padding-bottom:6px;">
+                    <span style="font-family:var(--mono);font-size:0.65rem;color:{'#00D4A0' if activo else 'var(--text-hi)'};">{'● ' if activo else ''}{nombre}</span>
                     <span style="font-family:var(--mono);font-size:0.75rem;color:{color};">{precio}</span>
                 </div>
                 {''.join(f'<div class="tier-spec">{s}</div>' for s in specs)}
