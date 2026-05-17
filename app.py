@@ -907,57 +907,34 @@ if st.session_state.pantalla_actual == "menu":
     st.markdown("""
     <style>
     @keyframes ring{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(2.8)}}
-
-    .card-wrapper { position:relative; margin-bottom:16px; }
-
+    .card-wrapper { position:relative; margin-bottom:20px; padding-left:28px; }
     .card-wrapper::before {
-        content:''; position:absolute; right:16px; top:16px; z-index:100;
-        width:8px; height:8px; border-radius:50%; pointer-events:none;
-        background:var(--card-color,#4F8EF7);
-        box-shadow:0 0 12px var(--card-color,#4F8EF7);
+        content:''; position:absolute; left:8px; top:22px;
+        width:10px; height:10px; border-radius:50%;
+        background:var(--card-color,#4F8EF7); z-index:2;
+        box-shadow: 0 0 10px var(--card-color,#4F8EF7);
     }
     .card-wrapper::after {
-        content:''; position:absolute; right:12px; top:12px; z-index:99;
-        width:16px; height:16px; border-radius:50%; pointer-events:none;
+        content:''; position:absolute; left:4px; top:18px;
+        width:18px; height:18px; border-radius:50%;
         border:1px solid var(--card-color,#4F8EF7);
-        animation:ring 2.2s ease-out infinite;
+        animation:ring 2.2s ease-out infinite; z-index:1;
     }
-
     .card-wrapper button {
-        background:linear-gradient(135deg,#0B0E1A,#0F1425) !important;
-        border:1px solid #1E2A45 !important;
-        border-left:5px solid var(--card-color,#4F8EF7) !important;
-        border-radius:2px !important;
-        padding:22px 40px 22px 20px !important;
-        text-align:left !important;
-        white-space:normal !important;
-        min-height:90px !important;
-        transition:all 0.25s ease !important;
+        background:linear-gradient(135deg,#0B0E1A 0%,#0F1425 100%) !important;
+        border:1px solid #18213A !important;
+        border-left:6px solid var(--card-color,#4F8EF7) !important;
+        border-radius:2px !important; padding:24px 20px !important;
+        text-align:left !important; white-space:normal !important;
+        word-wrap:break-word !important; transition:all 0.25s ease !important;
+        box-shadow: 0 0 12px var(--card-color,#4F8EF7) !important;
     }
     .card-wrapper:hover button {
+        background:linear-gradient(135deg,#0F1530 0%,#131A35 100%) !important;
         border-color:var(--card-color) !important;
-        border-left-width:7px !important;
-        box-shadow:0 0 30px var(--card-color)55, 0 8px 24px rgba(0,0,0,.5) !important;
-        transform:translateY(-4px) !important;
-        background:linear-gradient(135deg,#0E1428,#121830) !important;
-    }
-
-    .card-wrapper button p:first-of-type,
-    .card-wrapper button p:first-of-type strong {
-        color:#C8D4EC !important;
-        font-size:0.68rem !important;
-        letter-spacing:0.14em !important;
-        text-align:left !important;
-        display:block !important;
-        margin-bottom:10px !important;
-    }
-    .card-wrapper button p:last-of-type,
-    .card-wrapper button p:last-of-type strong {
-        color:var(--card-color,#4F8EF7) !important;
-        font-size:0.85rem !important;
-        letter-spacing:0.08em !important;
-        text-align:left !important;
-        display:block !important;
+        border-left-width:8px !important;
+        box-shadow:0 0 40px var(--card-color),0 0 80px var(--card-color),0 10px 30px rgba(0,0,0,.6) !important;
+        transform:translateY(-5px) !important;
     }
     </style>
     """, unsafe_allow_html=True)
