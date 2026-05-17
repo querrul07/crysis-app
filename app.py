@@ -899,7 +899,7 @@ if st.session_state.pantalla_actual == "menu":
         for i, (destino, titulo, metrica, color) in enumerate(tarjetas[fila:fila+3]):
             with cols[i]:
                 st.markdown(f'<div class="card-wrapper" style="--card-color: {color};">', unsafe_allow_html=True)
-                if st.button(f"**{titulo}**\n\n{metrica}", key=f"btn_{destino}", use_container_width=True):
+                if st.button(f"**{titulo}**\n\n**{metrica}**", key=f"btn_{destino}", use_container_width=True):
                     st.session_state.pantalla_actual = destino
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
@@ -921,8 +921,9 @@ if st.session_state.pantalla_actual == "menu":
     }
     .card-wrapper button {
         background:linear-gradient(135deg,#0B0E1A 0%,#0F1425 100%) !important;
-        border:1px solid #18213A !important;
-        border-left:4px solid var(--card-color,#4F8EF7) !important;
+        border:1px solid var(--card-color,#4F8EF7) !important;
+        border-left:6px solid var(--card-color,#4F8EF7) !important;
+        box-shadow: inset 0 0 40px rgba(0,0,0,0.3), 0 0 8px var(--card-color) !important;
         border-radius:2px !important; padding:20px 18px !important;
         text-align:left !important; white-space:normal !important;
         word-wrap:break-word !important; transition:all 0.25s ease !important;
