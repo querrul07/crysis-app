@@ -106,6 +106,15 @@ def cargar_datos():
         st.error(f"Error al conectar con Base de Datos: {e}")
     return {"empleados": [], "historial_sesiones": [], "escenarios_custom": {}}
 
+def guardar_usuario_plano(nombre, email, plan="BASE"):
+    try:
+        # Insertar en la tabla usuarios (si no existe, lo crea)
+        data = {"nombre": nombre, "email": email, "plan": plan}
+        supabase.table("usuarios").upsert(data, on_conflict="nombre").execute()
+    except Exception as e:
+        # Si falla, no rompe la app
+        pass
+
 def guardar_datos():
     try:
         datos_actualizados = {
@@ -532,6 +541,7 @@ if st.session_state.usuario_actual is None:
                             else:
                                 nuevo_agente = {"Nombre": n, "Email": email, "Departamento": d, "Rol": "Agente", "Empresa": empresa_invitada, "Password": p, "2FA_Verificado": True}
                                 st.session_state.empleados.append(nuevo_agente); guardar_datos()
+                                guardar_usuario_plano(nuevo_agente["Nombre"], nuevo_agente.get("Email", ""), empresa_obj.get("Plan", "BASE"))
                                 st.session_state.registro_completado = True
                                 st.query_params.clear(); st.rerun()
         st.stop()
@@ -754,6 +764,7 @@ if st.session_state.usuario_actual is None:
                                     else:
                                         nuevo_usuario = {"Nombre": n, "Email": email, "Rol": "Individual", "Plan": "BASE", "Empresa": n, "Password": p, "2FA_Verificado": True, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
                                     st.session_state.empleados.append(nuevo_usuario); guardar_datos()
+                                    guardar_usuario_plano(nuevo_usuario["Nombre"], nuevo_usuario.get("Email", ""), nuevo_usuario.get("Plan", "BASE"))
                                     if es_pago:
                                         link_pago   = LINKS_PAGO.get(plan_sel, "#")
                                         nombre_plan = f"{plan_sel} ({PLANES_INFO[plan_sel]['precio']})"
