@@ -226,6 +226,34 @@ def generar_pdf_dossier(sesion):
 # ─────────────────────────────────────────
 # HELPERS DE PROGRESIÓN
 # ─────────────────────────────────────────
+def recalcular_xp_historico():
+    """Recalcula el XP de todos los usuarios basado en sus misiones pasadas."""
+    for empleado in st.session_state.empleados:
+        # Saltar si ya tiene XP > 0 (asumimos que ya está actualizado)
+        if empleado.get("xp", 0) > 0:
+            continue
+        # Obtener todas las misiones de este agente
+        misiones = [s for s in st.session_state.historial_sesiones if s["Agente"] == empleado["Nombre"]]
+        if not misiones:
+            continue
+        total_xp = 0
+        for m in misiones:
+            nota = m.get("Nota", 0)
+            dificultad = m.get("Dificultad", "OPERATOR")
+            dif_mult = {1: 1.0, 2: 1.3, 3: 1.6, 4: 2.0}
+            niv = DIFICULTADES.get(dificultad, {}).get("nivel", 2)
+            xp_base = int((nota / 2) * dif_mult.get(niv, 1.0))
+            total_xp += xp_base
+        empleado["xp"] = total_xp
+        # Inicializar racha (aproximada: si la última misión fue hoy)
+        if misiones:
+            ult_fecha = max(datetime.strptime(m["Fecha"], "%Y-%m-%d %H:%M") for m in misiones)
+            if ult_fecha.date() == datetime.now().date():
+                empleado["racha"] = 1
+            else:
+                empleado["racha"] = 0
+    guardar_datos()
+
 def get_nivel_usuario(xp_total):
     nivel_actual = NIVELES_XP[0]
     siguiente    = None
@@ -253,6 +281,55 @@ def get_mision_diaria_hoy():
         "fecha":      today,
         "bonus_xp":   80,
     }
+
+def generar_mision_diaria_ia():
+    """Genera una misión diaria única usando Groq (si está disponible)."""
+    if not GROQ_API_KEY:
+        # Fallback a misión predefinida
+        return get_mision_diaria_hoy()
+    
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    # Si ya generamos una hoy, la devolvemos
+    if "mision_diaria_cache" in st.session_state and st.session_state.mision_diaria_cache.get("fecha") == today_str:
+        return st.session_state.mision_diaria_cache["mision"]
+    
+    try:
+        client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+        prompt = f"""Eres un diseñador de escenarios tácticos. Genera una MISIÓN DIARIA completamente original para hoy {today_str}.
+La misión debe ser realista, de negociación o inteligencia, con un nombre atractivo (ej: OPERACIÓN: ECO PROFUNDO).
+Devuelve SOLO JSON con estas claves:
+{{
+    "nombre_op": "OPERACIÓN: ...",
+    "contexto": "texto del contexto (situación actual)",
+    "perfil_sujeto": "descripción detallada del sujeto (nombre, motivaciones, debilidad)",
+    "objetivo": "objetivo claro y medible",
+    "prompt": "Instrucciones para la IA: eres [nombre]. [rol]. Responde en español, solo diálogo, sin acotaciones."
+}}
+La dificultad será aleatoria pero debe ser entre RECRUIT y NIGHTMARE. NO uses los mismos escenarios de siempre.
+"""
+        res = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role":"user","content": prompt}],
+            response_format={"type":"json_object"}
+        ).choices[0].message.content
+        nueva_mision = json.loads(res)
+        # Elegir dificultad aleatoria (puede ser fija o según día)
+        import random
+        random.seed(int(hashlib.md5(today_str.encode()).hexdigest(), 16))
+        dificultad = random.choice(list(DIFICULTADES.keys()))
+        mision = {
+            "escenario": nueva_mision["nombre_op"],
+            "dificultad": dificultad,
+            "fecha": today_str,
+            "bonus_xp": 80,
+            "datos": nueva_mision
+        }
+        # Cachear
+        st.session_state.mision_diaria_cache = {"fecha": today_str, "mision": mision}
+        return mision
+    except Exception as e:
+        # Fallback seguro
+        return get_mision_diaria_hoy()
 
 def otorgar_xp_y_logros(nombre_agente, nota, dificultad, es_diaria=False):
     dif_mult = {1: 1.0, 2: 1.3, 3: 1.6, 4: 2.0}
@@ -562,6 +639,7 @@ AXIS_STYLE   = dict(gridcolor='#1A2035', zeroline=False, color='#4A5568', lineco
 # ESTADOS
 # ─────────────────────────────────────────
 datos_guardados = cargar_datos()
+recalcular_xp_historico()   # <-- Añade esta línea
 if "empleados"          not in st.session_state: st.session_state.empleados          = datos_guardados["empleados"]
 if "historial_sesiones" not in st.session_state: st.session_state.historial_sesiones = datos_guardados["historial_sesiones"]
 if "escenarios_custom"  not in st.session_state: st.session_state.escenarios_custom  = datos_guardados.get("escenarios_custom", {})
@@ -580,6 +658,8 @@ if "tension_actual"     not in st.session_state: st.session_state.tension_actual
 if "es_mision_diaria"      not in st.session_state: st.session_state.es_mision_diaria      = False
 if "xp_ganado_ultimo"      not in st.session_state: st.session_state.xp_ganado_ultimo       = 0
 if "logros_nuevos_ultimo"  not in st.session_state: st.session_state.logros_nuevos_ultimo   = []
+if "mision_diaria_cache" not in st.session_state:
+    st.session_state.mision_diaria_cache = {"fecha": "", "mision": None}
 
 try:    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except: GROQ_API_KEY = None
@@ -1820,10 +1900,20 @@ DEVUELVE SOLO JSON:
 # MISIÓN DIARIA
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "mision_diaria":
-    mision   = get_mision_diaria_hoy()
-    hoy_str  = datetime.now().strftime("%Y-%m-%d")
-    u_d      = next((e for e in st.session_state.empleados if e["Nombre"] == u["Nombre"]), {})
+    mision = generar_mision_diaria_ia()   # <--- Llamada a la nueva función IA
+    hoy_str = datetime.now().strftime("%Y-%m-%d")
+    u_d = next((e for e in st.session_state.empleados if e["Nombre"] == u["Nombre"]), {})
     completada_hoy = u_d.get("diaria_hoy", "") == hoy_str
+
+    # --- Inyectar escenario diario en TODAS_LAS_MISIONES ---
+    if mision["escenario"] not in TODAS_LAS_MISIONES:
+        TODAS_LAS_MISIONES[mision["escenario"]] = {
+            "contexto": mision["datos"]["contexto"],
+            "perfil_sujeto": mision["datos"]["perfil_sujeto"],
+            "objetivo": mision["datos"]["objetivo"],
+            "prompt": mision["datos"]["prompt"] + " " + INSTRUCCION_ORTOGRAFIA,
+        }
+
 
     st.markdown("""<div class='section-header'><div>
         <div class='section-code'>DIARIA</div>
@@ -1924,30 +2014,35 @@ elif st.session_state.pantalla_actual == "ranking":
     else:
         col_rank_izq, col_rank_der = st.columns([3, 1], gap="large")
         with col_rank_izq:
-            st.markdown("<div class='section-label'>CLASIFICACIÓN POR XP ACUMULADO</div>", unsafe_allow_html=True)
-            podio = {0: "#FFD700", 1: "#C0C0C0", 2: "#CD7F32"}
-            for i, row in enumerate(datos_ranking[:20]):
-                pos_str = f"{i+1}°"
-                bg      = f"rgba({','.join(str(int(podio.get(i,'#18213A').lstrip('#')[j:j+2],16)) for j in (0,2,4))},0.05)" if i < 3 else "transparent"
-                border  = podio.get(i, "#18213A")
-                es_yo   = row["Agente"] == u["Nombre"]
-                st.markdown(f"""
-                <div style="display:flex; align-items:center; gap:16px;
-                    background:{bg}; border:1px solid {border}22;
-                    border-left:3px solid {row['Color']}; border-radius:2px;
-                    padding:12px 18px; margin-bottom:6px;">
-                    <div style="font-family:var(--mono); font-size:0.6rem; color:#3A4A6A; width:26px; text-align:right;">{pos_str}</div>
-                    <div style="flex:1;">
-                        <span style="color:{'#FFD700' if es_yo else '#E2EAF8'}; font-weight:{'700' if es_yo else '400'};">{row['Agente']}</span>
-                        {'<span style="font-family:var(--mono);font-size:0.45rem;color:#4F8EF7;margin-left:8px;letter-spacing:0.15em;background:rgba(79,142,247,0.1);padding:2px 5px;">TÚ</span>' if es_yo else ''}
-                        <span style="font-family:var(--mono); font-size:0.5rem; color:{row['Color']}; margin-left:10px;">{row['Nivel']}</span>
-                    </div>
-                    <div style="text-align:right; min-width:120px;">
-                        <div style="font-family:var(--mono); font-size:0.85rem; color:#F0A500; font-weight:700;">{row['XP']} XP</div>
-                        <div style="font-family:var(--mono); font-size:0.48rem; color:#3A4A6A; margin-top:2px;">{row['Misiones']} ops · media {row['Media']}%</div>
-                    </div>
+    st.markdown("<div class='section-label'>CLASIFICACIÓN POR XP ACUMULADO</div>", unsafe_allow_html=True)
+    podio = {0: "#FFD700", 1: "#C0C0C0", 2: "#CD7F32"}
+    
+    for i, row in enumerate(datos_ranking[:20]):
+        pos_str = f"{i+1}"
+        bg = f"rgba({','.join(str(int(podio.get(i, '#18213A').lstrip('#')[j:j+2], 16)) for j in (0,2,4))},0.05)" if i < 3 else "transparent"
+        border = podio.get(i, "#18213A")
+        es_yo = row["Agente"] == u["Nombre"]
+        
+        st.markdown(
+            f"""
+            <div style="display: flex; align-items: center; gap: 16px;
+                background: {bg}; border: 1px solid {border}22;
+                border-left: 3px solid {row['Color']}; border-radius: 2px;
+                padding: 12px 18px; margin-bottom: 6px;">
+                <div style="font-family: var(--mono); font-size: 0.6rem; color: #3A4A6A; width: 26px; text-align: right;">{pos_str}</div>
+                <div style="flex: 1;">
+                    <span style="color: {'#FFD700' if es_yo else '#E2EAF8'}; font-weight: {'700' if es_yo else '400'};">{row['Agente']}</span>
+                    {('<span style="font-family: var(--mono); font-size: 0.45rem; color: #4F8EF7; margin-left: 8px; letter-spacing: 0.15em; background: rgba(79,142,247,0.1); padding: 2px 5px;">TÚ</span>' if es_yo else '')}
+                    <span style="font-family: var(--mono); font-size: 0.5rem; color: {row['Color']}; margin-left: 10px;">{row['Nivel']}</span>
                 </div>
-                """, unsafe_allow_html=True)
+                <div style="text-align: right; min-width: 120px;">
+                    <div style="font-family: var(--mono); font-size: 0.85rem; color: #F0A500; font-weight: 700;">{row['XP']} XP</div>
+                    <div style="font-family: var(--mono); font-size: 0.48rem; color: #3A4A6A; margin-top: 2px;">{row['Misiones']} ops · media {row['Media']}%</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         with col_rank_der:
             mi_pos  = next((i + 1 for i, r in enumerate(datos_ranking) if r["Agente"] == u["Nombre"]), None)
             mi_data = next((r for r in datos_ranking if r["Agente"] == u["Nombre"]), None)
