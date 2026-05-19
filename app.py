@@ -17,6 +17,7 @@ import base64
 import bcrypt
 import requests
 from urllib.parse import quote
+import hashlib
 
 @st.cache_data(ttl=86400)
 def buscar_wikipedia(nombre: str):
@@ -65,6 +66,33 @@ DIFICULTADES = {
                  "instruccion": "Eres extremadamente hostil e impenetrable. Usas silencios prolongados, amenazas veladas, manipulación psicológica avanzada y contradices absolutamente todo. Ceder es casi imposible. Solo capitulas ante una negociación perfecta y sostenida."},
 }
 
+# ─────────────────────────────────────────
+# SISTEMA DE PROGRESIÓN: NIVELES Y LOGROS
+# ─────────────────────────────────────────
+NIVELES_XP = [
+    (0,    "RECRUIT",    "#00D4A0"),
+    (300,  "OPERATIVE",  "#4F8EF7"),
+    (700,  "SPECIALIST", "#A855F7"),
+    (1400, "AGENT",      "#F0A500"),
+    (2800, "ELITE",      "#E8394A"),
+    (5000, "COMMANDER",  "#FFD700"),
+]
+
+LOGROS_DEF = {
+    "PRIMERA_MISION":  {"i":"◈","nombre":"Bautismo de Fuego",   "desc":"Completa tu primera misión",            "xp":50},
+    "PUNTUACION_90":   {"i":"◉","nombre":"Precisión Quirúrgica", "desc":"Consigue 90+ en una misión",            "xp":100},
+    "PUNTUACION_100":  {"i":"★","nombre":"Operación Perfecta",   "desc":"Consigue 100/100 en una misión",        "xp":250},
+    "RACHA_3":         {"i":"▲","nombre":"Impulso Táctico",      "desc":"3 días consecutivos entrenando",        "xp":75},
+    "RACHA_7":         {"i":"◆","nombre":"Semana de Acero",      "desc":"7 días consecutivos",                   "xp":200},
+    "RACHA_30":        {"i":"✦","nombre":"Agente Incansable",    "desc":"30 días consecutivos",                  "xp":1000},
+    "MISIONES_10":     {"i":"▸","nombre":"Veterano de Campo",    "desc":"Completa 10 misiones",                  "xp":100},
+    "MISIONES_50":     {"i":"▶","nombre":"Agente de Élite",      "desc":"Completa 50 misiones",                  "xp":400},
+    "NIGHTMARE_WIN":   {"i":"☠","nombre":"Pesadilla Domada",     "desc":"Supera NIGHTMARE con puntuación +60",   "xp":300},
+    "DIARIA_X7":       {"i":"◐","nombre":"Disciplina Táctica",   "desc":"7 misiones diarias completadas",        "xp":200},
+    "PRIMER_ESC":      {"i":"◇","nombre":"Arquitecto Táctico",   "desc":"Crea tu primer escenario personalizado","xp":150},
+}
+
+
 @st.cache_resource
 def init_supabase():
     url: str = st.secrets["SUPABASE_URL"].strip().rstrip("/")
@@ -95,12 +123,15 @@ def cargar_datos():
         response = supabase.table("crysis_data").select("memoria").eq("id", "main").execute()
         if response.data:
             contenido = response.data[0]["memoria"]
-            # Intentamos descifrar. Si falla (porque son datos viejos sin cifrar), cargamos normal.
             datos = descifrar_memoria(contenido)
             if datos is None: datos = contenido if isinstance(contenido, dict) else {"empleados": [], "historial_sesiones": [], "escenarios_custom": {}}
-            
             if "escenarios_custom" not in datos: datos["escenarios_custom"] = {}
             datos["empleados"] = [e for e in datos.get("empleados", []) if "Rol" in e]
+            # Inicializar campos de progresión para usuarios antiguos
+            for e in datos.get("empleados", []):
+                for campo, defecto in [("xp",0), ("logros",[]), ("racha",0), ("ultima_sesion",""), ("diarias",0), ("diaria_hoy","")]:
+                    if campo not in e:
+                        e[campo] = defecto
             return datos
     except Exception as e:
         st.error(f"Error al conectar con Base de Datos: {e}")
@@ -108,11 +139,9 @@ def cargar_datos():
 
 def guardar_usuario_plano(nombre, email, plan="BASE"):
     try:
-        # Insertar en la tabla usuarios (si no existe, lo crea)
         data = {"nombre": nombre, "email": email, "plan": plan}
         supabase.table("usuarios").upsert(data, on_conflict="nombre").execute()
-    except Exception as e:
-        # Si falla, no rompe la app
+    except:
         pass
 
 def guardar_datos():
@@ -122,7 +151,6 @@ def guardar_datos():
             "historial_sesiones": st.session_state.historial_sesiones,
             "escenarios_custom": st.session_state.escenarios_custom
         }
-        # Ciframos antes de enviar a Supabase
         memoria_cifrada = cifrar_memoria(datos_actualizados)
         supabase.table("crysis_data").update({"memoria": memoria_cifrada}).eq("id", "main").execute()
     except Exception as e:
@@ -196,6 +224,93 @@ def generar_pdf_dossier(sesion):
     return out.encode('latin-1') if isinstance(out, str) else out
 
 # ─────────────────────────────────────────
+# HELPERS DE PROGRESIÓN
+# ─────────────────────────────────────────
+def get_nivel_usuario(xp_total):
+    nivel_actual = NIVELES_XP[0]
+    siguiente    = None
+    for i, nivel in enumerate(NIVELES_XP):
+        if xp_total >= nivel[0]:
+            nivel_actual = nivel
+            siguiente = NIVELES_XP[i + 1] if i + 1 < len(NIVELES_XP) else None
+    if siguiente:
+        xp_en_nivel = xp_total - nivel_actual[0]
+        rango       = siguiente[0] - nivel_actual[0]
+        pct         = min(99, int((xp_en_nivel / rango) * 100))
+        falta       = siguiente[0] - xp_total
+    else:
+        pct, falta = 100, 0
+    return nivel_actual[1], nivel_actual[2], falta, pct
+
+def get_mision_diaria_hoy():
+    today    = datetime.now().strftime("%Y-%m-%d")
+    h        = int(hashlib.md5(today.encode()).hexdigest(), 16)
+    keys     = list(CONTEXTOS_MISION.keys())
+    difs     = list(DIFICULTADES.keys())
+    return {
+        "escenario":  keys[h % len(keys)],
+        "dificultad": difs[(h // 1000) % len(difs)],
+        "fecha":      today,
+        "bonus_xp":   80,
+    }
+
+def otorgar_xp_y_logros(nombre_agente, nota, dificultad, es_diaria=False):
+    dif_mult = {1: 1.0, 2: 1.3, 3: 1.6, 4: 2.0}
+    niv      = DIFICULTADES.get(dificultad, {}).get("nivel", 1)
+    xp_base  = int((nota / 2) * dif_mult.get(niv, 1.0))
+    xp_total = xp_base + (80 if es_diaria else 0)
+
+    nuevos_logros = []
+    hoy  = datetime.now().strftime("%Y-%m-%d")
+    ayer = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    for e in st.session_state.empleados:
+        if e["Nombre"] != nombre_agente:
+            continue
+        # Aseguramos campos
+        for campo, defecto in [("xp", 0), ("logros", []), ("racha", 0),
+                                ("ultima_sesion", ""), ("diarias", 0), ("diaria_hoy", "")]:
+            if campo not in e:
+                e[campo] = defecto
+
+        e["xp"] += xp_total
+
+        # Racha diaria
+        if e["ultima_sesion"] == ayer:
+            e["racha"] += 1
+        elif e["ultima_sesion"] != hoy:
+            e["racha"] = 1
+        e["ultima_sesion"] = hoy
+
+        if es_diaria and e["diaria_hoy"] != hoy:
+            e["diaria_hoy"] = hoy
+            e["diarias"]   += 1
+
+        total_misiones = len([s for s in st.session_state.historial_sesiones
+                               if s["Agente"] == nombre_agente])
+        checks = {
+            "PRIMERA_MISION": total_misiones >= 1,
+            "PUNTUACION_90":  nota >= 90,
+            "PUNTUACION_100": nota >= 100,
+            "RACHA_3":        e["racha"] >= 3,
+            "RACHA_7":        e["racha"] >= 7,
+            "RACHA_30":       e["racha"] >= 30,
+            "MISIONES_10":    total_misiones >= 10,
+            "MISIONES_50":    total_misiones >= 50,
+            "NIGHTMARE_WIN":  dificultad == "NIGHTMARE" and nota >= 60,
+            "DIARIA_X7":      e["diarias"] >= 7,
+            "PRIMER_ESC":     len(st.session_state.escenarios_custom) >= 1,
+        }
+        for key, ok in checks.items():
+            if ok and key not in e["logros"]:
+                e["logros"].append(key)
+                nuevos_logros.append(key)
+                e["xp"] += LOGROS_DEF[key]["xp"]
+        break
+
+    return xp_total, nuevos_logros
+
+# ─────────────────────────────────────────
 # CONFIG Y CSS GLOBAL
 # ─────────────────────────────────────────
 st.set_page_config(page_title="CRYSIS | Intelligence Unit", layout="wide", initial_sidebar_state="collapsed")
@@ -239,7 +354,6 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
   z-index: 9999;
 }
 
-/* ── BRAND ── */
 .brand-wordmark {
   font-family: var(--mono);
   font-size: 4rem;
@@ -253,12 +367,10 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
 .brand-line { width: 40px; height: 2px; background: var(--blue); margin-bottom: 24px; }
 .brand-desc { font-size: 0.78rem; color: var(--text-lo); line-height: 1.7; letter-spacing: 0.02em; font-family: var(--mono); }
 
-/* ── TOPBAR ── */
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 0 12px 0; border-bottom: 1px solid var(--border); margin-bottom: 0; }
 .topbar-brand { font-family: var(--mono); font-size: 1.1rem; letter-spacing: 0.3em; color: var(--text-hi); }
 .topbar-meta  { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.2em; color: var(--text-lo); margin-top: 3px; }
 
-/* ── CABECERA DEL MENÚ ── */
 .dashboard-header { margin-bottom: 44px; }
 .dashboard-greeting { font-size: 2rem; font-weight: 700; color: var(--text-hi); margin-bottom: 2px; }
 .dashboard-meta { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.15em; color: var(--text-lo); margin-bottom: 16px; }
@@ -268,7 +380,6 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
     border-top: 1px solid var(--border); padding-top: 14px;
 }
 
-/* ── TARJETAS DEL MENÚ (ESTILO B + D SIN EMOJIS) ── */
 .card-wrapper {
     position: relative;
     margin-bottom: 20px;
@@ -293,7 +404,6 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
     box-shadow: 0 8px 24px rgba(0,0,0,0.4);
     transform: translateY(-3px);
 }
-/* Círculo de color (indicador geométrico) */
 .dashboard-card::before {
     content: '';
     width: 12px;
@@ -330,32 +440,26 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
     text-transform: uppercase;
 }
 
-
-/* ── SECTION HEADERS ── */
 .section-header { padding: 28px 0 24px 0; border-bottom: 1px solid var(--border); margin-bottom: 32px; display: flex; align-items: flex-end; justify-content: space-between; }
 .section-title { font-size: 1.4rem; font-weight: 700; color: var(--text-hi); letter-spacing: 0.02em; }
 .section-code  { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.3em; color: var(--text-lo); margin-bottom: 4px; }
 
-/* ── METRICS ── */
 .metric-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 2px; padding: 24px; position: relative; overflow: hidden; }
 .metric-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--blue); }
 .metric-label { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.22em; color: var(--blue); margin-bottom: 10px; }
 .metric-value { font-family: var(--mono); font-size: 2rem; font-weight: 700; color: var(--text-hi); line-height: 1; }
 
-/* ── BRIEFING / STATUS ── */
 .briefing-box { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--blue); padding: 20px 24px; border-radius: 2px; margin-bottom: 20px; }
 .briefing-box h4 { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.2em; color: var(--blue); margin-bottom: 12px; }
 .section-label { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.25em; color: var(--blue); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 .status-bar { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--green); padding: 10px 18px; border-radius: 2px; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.12em; color: var(--green); margin-bottom: 20px; }
 
-/* ── DIFFICULTY CARDS ── */
 .diff-card { border: 2px solid var(--border); border-radius: 2px; padding: 14px 16px; cursor: pointer; transition: all 0.2s; background: var(--bg3); text-align: center; }
 .diff-card:hover { transform: translateY(-2px); }
 .diff-card.selected { background: rgba(79,142,247,0.08); }
 .diff-name  { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.18em; font-weight: 700; }
 .diff-desc  { font-family: var(--mono); font-size: 0.52rem; color: var(--text-lo); margin-top: 6px; line-height: 1.5; }
 
-/* ── INPUTS ── */
 .stTextInput input, .stSelectbox > div > div, .stTextArea textarea {
   background: var(--bg3) !important; border: 1px solid var(--border2) !important;
   color: var(--text) !important; border-radius: 2px !important; font-family: var(--sans) !important;
@@ -363,7 +467,6 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
 .stTextInput input:focus, .stTextArea textarea:focus { border-color: var(--blue) !important; box-shadow: 0 0 0 2px rgba(79,142,247,0.08) !important; }
 .stTextInput label, .stTextArea label, .stSelectbox label { color: var(--text-lo) !important; font-family: var(--mono) !important; font-size: 0.62rem !important; letter-spacing: 0.15em !important; }
 
-/* ── BUTTONS ── */
 .stButton > button {
   background: var(--blue) !important; color: var(--bg) !important;
   font-family: var(--mono) !important; font-size: 0.65rem !important; font-weight: 700 !important;
@@ -375,39 +478,32 @@ header[data-testid="stHeader"] { background: var(--bg) !important; border-bottom
 button[kind="secondary"] { background: transparent !important; border: 1px solid var(--border2) !important; color: var(--text) !important; }
 button[kind="secondary"]:hover { border-color: var(--blue) !important; color: var(--text-hi) !important; background: var(--blue-dim) !important; }
 
-/* ── LOGIN TABS ── */
 .login-tab-active { background: var(--blue) !important; color: var(--bg) !important; border: none !important; }
 .login-tab-inactive { background: transparent !important; color: var(--text-lo) !important; border: 1px solid var(--border) !important; }
 
-/* ── AUTH TIERS ── */
 .auth-tier { background: var(--bg3); border: 1px solid var(--border); border-left: 3px solid var(--border2); padding: 20px; border-radius: 2px; transition: border-color 0.2s; margin-bottom: 8px; }
 .auth-tier:hover { border-left-color: var(--blue); }
 .auth-tier.elite { border-left-color: var(--amber); }
 .tier-spec { font-size: 0.75rem; color: #8B9CC8; margin-bottom: 6px; display: flex; align-items: center; }
 .tier-spec::before { content: '—'; margin-right: 8px; color: var(--blue); font-size: 0.6rem; }
 
-/* ── ALERT/INFO BOXES ── */
 .alert-box { background: #0D1020; border: 1px solid var(--border); border-left: 3px solid var(--blue); padding: 14px 18px; border-radius: 2px; margin-bottom: 16px; font-family: var(--mono); font-size: 0.62rem; color: var(--text-lo); line-height: 1.6; }
 .alert-box.warning { border-left-color: var(--amber); }
 .alert-box.error   { border-left-color: var(--red); background: #120808; }
 
-/* ── FORGOT PASSWORD ── */
 .link-btn { background: none; border: none; color: var(--text-lo); font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.1em; cursor: pointer; padding: 0; text-decoration: underline; transition: color 0.15s; }
 .link-btn:hover { color: var(--blue); }
 
-/* ── PLAN SELECTOR ── */
 .plan-card { border: 1px solid var(--border); background: var(--bg3); border-radius: 2px; padding: 12px 14px; margin-bottom: 4px; cursor: pointer; transition: all 0.15s; }
 .plan-card:hover { border-color: var(--border2); }
 .plan-card.selected-plan { border-color: var(--blue); background: rgba(79,142,247,0.08); }
 .plan-card.selected-plan.elite-plan { border-color: var(--amber); background: rgba(240,165,0,0.08); }
 
-/* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--blue); }
 
-/* ── MENU CARDS ── */
 @keyframes ring{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(2.5)}}
 .card-wrapper { position:relative; margin-bottom:14px; }
 .card-wrapper button {
@@ -479,11 +575,14 @@ if "pantalla_actual"    not in st.session_state: st.session_state.pantalla_actua
 if "login_modo"         not in st.session_state: st.session_state.login_modo         = "acceso"
 if "dificultad_actual"  not in st.session_state: st.session_state.dificultad_actual  = "OPERATOR"
 if "login_subpantalla"  not in st.session_state: st.session_state.login_subpantalla  = "main"
-if "tension_actual"     not in st.session_state: st.session_state.tension_actual      = 0   # ← AÑADE ESTA
+if "tension_actual"     not in st.session_state: st.session_state.tension_actual      = 0
+# NUEVOS PARA PROGRESIÓN
+if "es_mision_diaria"      not in st.session_state: st.session_state.es_mision_diaria      = False
+if "xp_ganado_ultimo"      not in st.session_state: st.session_state.xp_ganado_ultimo       = 0
+if "logros_nuevos_ultimo"  not in st.session_state: st.session_state.logros_nuevos_ultimo   = []
 
 try:    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except: GROQ_API_KEY = None
-
 
 # ─────────────────────────────────────────
 # LOGIN
@@ -508,7 +607,6 @@ if st.session_state.usuario_actual is None:
         with c2:
             empresa_obj = next((e for e in st.session_state.empleados if e["Rol"] == "Empresa" and e["Nombre"] == empresa_invitada), None)
             if empresa_obj:
-                # El comandante supremo nunca tiene límite de agentes
                 if empresa_obj["Nombre"] != COMANDANTE_SUPREMO:
                     agentes_actuales = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_invitada and e.get("Rol") == "Agente"])
                     plan_emp = empresa_obj.get("Plan", "BASE")
@@ -550,9 +648,7 @@ if st.session_state.usuario_actual is None:
         st.success("Acreditación procesada. Identifícate en el portal de acceso.")
         st.session_state.registro_completado = False
 
-    # ── LAYOUT PRINCIPAL LOGIN ──
     col_brand, col_form = st.columns([1, 1])
-
     with col_brand:
         st.markdown("""
         <div style="padding: 80px 40px 80px 20px; min-height: 80vh; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #18213A;">
@@ -777,11 +873,11 @@ if st.session_state.usuario_actual is None:
                                 st.warning("Rellena todos los campos para continuar.")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    st.stop()   # fin del login
+    st.stop()
 
-# ═══════════════════════════════════════════
-# MANEJADOR DE NAVEGACIÓN POR TARJETAS (COLÓCALO AQUÍ)
-# ═══════════════════════════════════════════
+# ─────────────────────────────────────────
+# MANEJADOR DE NAVEGACIÓN POR TARJETAS
+# ─────────────────────────────────────────
 menu_destino = st.query_params.get("menu", None)
 if menu_destino and st.session_state.usuario_actual is not None:
     st.session_state.pantalla_actual = menu_destino
@@ -789,7 +885,7 @@ if menu_destino and st.session_state.usuario_actual is not None:
     st.rerun()
 
 # ─────────────────────────────────────────
-# RESOLUCIÓN DE PERMISOS (BLINDAJE DE PRIVACIDAD)
+# RESOLUCIÓN DE PERMISOS
 # ─────────────────────────────────────────
 u = st.session_state.usuario_actual
 
@@ -797,7 +893,6 @@ if u["Nombre"] == COMANDANTE_SUPREMO:
     es_empresa     = True
     mi_plan        = "COMANDANCIA"
     empresa_actual = u["Nombre"]
-    # 🛡️ PRIVACIDAD RADICAL: El Admin NO ve expedientes de empresas. Solo los suyos de prueba.
     historial_visible     = [s for s in st.session_state.historial_sesiones if s["Agente"] == u["Nombre"]]
     agentes_de_mi_empresa = [u["Nombre"]]
 else:
@@ -809,50 +904,47 @@ else:
     else:
         mi_plan = u.get("Plan", "BASE")
 
-# Normalizar planes legacy (Líneas 725-726 de tu código original)
 _legacy = {"Gratis": "BASE", "Individual": "OPERADOR", "Pro": "ESCUADRON", "Enterprise": "COMANDANCIA"}
 mi_plan = _legacy.get(mi_plan, mi_plan)
 
-# Límites de cuota (Línea 728 de tu código original)
 ops_limite      = PLANES_INFO.get(mi_plan, {}).get("ops", 1)
 escenarios_lim  = PLANES_INFO.get(mi_plan, {}).get("escenarios", 0)
 agentes_lim     = PLANES_INFO.get(mi_plan, {}).get("agentes", 0)
 
-# 🛡️ LÓGICA DE VISIBILIDAD PARA CLIENTES Y AGENTES
 if u["Nombre"] != COMANDANTE_SUPREMO:
     if es_empresa:
         agentes_de_mi_empresa = [e["Nombre"] for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"]
-        # La empresa ve a sus agentes y SOLO misiones OFICIALES (Corporativas)
         historial_visible = [s for s in st.session_state.historial_sesiones if s["Agente"] in agentes_de_mi_empresa and s.get("Tipo_Mision") == "Corporativa"]
     else:
-        # El agente o cuenta individual solo ve sus propias misiones
         historial_visible = [s for s in st.session_state.historial_sesiones if s["Agente"] == u["Nombre"]]
         agentes_de_mi_empresa = [u["Nombre"]]
 
-# Carga de escenarios disponibles
 if u["Nombre"] == COMANDANTE_SUPREMO:
-    # CRYSIS solo ve escenarios que él mismo creó
     mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items() 
                       if v.get("Creador") == COMANDANTE_SUPREMO}
 else:
-    # Los demás ven escenarios creados por su empresa/entidad
     mis_escenarios = {k: v for k, v in st.session_state.escenarios_custom.items() 
                       if v.get("Creador") == empresa_actual}
 
 TODAS_LAS_MISIONES = {**CONTEXTOS_MISION, **mis_escenarios}
 
 # ─────────────────────────────────────────
-# TOPBAR (oculta en el menú)
+# TOPBAR (con XP y nivel)
 # ─────────────────────────────────────────
 if st.session_state.pantalla_actual != "menu":
+    u_top      = next((e for e in st.session_state.empleados if e["Nombre"] == u["Nombre"]), {})
+    xp_top     = u_top.get("xp", 0)
+    nv_top, _, _, _ = get_nivel_usuario(xp_top)
+    racha_top  = u_top.get("racha", 0)
     rol_label = ("OMNISCIENCIA GLOBAL" if u["Nombre"] == COMANDANTE_SUPREMO
                  else (f"SUPERVISION [{mi_plan}]" if es_empresa
-                       else f"OPERADOR · {empresa_actual.upper()} [{mi_plan}]"))
+                       else f"OPERADOR · {nv_top} · {xp_top} XP · RACHA {racha_top}d [{mi_plan}]"))
     col_top1, col_top2 = st.columns([8, 1])
     with col_top1:
         pantalla = st.session_state.pantalla_actual
         nombres_pantalla = {"estadisticas": "ESTADÍSTICAS", "personal": "AGENTES", "expedientes": "EXPEDIENTES",
-                            "simulador": "SIMULADOR", "sintesis": "SÍNTESIS IA", "admin": "ADMINISTRACIÓN", "cuenta": "CUENTA"}
+                            "simulador": "SIMULADOR", "sintesis": "SÍNTESIS IA", "admin": "ADMINISTRACIÓN", "cuenta": "CUENTA",
+                            "mision_diaria": "MISIÓN DIARIA", "ranking": "RANKING"}
         back_label = f"/ {nombres_pantalla.get(pantalla, pantalla.upper())}" if pantalla != "menu" else ""
         st.markdown(f"""
         <div class="topbar">
@@ -871,8 +963,9 @@ if st.session_state.pantalla_actual != "menu":
 
 def ir_a(p):
     st.session_state.pantalla_actual = p; st.rerun()
+
 # ─────────────────────────────────────────
-# MENÚ PRINCIPAL — TARJETAS CON COLOR, SIN BOTONES, SIN RECARGAR SESIÓN
+# MENÚ PRINCIPAL (con tarjetas de progresión)
 # ─────────────────────────────────────────
 if st.session_state.pantalla_actual == "menu":
     ahora = datetime.now()
@@ -888,47 +981,39 @@ if st.session_state.pantalla_actual == "menu":
     </div>
     """, unsafe_allow_html=True)
 
-    # Métricas reales
     total_ops    = len(historial_visible)
     media_global = int(sum(s["Nota"] for s in historial_visible) / total_ops) if total_ops > 0 else 0
     mes_actual   = datetime.now().strftime("%Y-%m")
     ops_mes      = len([s for s in historial_visible if str(s.get("Fecha","")).startswith(mes_actual)])
     agentes_act  = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"])
     esc_creados  = len(mis_escenarios)
-
-    # Métrica de la tarjeta "CUENTA"
     metrica_cuenta = f"{u['Nombre'].upper()} · {mi_plan}"
-
-    # Métrica de agentes (solo empresas)
     metrica_agentes = f"AGENTES ACTIVOS {agentes_act}"
-
     _precios = {"COMANDANCIA":199,"ESCUADRON":89,"ELITE":49,"OPERADOR":19,"BASE":0,
                 "Enterprise":199,"Pro":89,"Individual":19,"Gratis":0}
     mrr = sum(_precios.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
               for e in st.session_state.empleados)
 
-    # ---- Construcción de la lista de tarjetas ----
     tarjetas = [
         ("estadisticas", "ANÁLISIS DE RENDIMIENTO",  f"RENDIMIENTO MEDIO {media_global}%",         "#4F8EF7"),
         ("simulador",    "SIMULADOR TÁCTICO",         f"OPERACIONES ACTIVAS ESTE MES {ops_mes}",     "#00D4A0"),
         ("expedientes",  "HISTORIAL DE EXPEDIENTES",  f"EXPEDIENTES TOTALES {total_ops}",            "#F0A500"),
     ]
-
-    # Tarjeta "TU CUENTA" para todos
     tarjetas.append(("cuenta", "TU CUENTA", metrica_cuenta, "#6B7280"))
-
-    # Tarjeta "GESTIÓN DE AGENTES" solo para empresas
     if es_empresa:
         tarjetas.append(("personal", "GESTIÓN DE AGENTES", metrica_agentes, "#E8394A"))
-
-    # Tarjeta de escenarios (siempre)
     tarjetas.append(("sintesis", "GENERACIÓN DE ESCENARIOS", f"ESCENARIOS ACTIVOS {esc_creados}", "#A855F7"))
-
-    # Consola Omega solo para el comandante supremo
     if u["Nombre"] == COMANDANTE_SUPREMO:
         tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR", "#F59E0B"))
 
-    # Grid de tarjetas (3 columnas)
+    # Tarjetas de progresión
+    mision_hoy    = get_mision_diaria_hoy()
+    u_data_menu   = next((e for e in st.session_state.empleados if e["Nombre"] == u["Nombre"]), {})
+    ya_hizo_diaria = u_data_menu.get("diaria_hoy", "") == datetime.now().strftime("%Y-%m-%d")
+    estado_diaria  = "COMPLETADA HOY" if ya_hizo_diaria else "DISPONIBLE AHORA"
+    tarjetas.append(("mision_diaria", "MISIÓN DIARIA", f"{estado_diaria} · +80 XP BONUS", "#10B981"))
+    tarjetas.append(("ranking", "RANKING GLOBAL", "CLASIFICACIÓN EN TIEMPO REAL", "#6366F1"))
+
     for fila in range(0, len(tarjetas), 3):
         cols = st.columns(3)
         for i, (destino, titulo, metrica, color) in enumerate(tarjetas[fila:fila+3]):
@@ -939,6 +1024,7 @@ if st.session_state.pantalla_actual == "menu":
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
+# ─────────────────────────────────────────
 # ESTADÍSTICAS
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "estadisticas":
@@ -986,7 +1072,7 @@ elif st.session_state.pantalla_actual == "estadisticas":
             st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
 
 # ─────────────────────────────────────────
-# PERSONAL
+# PERSONAL (sin cambios)
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "personal":
     st.markdown("<div class='section-header'><div><div class='section-code'>AGENTES</div><div class='section-title'>Gestión de Operadores</div></div></div>", unsafe_allow_html=True)
@@ -1116,8 +1202,9 @@ elif st.session_state.pantalla_actual == "expedientes":
                             st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div style='text-align:center; padding:60px; color:#18213A; font-family:var(--mono);'>DIRECTORIO VACÍO</div>", unsafe_allow_html=True)
+
 # ─────────────────────────────────────────
-# CUENTA (información personal / corporativa)
+# CUENTA (con progresión y medallero)
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "cuenta":
     st.markdown("<div class='section-header'><div><div class='section-code'>CUENTA</div><div class='section-title'>Tu Cuenta</div></div></div>", unsafe_allow_html=True)
@@ -1127,6 +1214,57 @@ elif st.session_state.pantalla_actual == "cuenta":
     <p><b>Identificador:</b> {u['Nombre']} &nbsp;|&nbsp; <b>Unidad:</b> {empresa_actual} &nbsp;|&nbsp; <b>Plan:</b> {mi_plan}</p>
     <p><b>Email:</b> {u.get('Email','—')}</p>
     </div>""", unsafe_allow_html=True)
+
+    # Progresión
+    u_prog   = next((e for e in st.session_state.empleados if e["Nombre"] == u["Nombre"]), {})
+    xp_act   = u_prog.get("xp", 0)
+    racha_act= u_prog.get("racha", 0)
+    niv_nom, niv_col, xp_falta, pct_niv = get_nivel_usuario(xp_act)
+
+    st.markdown("<br><div class='section-label'>PROGRESIÓN TÁCTICA</div>", unsafe_allow_html=True)
+    col_p1, col_p2, col_p3 = st.columns(3)
+    col_p1.markdown(f"""<div class="metric-card" style="border-left-color:{niv_col};">
+        <div class="metric-label">NIVEL</div>
+        <div class="metric-value" style="color:{niv_col}; font-size:1.3rem;">{niv_nom}</div>
+        <div style="height:3px; background:#18213A; margin-top:10px; border-radius:1px; overflow:hidden;">
+            <div style="height:100%; width:{pct_niv}%; background:{niv_col}; border-radius:1px;"></div>
+        </div>
+        <div style="font-family:var(--mono); font-size:0.48rem; color:#3A4A6A; margin-top:5px;">{pct_niv}% · {xp_falta} XP para el siguiente</div>
+    </div>""", unsafe_allow_html=True)
+    col_p2.markdown(f"""<div class="metric-card" style="border-left-color:#F0A500;">
+        <div class="metric-label">XP TOTAL</div>
+        <div class="metric-value" style="color:#F0A500;">{xp_act}</div>
+    </div>""", unsafe_allow_html=True)
+    col_p3.markdown(f"""<div class="metric-card" style="border-left-color:#10B981;">
+        <div class="metric-label">RACHA ACTIVA</div>
+        <div class="metric-value" style="color:#10B981;">{racha_act}</div>
+        <div style="font-family:var(--mono); font-size:0.5rem; color:#3A4A6A; margin-top:6px;">DÍAS CONSECUTIVOS</div>
+    </div>""", unsafe_allow_html=True)
+
+    # Medallero
+    logros_usuario = u_prog.get("logros", [])
+    st.markdown("<br><div class='section-label'>MEDALLERO OPERACIONAL</div>", unsafe_allow_html=True)
+    cols_log = st.columns(4)
+    for idx_l, (key, data) in enumerate(LOGROS_DEF.items()):
+        obtenido   = key in logros_usuario
+        col_l      = cols_log[idx_l % 4]
+        bg_l       = "rgba(16,185,129,0.07)"  if obtenido else "#0B0E1A"
+        border_l   = "#10B981" if obtenido else "#18213A"
+        color_txt  = "#E2EAF8" if obtenido else "#1E2A40"
+        color_desc = "#3A4A6A" if obtenido else "#18213A"
+        col_l.markdown(f"""
+        <div style="border:1px solid {border_l}; background:{bg_l}; border-radius:2px;
+            padding:12px 10px; margin-bottom:8px; text-align:center;">
+            <div style="font-size:1.2rem; margin-bottom:6px; opacity:{'1' if obtenido else '0.15'};">{data['i']}</div>
+            <div style="font-family:var(--mono); font-size:0.52rem; color:{color_txt}; letter-spacing:0.05em;">
+                {data['nombre'] if obtenido else '???'}
+            </div>
+            <div style="font-family:var(--mono); font-size:0.45rem; color:{color_desc}; margin-top:4px; line-height:1.5;">
+                {data['desc'] if obtenido else '...'}
+            </div>
+            {f'<div style="font-family:var(--mono); font-size:0.48rem; color:#F0A500; margin-top:5px;">+{data["xp"]} XP</div>' if obtenido else ''}
+        </div>
+        """, unsafe_allow_html=True)
 
     # --- Cambiar Correo Electrónico ---
     st.markdown("<br><div class='section-label'>CAMBIAR CORREO ELECTRÓNICO</div>", unsafe_allow_html=True)
@@ -1138,11 +1276,9 @@ elif st.session_state.pantalla_actual == "cuenta":
             elif nuevo_email == u.get("Email", ""):
                 st.info("El nuevo correo es idéntico al actual.")
             else:
-                # Actualizar en la lista de empleados
                 for e in st.session_state.empleados:
                     if e["Nombre"] == u["Nombre"] and e.get("Empresa") == u.get("Empresa"):
                         e["Email"] = nuevo_email
-                # Actualizar en el usuario actual
                 st.session_state.usuario_actual["Email"] = nuevo_email
                 guardar_datos()
                 st.success(f"Correo actualizado a: {nuevo_email}")
@@ -1205,7 +1341,7 @@ elif st.session_state.pantalla_actual == "cuenta":
         st.rerun()
 
 # ─────────────────────────────────────────
-# SIMULADOR TÁCTICO
+# SIMULADOR TÁCTICO (con integración de XP)
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "simulador":
     st.markdown("<div class='section-header'><div><div class='section-code'>MOD-02</div><div class='section-title'>Simulador Táctico</div></div></div>", unsafe_allow_html=True)
@@ -1292,11 +1428,28 @@ elif st.session_state.pantalla_actual == "simulador":
             st.session_state.escenario_activo   = es_sel
             st.session_state.tipo_mision_actual = tipo_mision_val
             st.session_state.dificultad_sesion  = dif_activa
+            st.session_state.tension_actual     = 0
             st.rerun()
 
     elif st.session_state.evaluacion_actual:
         st.markdown("<div class='section-label'>INFORME DE EVALUACIÓN TÁCTICA</div>", unsafe_allow_html=True)
         st.markdown(st.session_state.evaluacion_actual)
+
+        # Banner de XP y logros (BLOQUE 8)
+        xp_ob  = st.session_state.get("xp_ganado_ultimo", 0)
+        log_n  = st.session_state.get("logros_nuevos_ultimo", [])
+        if xp_ob > 0:
+            logros_html = "".join([
+                f'<div style="margin-top:8px; font-family:var(--mono); font-size:0.6rem; color:#10B981;">'
+                f'◉ LOGRO DESBLOQUEADO: {LOGROS_DEF[l]["nombre"]} (+{LOGROS_DEF[l]["xp"]} XP)</div>'
+                for l in log_n
+            ])
+            st.markdown(f"""<div class="alert-box" style="border-left-color:#F0A500; background:rgba(240,165,0,0.04);">
+                <span style="color:#F0A500; font-family:var(--mono); font-weight:700; font-size:0.8rem;">+{xp_ob} XP</span>
+                <span style="color:#3A4A6A; font-family:var(--mono); font-size:0.58rem;"> OBTENIDOS EN ESTA MISIÓN</span>
+                {logros_html}
+            </div>""", unsafe_allow_html=True)
+
         st.markdown("<br>", unsafe_allow_html=True)
         col_end1, col_end2 = st.columns(2)
         with col_end1:
@@ -1431,42 +1584,30 @@ elif st.session_state.pantalla_actual == "simulador":
                     messages=[{"role":"system","content": base_prompt}] + st.session_state.mensajes
                 ).choices[0].message.content
                 st.session_state.mensajes.append({"role":"assistant","content":res})
-                # ── Cálculo de tensión ──
                 _t = st.session_state.tension_actual
                 res_lower = res.lower()
                 prompt_lower = prompt.lower() if prompt else ""
 
-                # Palabras hostiles en el MENSAJE DEL OPERADOR (suben mucho)
                 _hostil_op = ['mierdas','mierda','idiota','imbécil','imbecil','gilipollas',
                               'estúpido','estupido','inútil','inutíl','incompetente',
                               'amenaza','amenaza','mato','muerto','destruir','atacar',
                               'guerra','bomba','ultimátum','ultimatum','rendirse','rendición']
-                # Palabras hostiles en respuesta del SUJETO (suben moderado)
                 _subida_sujeto = ['no','jamás','jamas','nunca','imposible','inaceptable',
                                   'traidor','silencio','fin','fuera','advertencia','consecuencias',
                                   'cuidado','error','peligro','ataque','ruptura']
-                # Palabras de desescalada (bajan poco — la tensión es pegajosa)
                 _bajada = ['acuerdo','entiendo','comprendo','posible','juntos','paz',
                            'dialogar','cooperar','dispuesto','escucho','propongo',
                            'solución','solucion','negociar','respetar']
 
-                # El operador es grosero/hostil → subida fuerte
                 for _p in _hostil_op:
                     if _p in prompt_lower:
                         _t = min(100, _t + 15)
-
-                # El sujeto responde con hostilidad → subida media
                 hits_subida = sum(1 for _p in _subida_sujeto if _p in res_lower)
                 _t = min(100, _t + hits_subida * 6)
-
-                # Desescalada → bajada pequeña (máx -10 por turno)
                 hits_bajada = sum(1 for _p in _bajada if _p in res_lower)
                 _t = max(0, _t - min(hits_bajada * 4, 10))
-
-                # Decay natural muy leve si el turno es neutro
                 if hits_subida == 0 and hits_bajada == 0:
                     _t = max(0, _t - 1)
-
                 st.session_state.tension_actual = _t
                 st.rerun()
 
@@ -1524,7 +1665,19 @@ PUNTUACIÓN FINAL: XX/100"""
                             "Tipo_Mision":  st.session_state.tipo_mision_actual,
                             "Dificultad":   dif_ev,
                         })
-                        guardar_datos(); st.rerun()
+                        # ── Conceder XP y comprobar logros (BLOQUE 7) ──
+                        es_diaria_act = st.session_state.get("es_mision_diaria", False)
+                        xp_obt, logros_nuevos = otorgar_xp_y_logros(
+                            st.session_state.agente_activo,
+                            nota,
+                            dif_ev,
+                            es_diaria=es_diaria_act,
+                        )
+                        st.session_state.xp_ganado_ultimo     = xp_obt
+                        st.session_state.logros_nuevos_ultimo = logros_nuevos
+                        st.session_state.es_mision_diaria     = False
+                        guardar_datos()
+                        st.rerun()
 
 # ─────────────────────────────────────────
 # SÍNTESIS IA
@@ -1561,7 +1714,6 @@ elif st.session_state.pantalla_actual == "sintesis":
                 idea_prompt = st.text_area("Describe el escenario o la persona real:", height=120,
                                            placeholder="Ej: Negociación con Pablo Escobar, líder del cartel de Medellín, carácter violento pero inteligente. Objetivo: rendición pacífica.")
 
-                # Detección automática de nombre propio (primera palabra mayúscula que no sea artículo)
                 palabras = idea_prompt.split() if idea_prompt else []
                 nombre_candidato = None
                 for p in palabras:
@@ -1663,6 +1815,166 @@ DEVUELVE SOLO JSON:
                 {''.join(f'<div class="tier-spec">{s}</div>' for s in specs)}
             </div>
             """, unsafe_allow_html=True)
+
+# ─────────────────────────────────────────
+# MISIÓN DIARIA
+# ─────────────────────────────────────────
+elif st.session_state.pantalla_actual == "mision_diaria":
+    mision   = get_mision_diaria_hoy()
+    hoy_str  = datetime.now().strftime("%Y-%m-%d")
+    u_d      = next((e for e in st.session_state.empleados if e["Nombre"] == u["Nombre"]), {})
+    completada_hoy = u_d.get("diaria_hoy", "") == hoy_str
+
+    st.markdown("""<div class='section-header'><div>
+        <div class='section-code'>DIARIA</div>
+        <div class='section-title'>Misión del Día</div>
+    </div></div>""", unsafe_allow_html=True)
+
+    ahora      = datetime.now()
+    medianoche = datetime(ahora.year, ahora.month, ahora.day) + timedelta(days=1)
+    resta      = medianoche - ahora
+    horas_r    = int(resta.seconds // 3600)
+    mins_r     = int((resta.seconds % 3600) // 60)
+
+    c1, c2, c3 = st.columns(3)
+    c1.markdown(f"""<div class="metric-card" style="border-left-color:#10B981;">
+        <div class="metric-label" style="color:#10B981;">PROTOCOLO ASIGNADO</div>
+        <div style="color:#E2EAF8; font-size:0.85rem; margin-top:10px; line-height:1.4;">{mision['escenario']}</div>
+    </div>""", unsafe_allow_html=True)
+    dif_col_d = DIFICULTADES[mision['dificultad']]['color']
+    c2.markdown(f"""<div class="metric-card" style="border-left-color:{dif_col_d};">
+        <div class="metric-label" style="color:{dif_col_d};">DIFICULTAD</div>
+        <div class="metric-value" style="color:{dif_col_d}; font-size:1.4rem;">{mision['dificultad']}</div>
+        <div style="font-family:var(--mono); font-size:0.5rem; color:{dif_col_d}; margin-top:6px; opacity:0.7;">LVL {DIFICULTADES[mision['dificultad']]['nivel']}/4</div>
+    </div>""", unsafe_allow_html=True)
+    c3.markdown(f"""<div class="metric-card" style="border-left-color:#F0A500;">
+        <div class="metric-label">NUEVA MISIÓN EN</div>
+        <div class="metric-value" style="font-size:1.6rem;">{horas_r:02d}:{mins_r:02d}</div>
+        <div style="font-family:var(--mono); font-size:0.48rem; color:#3A4A6A; margin-top:6px;">ROTA AUTOMÁTICAMENTE</div>
+    </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    if completada_hoy:
+        st.markdown("""<div class="alert-box" style="border-left-color:#10B981; background:rgba(16,185,129,0.05);">
+            <div style="color:#10B981; font-family:var(--mono); font-size:0.7rem; letter-spacing:0.2em; margin-bottom:8px;">◉ MISIÓN DIARIA COMPLETADA</div>
+            <div style="color:#3A4A6A; font-family:var(--mono); font-size:0.58rem;">El operador ha cumplido su cuota de entrenamiento diario. Vuelve mañana para una nueva asignación.</div>
+        </div>""", unsafe_allow_html=True)
+    else:
+        info_d = TODAS_LAS_MISIONES.get(mision["escenario"], {})
+        st.markdown(f"""<div class="briefing-box" style="border-left-color:#10B981;">
+            <h4 style="color:#10B981;">BRIEFING CLASIFICADO</h4>
+            <p><b>Contexto:</b> {info_d.get('contexto','—')}</p>
+            <p><b>Perfil del objetivo:</b> {info_d.get('perfil_sujeto','—')}</p>
+            <p><b>Directiva:</b> {info_d.get('objetivo','—')}</p>
+            <p><b>Dificultad asignada:</b> <span style="color:{dif_col_d}; font-family:var(--mono); font-weight:700;">{mision['dificultad']}</span></p>
+            <p style="margin-top:12px;"><b>Recompensa:</b>
+                <span style="color:#F0A500; font-family:var(--mono); font-weight:700;"> +80 XP BONUS DIARIO</span>
+                <span style="color:#3A4A6A; font-family:var(--mono); font-size:0.75rem;"> + XP por rendimiento</span>
+            </p>
+        </div>""", unsafe_allow_html=True)
+
+        if st.button("ACEPTAR MISIÓN DIARIA", use_container_width=True):
+            st.session_state.mision_iniciada    = True
+            st.session_state.mensajes           = []
+            st.session_state.agente_activo      = u["Nombre"]
+            st.session_state.escenario_activo   = mision["escenario"]
+            st.session_state.tipo_mision_actual = "Personal"
+            st.session_state.dificultad_sesion  = mision["dificultad"]
+            st.session_state.es_mision_diaria   = True
+            st.session_state.tarjeta_objetivo   = None
+            st.session_state.tension_actual     = 0
+            st.session_state.pantalla_actual    = "simulador"
+            st.rerun()
+
+# ─────────────────────────────────────────
+# RANKING GLOBAL
+# ─────────────────────────────────────────
+elif st.session_state.pantalla_actual == "ranking":
+    st.markdown("""<div class='section-header'><div>
+        <div class='section-code'>RANKING</div>
+        <div class='section-title'>Clasificación Global</div>
+    </div></div>""", unsafe_allow_html=True)
+
+    datos_ranking = []
+    for ag in st.session_state.empleados:
+        if ag["Nombre"] == COMANDANTE_SUPREMO:
+            continue
+        nombre = ag["Nombre"]
+        xp_ag  = ag.get("xp", 0)
+        misiones_ag = [s for s in st.session_state.historial_sesiones if s["Agente"] == nombre]
+        if not misiones_ag and xp_ag == 0:
+            continue
+        media_ag = int(sum(s["Nota"] for s in misiones_ag) / len(misiones_ag)) if misiones_ag else 0
+        nv_nom, nv_col, _, _ = get_nivel_usuario(xp_ag)
+        datos_ranking.append({
+            "Agente":  nombre,
+            "XP":      xp_ag,
+            "Nivel":   nv_nom,
+            "Color":   nv_col,
+            "Misiones":len(misiones_ag),
+            "Media":   media_ag,
+            "Racha":   ag.get("racha", 0),
+        })
+
+    datos_ranking.sort(key=lambda x: x["XP"], reverse=True)
+
+    if not datos_ranking:
+        st.markdown("<div style='text-align:center; padding:60px; color:#18213A; font-family:var(--mono); letter-spacing:0.2em;'>SIN DATOS SUFICIENTES</div>", unsafe_allow_html=True)
+    else:
+        col_rank_izq, col_rank_der = st.columns([3, 1], gap="large")
+        with col_rank_izq:
+            st.markdown("<div class='section-label'>CLASIFICACIÓN POR XP ACUMULADO</div>", unsafe_allow_html=True)
+            podio = {0: "#FFD700", 1: "#C0C0C0", 2: "#CD7F32"}
+            for i, row in enumerate(datos_ranking[:20]):
+                pos_str = f"{i+1}°"
+                bg      = f"rgba({','.join(str(int(podio.get(i,'#18213A').lstrip('#')[j:j+2],16)) for j in (0,2,4))},0.05)" if i < 3 else "transparent"
+                border  = podio.get(i, "#18213A")
+                es_yo   = row["Agente"] == u["Nombre"]
+                st.markdown(f"""
+                <div style="display:flex; align-items:center; gap:16px;
+                    background:{bg}; border:1px solid {border}22;
+                    border-left:3px solid {row['Color']}; border-radius:2px;
+                    padding:12px 18px; margin-bottom:6px;">
+                    <div style="font-family:var(--mono); font-size:0.6rem; color:#3A4A6A; width:26px; text-align:right;">{pos_str}</div>
+                    <div style="flex:1;">
+                        <span style="color:{'#FFD700' if es_yo else '#E2EAF8'}; font-weight:{'700' if es_yo else '400'};">{row['Agente']}</span>
+                        {'<span style="font-family:var(--mono);font-size:0.45rem;color:#4F8EF7;margin-left:8px;letter-spacing:0.15em;background:rgba(79,142,247,0.1);padding:2px 5px;">TÚ</span>' if es_yo else ''}
+                        <span style="font-family:var(--mono); font-size:0.5rem; color:{row['Color']}; margin-left:10px;">{row['Nivel']}</span>
+                    </div>
+                    <div style="text-align:right; min-width:120px;">
+                        <div style="font-family:var(--mono); font-size:0.85rem; color:#F0A500; font-weight:700;">{row['XP']} XP</div>
+                        <div style="font-family:var(--mono); font-size:0.48rem; color:#3A4A6A; margin-top:2px;">{row['Misiones']} ops · media {row['Media']}%</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        with col_rank_der:
+            mi_pos  = next((i + 1 for i, r in enumerate(datos_ranking) if r["Agente"] == u["Nombre"]), None)
+            mi_data = next((r for r in datos_ranking if r["Agente"] == u["Nombre"]), None)
+            if mi_data:
+                st.markdown("<div class='section-label'>TU POSICIÓN</div>", unsafe_allow_html=True)
+                st.markdown(f"""<div class="metric-card" style="border-left-color:{mi_data['Color']};">
+                    <div class="metric-label">RANKING GLOBAL</div>
+                    <div class="metric-value" style="font-size:2.2rem;">#{mi_pos}</div>
+                    <div style="font-family:var(--mono); font-size:0.6rem; color:{mi_data['Color']}; margin-top:8px; letter-spacing:0.12em;">{mi_data['Nivel']}</div>
+                    <div style="font-family:var(--mono); font-size:0.75rem; color:#F0A500; margin-top:6px; font-weight:700;">{mi_data['XP']} XP</div>
+                    <div style="height:2px; background:#18213A; margin-top:10px; border-radius:1px; overflow:hidden;">
+                        <div style="height:100%; width:{min(100, int(mi_pos/len(datos_ranking)*100)) if datos_ranking else 0}%; background:{mi_data['Color']};"></div>
+                    </div>
+                    <div style="font-family:var(--mono); font-size:0.48rem; color:#3A4A6A; margin-top:4px;">RACHA: {mi_data['Racha']} días</div>
+                </div>""", unsafe_allow_html=True)
+                st.markdown("<br><div class='section-label'>ESTADÍSTICAS</div>", unsafe_allow_html=True)
+                st.markdown(f"""<div class="metric-card">
+                    <div class="metric-label">MISIONES TOTALES</div>
+                    <div class="metric-value" style="font-size:1.4rem; color:#4F8EF7;">{mi_data['Misiones']}</div>
+                </div>""", unsafe_allow_html=True)
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown(f"""<div class="metric-card">
+                    <div class="metric-label">NOTA MEDIA</div>
+                    <div class="metric-value" style="font-size:1.4rem; color:#00D4A0;">{mi_data['Media']}%</div>
+                </div>""", unsafe_allow_html=True)
+            else:
+                st.markdown("""<div class="alert-box">Completa al menos una misión para aparecer en el ranking.</div>""", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────
 # ADMIN — CONSOLA OMEGA
@@ -1778,5 +2090,3 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
         st.session_state.escenarios_custom  = {}
         st.session_state.usuario_actual     = None
         guardar_datos(); st.rerun()
-
-
