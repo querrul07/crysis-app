@@ -2007,9 +2007,9 @@ elif st.session_state.pantalla_actual == "ranking":
             "Racha":   ag.get("racha", 0),
         })
 
-    datos_ranking.sort(key=lambda x: x["XP"], reverse=True)
+        datos_ranking.sort(key=lambda x: x["XP"], reverse=True)
 
-        if not datos_ranking:
+    if not datos_ranking:
         st.markdown("<div style='text-align:center; padding:60px; color:#18213A; font-family:var(--mono); letter-spacing:0.2em;'>SIN DATOS SUFICIENTES</div>", unsafe_allow_html=True)
     else:
         col_rank_izq, col_rank_der = st.columns([3, 1], gap="large")
@@ -2021,7 +2021,7 @@ elif st.session_state.pantalla_actual == "ranking":
             for i, row in enumerate(datos_ranking[:20]):
                 pos_str = f"{i+1}"
                 if i < 3:
-                    color_rgb = podio[i].lstrip('#')
+                    color_rgb = podio[i].lstrip("#")
                     r, g, b = int(color_rgb[0:2], 16), int(color_rgb[2:4], 16), int(color_rgb[4:6], 16)
                     bg = f"rgba({r}, {g}, {b}, 0.05)"
                 else:
