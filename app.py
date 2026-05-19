@@ -2009,42 +2009,49 @@ elif st.session_state.pantalla_actual == "ranking":
 
     datos_ranking.sort(key=lambda x: x["XP"], reverse=True)
 
-    if not datos_ranking:
+        if not datos_ranking:
         st.markdown("<div style='text-align:center; padding:60px; color:#18213A; font-family:var(--mono); letter-spacing:0.2em;'>SIN DATOS SUFICIENTES</div>", unsafe_allow_html=True)
     else:
         col_rank_izq, col_rank_der = st.columns([3, 1], gap="large")
-        with col_rank_izq:
-    st.markdown("<div class='section-label'>CLASIFICACIÓN POR XP ACUMULADO</div>", unsafe_allow_html=True)
-    podio = {0: "#FFD700", 1: "#C0C0C0", 2: "#CD7F32"}
-    
-    for i, row in enumerate(datos_ranking[:20]):
-        pos_str = f"{i+1}"
-        bg = f"rgba({','.join(str(int(podio.get(i, '#18213A').lstrip('#')[j:j+2], 16)) for j in (0,2,4))},0.05)" if i < 3 else "transparent"
-        border = podio.get(i, "#18213A")
-        es_yo = row["Agente"] == u["Nombre"]
         
-        st.markdown(
-            f"""
-            <div style="display: flex; align-items: center; gap: 16px;
-                background: {bg}; border: 1px solid {border}22;
-                border-left: 3px solid {row['Color']}; border-radius: 2px;
-                padding: 12px 18px; margin-bottom: 6px;">
-                <div style="font-family: var(--mono); font-size: 0.6rem; color: #3A4A6A; width: 26px; text-align: right;">{pos_str}</div>
-                <div style="flex: 1;">
-                    <span style="color: {'#FFD700' if es_yo else '#E2EAF8'}; font-weight: {'700' if es_yo else '400'};">{row['Agente']}</span>
-                    {('<span style="font-family: var(--mono); font-size: 0.45rem; color: #4F8EF7; margin-left: 8px; letter-spacing: 0.15em; background: rgba(79,142,247,0.1); padding: 2px 5px;">TÚ</span>' if es_yo else '')}
-                    <span style="font-family: var(--mono); font-size: 0.5rem; color: {row['Color']}; margin-left: 10px;">{row['Nivel']}</span>
-                </div>
-                <div style="text-align: right; min-width: 120px;">
-                    <div style="font-family: var(--mono); font-size: 0.85rem; color: #F0A500; font-weight: 700;">{row['XP']} XP</div>
-                    <div style="font-family: var(--mono); font-size: 0.48rem; color: #3A4A6A; margin-top: 2px;">{row['Misiones']} ops · media {row['Media']}%</div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        with col_rank_izq:
+            st.markdown("<div class='section-label'>CLASIFICACIÓN POR XP ACUMULADO</div>", unsafe_allow_html=True)
+            podio = {0: "#FFD700", 1: "#C0C0C0", 2: "#CD7F32"}
+            
+            for i, row in enumerate(datos_ranking[:20]):
+                pos_str = f"{i+1}"
+                if i < 3:
+                    color_rgb = podio[i].lstrip('#')
+                    r, g, b = int(color_rgb[0:2], 16), int(color_rgb[2:4], 16), int(color_rgb[4:6], 16)
+                    bg = f"rgba({r}, {g}, {b}, 0.05)"
+                else:
+                    bg = "transparent"
+                border = podio.get(i, "#18213A")
+                es_yo = row["Agente"] == u["Nombre"]
+                
+                st.markdown(
+                    f"""
+                    <div style="display: flex; align-items: center; gap: 16px;
+                        background: {bg}; border: 1px solid {border}22;
+                        border-left: 3px solid {row['Color']}; border-radius: 2px;
+                        padding: 12px 18px; margin-bottom: 6px;">
+                        <div style="font-family: var(--mono); font-size: 0.6rem; color: #3A4A6A; width: 26px; text-align: right;">{pos_str}</div>
+                        <div style="flex: 1;">
+                            <span style="color: {'#FFD700' if es_yo else '#E2EAF8'}; font-weight: {'700' if es_yo else '400'};">{row['Agente']}</span>
+                            {('<span style="font-family: var(--mono); font-size: 0.45rem; color: #4F8EF7; margin-left: 8px; letter-spacing: 0.15em; background: rgba(79,142,247,0.1); padding: 2px 5px;">TÚ</span>' if es_yo else '')}
+                            <span style="font-family: var(--mono); font-size: 0.5rem; color: {row['Color']}; margin-left: 10px;">{row['Nivel']}</span>
+                        </div>
+                        <div style="text-align: right; min-width: 120px;">
+                            <div style="font-family: var(--mono); font-size: 0.85rem; color: #F0A500; font-weight: 700;">{row['XP']} XP</div>
+                            <div style="font-family: var(--mono); font-size: 0.48rem; color: #3A4A6A; margin-top: 2px;">{row['Misiones']} ops · media {row['Media']}%</div>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+        
         with col_rank_der:
-            mi_pos  = next((i + 1 for i, r in enumerate(datos_ranking) if r["Agente"] == u["Nombre"]), None)
+            mi_pos = next((i + 1 for i, r in enumerate(datos_ranking) if r["Agente"] == u["Nombre"]), None)
             mi_data = next((r for r in datos_ranking if r["Agente"] == u["Nombre"]), None)
             if mi_data:
                 st.markdown("<div class='section-label'>TU POSICIÓN</div>", unsafe_allow_html=True)
@@ -2070,7 +2077,6 @@ elif st.session_state.pantalla_actual == "ranking":
                 </div>""", unsafe_allow_html=True)
             else:
                 st.markdown("""<div class="alert-box">Completa al menos una misión para aparecer en el ranking.</div>""", unsafe_allow_html=True)
-
 # ─────────────────────────────────────────
 # ADMIN — CONSOLA OMEGA
 # ─────────────────────────────────────────
