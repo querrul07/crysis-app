@@ -2007,7 +2007,7 @@ elif st.session_state.pantalla_actual == "ranking":
             "Racha":   ag.get("racha", 0),
         })
 
-        datos_ranking.sort(key=lambda x: x["XP"], reverse=True)
+    datos_ranking.sort(key=lambda x: x["XP"], reverse=True)
 
     if not datos_ranking:
         st.markdown("<div style='text-align:center; padding:60px; color:#18213A; font-family:var(--mono); letter-spacing:0.2em;'>SIN DATOS SUFICIENTES</div>", unsafe_allow_html=True)
