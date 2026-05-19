@@ -2019,41 +2019,41 @@ elif st.session_state.pantalla_actual == "ranking":
             podio = {0: "#FFD700", 1: "#C0C0C0", 2: "#CD7F32"}
             
             for i, row in enumerate(datos_ranking[:20]):
-        pos_str = f"{i+1}"
-        if i < 3:
-            color_rgb = podio[i].lstrip("#")
-            r, g, b = int(color_rgb[0:2], 16), int(color_rgb[2:4], 16), int(color_rgb[4:6], 16)
-            bg = f"rgba({r}, {g}, {b}, 0.05)"
-        else:
-            bg = "transparent"
-        border = podio.get(i, "#18213A")
-        es_yo = row["Agente"] == u["Nombre"]
+                pos_str = f"{i+1}"
+                if i < 3:
+                    color_rgb = podio[i].lstrip("#")
+                    r, g, b = int(color_rgb[0:2], 16), int(color_rgb[2:4], 16), int(color_rgb[4:6], 16)
+                    bg = f"rgba({r}, {g}, {b}, 0.05)"
+                else:
+                    bg = "transparent"
+                border = podio.get(i, "#18213A")
+                es_yo = row["Agente"] == u["Nombre"]
 
-        yo_badge = ""
-        if es_yo:
-            yo_badge = '<span style="font-family: var(--mono); font-size: 0.45rem; color: #4F8EF7; margin-left: 8px; background: rgba(79,142,247,0.1); padding: 2px 5px;">TÚ</span>'
+                yo_badge = ""
+                if es_yo:
+                    yo_badge = '<span style="font-family: var(--mono); font-size: 0.45rem; color: #4F8EF7; margin-left: 8px; background: rgba(79,142,247,0.1); padding: 2px 5px;">TÚ</span>'
 
-        color_nombre = "#FFD700" if es_yo else "#E2EAF8"
-        peso_nombre  = "700" if es_yo else "400"
+                color_nombre = "#FFD700" if es_yo else "#E2EAF8"
+                peso_nombre  = "700" if es_yo else "400"
 
-        html_row = (
-            f'<div style="display:flex; align-items:center; gap:16px;'
-            f'background:{bg}; border:1px solid {border}22;'
-            f'border-left:3px solid {row["Color"]}; border-radius:2px;'
-            f'padding:12px 18px; margin-bottom:6px;">'
-            f'<div style="font-family:var(--mono); font-size:0.6rem; color:#3A4A6A; width:26px; text-align:right;">{pos_str}</div>'
-            f'<div style="flex:1;">'
-            f'<span style="color:{color_nombre}; font-weight:{peso_nombre};">{row["Agente"]}</span>'
-            f'{yo_badge}'
-            f'<span style="font-family:var(--mono); font-size:0.5rem; color:{row["Color"]}; margin-left:10px;">{row["Nivel"]}</span>'
-            f'</div>'
-            f'<div style="text-align:right; min-width:120px;">'
-            f'<div style="font-family:var(--mono); font-size:0.85rem; color:#F0A500; font-weight:700;">{row["XP"]} XP</div>'
-            f'<div style="font-family:var(--mono); font-size:0.48rem; color:#3A4A6A; margin-top:2px;">{row["Misiones"]} ops · media {row["Media"]}%</div>'
-            f'</div>'
-            f'</div>'
-        )
-        st.markdown(html_row, unsafe_allow_html=True)
+                html_row = (
+                    f'<div style="display:flex; align-items:center; gap:16px;'
+                    f'background:{bg}; border:1px solid {border}22;'
+                    f'border-left:3px solid {row["Color"]}; border-radius:2px;'
+                    f'padding:12px 18px; margin-bottom:6px;">'
+                    f'<div style="font-family:var(--mono); font-size:0.6rem; color:#3A4A6A; width:26px; text-align:right;">{pos_str}</div>'
+                    f'<div style="flex:1;">'
+                    f'<span style="color:{color_nombre}; font-weight:{peso_nombre};">{row["Agente"]}</span>'
+                    f'{yo_badge}'
+                    f'<span style="font-family:var(--mono); font-size:0.5rem; color:{row["Color"]}; margin-left:10px;">{row["Nivel"]}</span>'
+                    f'</div>'
+                    f'<div style="text-align:right; min-width:120px;">'
+                    f'<div style="font-family:var(--mono); font-size:0.85rem; color:#F0A500; font-weight:700;">{row["XP"]} XP</div>'
+                    f'<div style="font-family:var(--mono); font-size:0.48rem; color:#3A4A6A; margin-top:2px;">{row["Misiones"]} ops · media {row["Media"]}%</div>'
+                    f'</div>'
+                    f'</div>'
+                )
+                st.markdown(html_row, unsafe_allow_html=True)
 # ─────────────────────────────────────────
 # ADMIN — CONSOLA OMEGA
 # ─────────────────────────────────────────
