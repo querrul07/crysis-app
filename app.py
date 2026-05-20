@@ -22,6 +22,7 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 import urllib.request
 import math
+import ssl
 
 @st.cache_data(ttl=86400)
 def buscar_wikipedia(nombre: str):
@@ -41,30 +42,45 @@ def buscar_wikipedia(nombre: str):
     return None
 
 def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
-    # ── 1. GESTIÓN DE FUENTES (Solución a las tildes) ────────────────
-    # Descargamos una fuente profesional de Google en memoria para asegurar soporte de tildes
-    def obtener_fuente(url, tamaño):
+    # ── 1. GESTIÓN DE FUENTES A PRUEBA DE FALLOS (Solución a tildes y tamaños) ──
+    def obtener_fuente(url, tamaño, nombre_archivo):
+        ruta_local = f"/tmp/{nombre_archivo}"
+        # Si no está descargada, la bajamos saltando restricciones SSL
+        if not os.path.exists(ruta_local):
+            try:
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                
+                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, context=ctx) as response, open(ruta_local, 'wb') as out_file:
+                    out_file.write(response.read())
+            except Exception as e:
+                print(f"Aviso: No se pudo descargar la fuente - {e}")
+        
+        # Intentamos cargarla. Si falla, usamos las nativas de Linux que sí tienen tildes
         try:
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            fuente_bytes = urllib.request.urlopen(req).read()
-            return ImageFont.truetype(io.BytesIO(fuente_bytes), tamaño)
+            return ImageFont.truetype(ruta_local, tamaño)
         except Exception:
-            return ImageFont.load_default()
+            try:
+                return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", tamaño)
+            except:
+                return ImageFont.load_default()
 
-    # Usamos Montserrat (muy limpia y profesional para LinkedIn)
-    URL_BOLD = "https://github.com/googlefonts/montserrat/raw/main/fonts/ttf/Montserrat-Bold.ttf"
-    URL_REG = "https://github.com/googlefonts/montserrat/raw/main/fonts/ttf/Montserrat-Medium.ttf"
+    # URLs directas y seguras al repositorio oficial de Google Fonts
+    URL_BOLD = "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Bold.ttf"
+    URL_REG = "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Medium.ttf"
 
-    fnt_hero    = obtener_fuente(URL_BOLD, 280)  # NOTA GIGANTE
-    fnt_hero_sm = obtener_fuente(URL_BOLD, 60)
-    fnt_title   = obtener_fuente(URL_BOLD, 45)
-    fnt_sub     = obtener_fuente(URL_REG, 22)
-    fnt_stats   = obtener_fuente(URL_BOLD, 28)
-    fnt_cta     = obtener_fuente(URL_BOLD, 35)
+    fnt_hero    = obtener_fuente(URL_BOLD, 260, "Mont-Bold.ttf")  # NOTA GIGANTE
+    fnt_hero_sm = obtener_fuente(URL_BOLD, 50,  "Mont-Bold.ttf")
+    fnt_title   = obtener_fuente(URL_BOLD, 40,  "Mont-Bold.ttf")
+    fnt_sub     = obtener_fuente(URL_REG, 20,  "Mont-Reg.ttf")
+    fnt_stats   = obtener_fuente(URL_BOLD, 26,  "Mont-Bold.ttf")
+    fnt_cta     = obtener_fuente(URL_BOLD, 32,  "Mont-Bold.ttf")
 
     # ── 2. CONFIGURACIÓN DE LIENZO Y COLORES ────────────────────────
     W, H = 1080, 1080
-    c_bg = (11, 15, 25)          # Azul marino casi negro (muy premium)
+    c_bg = (8, 12, 20)          # Fondo aún más oscuro para que resalte el color
     img = Image.new('RGB', (W, H), c_bg)
     d = ImageDraw.Draw(img)
 
@@ -73,63 +89,71 @@ def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
         return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
     
     c_accent = hex_to_rgb(color_hex)
-    c_text_hi = (240, 245, 255)
-    c_text_lo = (100, 120, 150)
-    c_border = (30, 45, 75)
+    c_text_hi = (255, 255, 255)
+    c_text_lo = (120, 140, 170)
+    c_border = (35, 50, 80)
 
-    # ── 3. MARCA DE AGUA Y FONDO TECNOLÓGICO ────────────────────────
-    # Cuadrícula sutil
-    for x in range(0, W, 60):
-        d.line([(x, 0), (x, H)], fill=(16, 22, 35), width=1)
-    for y in range(0, H, 60):
-        d.line([(0, y), (W, y)], fill=(16, 22, 35), width=1)
+    # ── 3. EFECTOS DE FONDO Y MARCA DE AGUA ─────────────────────────
+    # Cuadrícula táctica
+    for x in range(0, W, 54):
+        d.line([(x, 0), (x, H)], fill=(14, 20, 32), width=1)
+    for y in range(0, H, 54):
+        d.line([(0, y), (W, y)], fill=(14, 20, 32), width=1)
+
+    # Glow radial oscuro en el centro
+    for r in range(500, 0, -15):
+        alpha = int(4 * (1 - r / 500))
+        glow_col = tuple(min(255, int(c * alpha / 255 * 3)) for c in c_accent)
+        d.ellipse([W//2 - r, H//2 - r, W//2 + r, H//2 + r], outline=glow_col, width=2)
 
     # Texto gigante en el fondo para Branding
-    fnt_watermark = obtener_fuente(URL_BOLD, 200)
-    d.text((W//2, H//2), "CRYSIS", font=fnt_watermark, fill=(15, 20, 32), anchor="mm")
+    fnt_watermark = obtener_fuente(URL_BOLD, 220, "Mont-Bold.ttf")
+    d.text((W//2, H//2 - 50), "CRYSIS", font=fnt_watermark, fill=(12, 18, 30), anchor="mm")
 
     # ── 4. CABECERA TÁCTICA ─────────────────────────────────────────
-    d.rectangle([40, 40, 50, 90], fill=c_accent) # Detalle visual izquierdo
-    d.text((70, 40), "CRYSIS INTELLIGENCE ENGINE", font=fnt_title, fill=c_text_hi)
-    d.text((70, 90), "EVALUACIÓN DE PERFIL CERTIFICADA", font=fnt_sub, fill=c_accent)
-    d.line([(40, 140), (W-40, 140)], fill=c_border, width=2)
+    d.rectangle([40, 40, 52, 100], fill=c_accent) 
+    d.text((70, 45), "CRYSIS INTELLIGENCE ENGINE", font=fnt_title, fill=c_text_hi)
+    d.text((70, 95), "EVALUACIÓN DE PERFIL CERTIFICADA", font=fnt_sub, fill=c_accent)
+    d.line([(40, 150), (W-40, 150)], fill=c_border, width=2)
 
     # ── 5. SECCIÓN HÉROE: LA NOTA (Mitad Izquierda) ─────────────────
-    cx, cy = 350, 480
-    radio = 220
+    cx, cy = 340, 500
+    radio = 240
     
-    # Anillos tecnológicos de fondo
-    d.arc([cx-radio, cy-radio, cx+radio, cy+radio], start=0, end=360, fill=c_border, width=8)
-    d.arc([cx-radio-20, cy-radio-20, cx+radio+20, cy+radio+20], start=0, end=360, fill=(15, 20, 35), width=2)
+    # Anillos tecnológicos de fondo (Grosor aumentado)
+    d.arc([cx-radio, cy-radio, cx+radio, cy+radio], start=0, end=360, fill=c_border, width=12)
+    d.arc([cx-radio-25, cy-radio-25, cx+radio+25, cy+radio+25], start=0, end=360, fill=(20, 28, 45), width=3)
     
-    # Progreso de la nota
+    # Progreso de la nota (Barra gruesa y llamativa)
     end_angle = -90 + int(360 * nota / 100)
     if nota > 0:
-        d.arc([cx-radio, cy-radio, cx+radio, cy+radio], start=-90, end=end_angle, fill=c_accent, width=25)
+        d.arc([cx-radio, cy-radio, cx+radio, cy+radio], start=-90, end=end_angle, fill=c_accent, width=30)
 
     # Nota masiva en el centro del círculo
-    d.text((cx, cy - 20), str(nota), font=fnt_hero, fill=c_text_hi, anchor="mm")
-    d.text((cx, cy + 140), "/ 100", font=fnt_hero_sm, fill=c_accent, anchor="mm")
+    d.text((cx, cy - 25), str(nota), font=fnt_hero, fill=c_text_hi, anchor="mm")
+    d.text((cx, cy + 130), "/ 100", font=fnt_hero_sm, fill=c_accent, anchor="mm")
 
-    # Rango como un "Tier" clasificado debajo del círculo
-    d.rectangle([cx - 150, cy + 260, cx + 150, cy + 310], fill=(20, 30, 50), outline=c_accent, width=2)
-    rango_txt = f"RANGO OBTENIDO: {rango}"
-    d.text((cx, cy + 285), rango_txt, font=fnt_stats, fill=c_accent, anchor="mm")
+    # Rango como un bloque contundente debajo del círculo
+    d.rectangle([cx - 160, cy + 280, cx + 160, cy + 340], fill=(15, 22, 35), outline=c_accent, width=3)
+    rango_txt = f"RANGO: {rango}"
+    d.text((cx, cy + 310), rango_txt, font=fnt_stats, fill=c_accent, anchor="mm")
 
     # ── 6. SECCIÓN DATOS: AGENTE, MISIÓN Y BARRAS (Mitad Derecha) ───
-    rx = 640  # Punto de inicio en X para el bloque derecho
-    ry = 200
+    rx = 640  
+    ry = 220
     
     # Datos de la operación
     d.text((rx, ry), "AGENTE / ID", font=fnt_sub, fill=c_text_lo)
-    d.text((rx, ry + 30), agente.upper(), font=fnt_title, fill=c_text_hi)
+    d.text((rx, ry + 25), agente.upper(), font=fnt_title, fill=c_text_hi)
     
     d.text((rx, ry + 110), "CÓDIGO DE OPERACIÓN", font=fnt_sub, fill=c_text_lo)
     esc_limpio = escenario.replace("OPERACION: ", "").replace("OPERACIÓN: ", "")[:30].upper()
-    d.text((rx, ry + 140), esc_limpio, font=fnt_title, fill=c_text_hi)
+    d.text((rx, ry + 135), esc_limpio, font=fnt_title, fill=c_text_hi)
+
+    d.line([(rx, ry + 210), (W-40, ry + 210)], fill=c_border, width=1)
 
     # Barras de estadísticas
-    d.text((rx, ry + 250), "DESGLOSE DE HABILIDADES", font=fnt_sub, fill=c_text_lo)
+    d.text((rx, ry + 240), "DESGLOSE DE HABILIDADES", font=fnt_sub, fill=c_text_lo)
     
     stats = [
         ("NEGOCIACIÓN", min(100, int(nota * 0.95))),
@@ -137,35 +161,32 @@ def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
         ("ESTRATEGIA",  min(100, int(nota * 1.0)))
     ]
     
-    bar_y = ry + 300
+    bar_y = ry + 290
     bar_w = 380
     for label, val in stats:
-        # Texto de la estadística
         d.text((rx, bar_y), label, font=fnt_stats, fill=c_text_hi)
         d.text((rx + bar_w, bar_y), f"{val}%", font=fnt_stats, fill=c_accent, anchor="ra")
         
-        # Fondo de la barra
-        d.rectangle([rx, bar_y + 40, rx + bar_w, bar_y + 55], fill=c_border)
-        # Relleno de la barra
+        # Fondo y relleno de la barra más gruesos
+        d.rectangle([rx, bar_y + 35, rx + bar_w, bar_y + 60], fill=(20, 28, 45))
         if val > 0:
             fill_w = int(bar_w * val / 100)
-            d.rectangle([rx, bar_y + 40, rx + fill_w, bar_y + 55], fill=c_accent)
+            d.rectangle([rx, bar_y + 35, rx + fill_w, bar_y + 60], fill=c_accent)
             
-        bar_y += 100
+        bar_y += 110
 
-    # ── 7. FOOTER DE ALTO IMPACTO (Llamada a la acción) ─────────────
-    # Un bloque sólido llamativo en la parte inferior para que nadie pierda el link
-    footer_y = H - 120
+    # ── 7. FOOTER DE ALTO IMPACTO (URL ACTUALIZADA) ─────────────────
+    footer_y = H - 130
     d.rectangle([0, footer_y, W, H], fill=c_accent)
     
-    # Añadimos un pequeño detalle de código de barras falso para la estética
-    for i in range(15):
-        w_line = (i * 13) % 7 + 2
-        d.rectangle([40 + i*12, footer_y + 30, 40 + i*12 + w_line, footer_y + 90], fill=(0, 0, 0, 80))
+    # Código de barras decorativo
+    for i in range(16):
+        w_line = (i * 17) % 8 + 3
+        d.rectangle([40 + i*14, footer_y + 35, 40 + i*14 + w_line, footer_y + 95], fill=(0, 0, 0, 100))
 
-    cta_texto = "PÓN A PRUEBA TUS HABILIDADES EN:  WWW.CRYSIS-APP.COM"
-    # El texto va en el color oscuro del fondo para que contraste brutalmente con el acento
-    d.text((W//2 + 50, footer_y + 60), cta_texto, font=fnt_cta, fill=c_bg, anchor="mm")
+    # URL correcta de la App de Streamlit (Sin tilde en 'Pon')
+    cta_texto = "PON A PRUEBA TUS HABILIDADES EN:  HTTPS://CRYSIS.STREAMLIT.APP/"
+    d.text((W//2 + 60, footer_y + 65), cta_texto, font=fnt_cta, fill=c_bg, anchor="mm")
 
     buf = io.BytesIO()
     img.save(buf, format='PNG')
