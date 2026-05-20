@@ -41,42 +41,79 @@ def buscar_wikipedia(nombre: str):
 def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
     from PIL import Image, ImageDraw, ImageFont
     import io
-    
-    # 1. Lienzo vertical de alta calidad (1000x1300)
-    img = Image.new('RGB', (1000, 1300), color='#060810')
+    import math
+
+    # 1. LIENZO DE GRAN FORMATO
+    W, H = 1000, 1200
+    img = Image.new('RGB', (W, H), color='#060810')
     d = ImageDraw.Draw(img)
+
+    # 2. FONDO TÉCNICO (REJILLA Y TEXTURA)
+    for i in range(0, W, 50): d.line([(i, 0), (i, H)], fill='#0A0E1A', width=1)
+    for i in range(0, H, 50): d.line([(0, i), (W, i)], fill='#0A0E1A', width=1)
     
-    # 2. Decoración de fondo (Líneas de escaneo)
-    for i in range(0, 1300, 8):
-        d.line([(0, i), (1000, i)], fill='#080A15', width=1)
+    # 3. CABECERA DE MARCA (PUBLICIDAD)
+    d.rectangle([0, 0, W, 180], fill='#4F8EF7') # Bloque azul marca
+    # Dibujamos un "Logo" con rectángulos
+    d.rectangle([40, 40, 90, 140], fill='white')
+    d.text((110, 50), "CRYSIS", fill="white") 
+    d.text((110, 100), "INTELLIGENCE UNIT // PROTOCOL VERIFIED", fill="#060810")
 
-    # 3. Cabecera - PUBLICIDAD DE TU MARCA
-    d.rectangle([0, 0, 1000, 150], fill='#4F8EF7') # Bloque azul
-    d.text((50, 40), "CRYSIS", fill="white") # Imagina que es el logo
-    d.text((50, 90), "INTELLIGENCE UNIT // OFFICIAL EVALUATION", fill="#060810")
-
-    # 4. Marco de Rango (El Trofeo)
-    d.rectangle([250, 250, 750, 650], outline=color_hex, width=5)
-    d.text((430, 380), rango, fill=color_hex) # Rango gigante
-    d.text((400, 580), "STATUS: VERIFIED", fill=color_hex)
-
-    # 5. Información del Agente
-    # Caja de Puntuación
-    d.rectangle([50, 750, 950, 950], outline="#18213A", width=2)
-    d.text((80, 780), "OPERATOR IDENTITY:", fill="#3A4A6A")
-    d.text((80, 830), agente.upper(), fill="white")
+    # 4. CUERPO CENTRAL - EL TROFEO
+    # Círculo de puntuación
+    centro_x, centro_y = 500, 480
+    radio = 180
+    d.ellipse([centro_x-radio, centro_y-radio, centro_x+radio, centro_y+radio], outline='#18213A', width=15)
+    # Arco de progreso según la nota
+    angulo = (nota / 100) * 360
+    d.arc([centro_x-radio, centro_y-radio, centro_x+radio, centro_y+radio], start=-90, end=angulo-90, fill=color_hex, width=15)
     
-    d.text((600, 780), "MISSION SCORE:", fill="#3A4A6A")
-    d.text((600, 830), f"{nota}/100", fill=color_hex)
+    # Texto Puntuación Gigante
+    d.text((centro_x-80, centro_y-60), f"{nota}", fill="white")
+    d.text((centro_x-40, centro_y+40), "SCORE", fill=color_hex)
 
-    # Detalles de Misión
-    d.text((80, 1000), "MISSION PROTOCOL:", fill="#3A4A6A")
-    d.text((80, 1050), escenario.upper(), fill="white")
+    # Rango Lateral
+    d.rectangle([780, 350, 950, 600], outline=color_hex, width=5)
+    d.text((820, 420), rango, fill=color_hex)
+    d.text((800, 550), "RANK", fill=color_hex)
 
-    # 6. Pie de página - Publicidad sutil pero profesional
-    d.text((50, 1200), "WWW.CRYSIS-APP.COM", fill="#4F8EF7")
-    d.text((800, 1200), "V3.1 SECURE", fill="#18213A")
-    
+    # 5. GRÁFICO DE HABILIDADES (El "Radar Chart" que pedías)
+    # Calculamos puntos de un pentágono basado en la nota
+    def get_poly(points, scale):
+        res = []
+        for i, p in enumerate(points):
+            angle = (i * 2 * math.pi / 5) - math.pi/2
+            val = p * scale
+            res.append((centro_x + val * math.cos(angle), 850 + val * math.sin(angle)))
+        return res
+
+    # Habilidades simuladas basadas en la nota real
+    stats = [nota*0.9, nota*0.8, nota*1.0, nota*0.7, nota*0.95] 
+    # Dibujar fondo del gráfico
+    d.polygon(get_poly([100,100,100,100,100], 1.5), outline='#18213A', width=2)
+    # Dibujar área de habilidad
+    d.polygon(get_poly(stats, 1.5), fill=f"{color_hex}44", outline=color_hex, width=4)
+
+    # Etiquetas del gráfico
+    lab_pos = get_poly([120,120,120,120,120], 1.5)
+    labels = ["PERSUASION", "EMPATIA", "ESTRATEGIA", "PRESION", "LOGICA"]
+    for i, label in enumerate(labels):
+        d.text(lab_pos[i], label, fill="#3A4A6A")
+
+    # 6. INFO DEL AGENTE Y ESCENARIO
+    d.rectangle([50, 1050, 950, 1180], outline="#4F8EF7", width=2)
+    esc_name = escenario.replace("OPERACION: ", "").upper()
+    d.text((80, 1070), f"OFFICIAL AGENT: {agente.upper()}", fill="#4F8EF7")
+    d.text((80, 1115), f"MISSION: {esc_name}", fill="white")
+
+    # 7. PIE DE PÁGINA (WEB Y SEGURIDAD)
+    d.text((80, 1220), "VERIFY AT: WWW.CRYSIS-APP.COM", fill="#3A4A6A")
+    # Dibujamos un falso código de barras para estilo
+    for i in range(700, 950, 10):
+        w_bar = (i % 3) + 2
+        d.rectangle([i, 1210, i+w_bar, 1240], fill="#18213A")
+
+    # EXPORTAR
     buf = io.BytesIO()
     img.save(buf, format='PNG')
     return buf.getvalue()
@@ -1417,7 +1454,7 @@ elif st.session_state.pantalla_actual == "expedientes":
                                         r_c
                                     )
                                     st.download_button(
-                                        label="🏆 DESCARGAR TROFEO",
+                                        label="DESCARGAR TROFEO",
                                         data=img_data,
                                         file_name=f"Trofeo_CRYSIS_{s['Agente']}.png",
                                         mime="image/png",
