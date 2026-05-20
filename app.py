@@ -1551,7 +1551,22 @@ elif st.session_state.pantalla_actual == "simulador":
             )
 
     else:
-        dif_sesion  = st.session_state.get("dificultad_sesion", "OPERATOR")
+        # CAMBIO 2 va aquí, al principio del else:
+        escenario_activo_now = st.session_state.get("escenario_activo", "")
+        if escenario_activo_now not in TODAS_LAS_MISIONES:
+            cache = st.session_state.get("mision_diaria_cache", {})
+            mision_cache = cache.get("mision")
+            if mision_cache and mision_cache.get("escenario") == escenario_activo_now:
+                datos = mision_cache.get("datos", {})
+                TODAS_LAS_MISIONES[escenario_activo_now] = {
+                    "contexto":      datos.get("contexto", ""),
+                    "perfil_sujeto": datos.get("perfil_sujeto", ""),
+                    "objetivo":      datos.get("objetivo", ""),
+                    "prompt":        datos.get("prompt", "") + " " + INSTRUCCION_ORTOGRAFIA,
+                }
+
+        dif_sesion  = st.session_state.get("dificultad_sesion", "OPERATOR")  # esta línea ya estaba
+        ...
         dif_color_s = DIFICULTADES.get(dif_sesion, {}).get("color","#4F8EF7")
         st.markdown(f"""
         <div class='status-bar'>
@@ -1971,6 +1986,21 @@ elif st.session_state.pantalla_actual == "mision_diaria":
         </div>""", unsafe_allow_html=True)
 
         if st.button("ACEPTAR MISIÓN DIARIA", use_container_width=True):
+            tarjeta = {"Nombre_Completo": "Desconocido", "Familia": "Clasificado", "Estado_Mental": "Inestable"}
+            if GROQ_API_KEY:
+                try:
+                    client_d = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+                    info_d2  = TODAS_LAS_MISIONES.get(mision["escenario"], {})
+                    jp = f"Genera para {info_d2.get('perfil_sujeto','un sujeto')} EXCLUSIVAMENTE JSON PLANO con 3 claves: 'Nombre_Completo', 'Familia', 'Estado_Mental'."
+                    res_t = client_d.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[{"role":"user","content": jp}],
+                        response_format={"type":"json_object"}
+                    ).choices[0].message.content
+                    tarjeta = json.loads(res_t)
+                except:
+                    pass
+            st.session_state.tarjeta_objetivo   = tarjeta
             st.session_state.mision_iniciada    = True
             st.session_state.mensajes           = []
             st.session_state.agente_activo      = u["Nombre"]
