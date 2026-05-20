@@ -40,80 +40,144 @@ def buscar_wikipedia(nombre: str):
 
 def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
     from PIL import Image, ImageDraw, ImageFont
-    import io
-    import math
+    import math, io
 
-    # 1. LIENZO DE GRAN FORMATO
-    W, H = 1000, 1200
-    img = Image.new('RGB', (W, H), color='#060810')
+    FONT_BOLD     = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+    FONT_REG      = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
+    FONT_MONO     = "/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf"
+    FONT_MONO_REG = "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf"
+
+    def hex_to_rgb(h):
+        h = h.lstrip('#')
+        return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
+    W, H = 1080, 1080
+    img = Image.new('RGB', (W, H), '#05080F')
     d = ImageDraw.Draw(img)
 
-    # 2. FONDO TÉCNICO (REJILLA Y TEXTURA)
-    for i in range(0, W, 50): d.line([(i, 0), (i, H)], fill='#0A0E1A', width=1)
-    for i in range(0, H, 50): d.line([(0, i), (W, i)], fill='#0A0E1A', width=1)
-    
-    # 3. CABECERA DE MARCA (PUBLICIDAD)
-    d.rectangle([0, 0, W, 180], fill='#4F8EF7') # Bloque azul marca
-    # Dibujamos un "Logo" con rectángulos
-    d.rectangle([40, 40, 90, 140], fill='white')
-    d.text((110, 50), "CRYSIS", fill="white") 
-    d.text((110, 100), "INTELLIGENCE UNIT // PROTOCOL VERIFIED", fill="#060810")
+    c_accent  = hex_to_rgb(color_hex)
+    c_bg2     = (10, 14, 26)
+    c_border  = (24, 33, 58)
+    c_text_hi = (226, 234, 248)
+    c_text_lo = (58, 74, 106)
 
-    # 4. CUERPO CENTRAL - EL TROFEO
-    # Círculo de puntuación
-    centro_x, centro_y = 500, 480
-    radio = 180
-    d.ellipse([centro_x-radio, centro_y-radio, centro_x+radio, centro_y+radio], outline='#18213A', width=15)
-    # Arco de progreso según la nota
-    angulo = (nota / 100) * 360
-    d.arc([centro_x-radio, centro_y-radio, centro_x+radio, centro_y+radio], start=-90, end=angulo-90, fill=color_hex, width=15)
-    
-    # Texto Puntuación Gigante
-    d.text((centro_x-80, centro_y-60), f"{nota}", fill="white")
-    d.text((centro_x-40, centro_y+40), "SCORE", fill=color_hex)
+    # Rejilla de fondo
+    for x in range(0, W, 54):
+        d.line([(x, 0), (x, H)], fill=(12, 17, 30), width=1)
+    for y in range(0, H, 54):
+        d.line([(0, y), (W, y)], fill=(12, 17, 30), width=1)
 
-    # Rango Lateral
-    d.rectangle([780, 350, 950, 600], outline=color_hex, width=5)
-    d.text((820, 420), rango, fill=color_hex)
-    d.text((800, 550), "RANK", fill=color_hex)
+    # Glow central
+    for r in range(400, 0, -8):
+        overlay = Image.new('RGB', (W, H), (5, 8, 15))
+        od = ImageDraw.Draw(overlay)
+        alpha = int(8 * (1 - r / 400))
+        glow_col = tuple(min(255, int(c * alpha / 255 * 3)) for c in c_accent)
+        od.ellipse([W//2 - r, H//2 - r, W//2 + r, H//2 + r], fill=glow_col)
+        img = Image.blend(img, overlay, 0.015)
+        d = ImageDraw.Draw(img)
 
-    # 5. GRÁFICO DE HABILIDADES (El "Radar Chart" que pedías)
-    # Calculamos puntos de un pentágono basado en la nota
-    def get_poly(points, scale):
-        res = []
-        for i, p in enumerate(points):
-            angle = (i * 2 * math.pi / 5) - math.pi/2
-            val = p * scale
-            res.append((centro_x + val * math.cos(angle), 850 + val * math.sin(angle)))
-        return res
+    # Bordes
+    d.rectangle([0, 0, W-1, H-1], outline=c_border, width=2)
+    d.rectangle([12, 12, W-13, H-13], outline=(18, 27, 50), width=1)
+    d.rectangle([0, 0, W, 6], fill=c_accent)
 
-    # Habilidades simuladas basadas en la nota real
-    stats = [nota*0.9, nota*0.8, nota*1.0, nota*0.7, nota*0.95] 
-    # Dibujar fondo del gráfico
-    d.polygon(get_poly([100,100,100,100,100], 1.5), outline='#18213A', width=2)
-    # Dibujar área de habilidad
-    d.polygon(get_poly(stats, 1.5), fill=f"{color_hex}44", outline=color_hex, width=4)
+    # Fuentes
+    fnt_brand    = ImageFont.truetype(FONT_MONO, 22)
+    fnt_sub      = ImageFont.truetype(FONT_MONO_REG, 11)
+    fnt_rango    = ImageFont.truetype(FONT_BOLD, 220)
+    fnt_nota     = ImageFont.truetype(FONT_BOLD, 72)
+    fnt_med      = ImageFont.truetype(FONT_BOLD, 28)
+    fnt_label    = ImageFont.truetype(FONT_MONO, 13)
+    fnt_small    = ImageFont.truetype(FONT_MONO_REG, 13)
+    fnt_stat_val = ImageFont.truetype(FONT_BOLD, 36)
+    fnt_stat_lbl = ImageFont.truetype(FONT_MONO_REG, 11)
+    fnt_agente   = ImageFont.truetype(FONT_BOLD, 32)
+    fnt_mision   = ImageFont.truetype(FONT_MONO_REG, 14)
+    fnt_badge    = ImageFont.truetype(FONT_MONO, 14)
+    fnt_pie      = ImageFont.truetype(FONT_MONO_REG, 10)
 
-    # Etiquetas del gráfico
-    lab_pos = get_poly([120,120,120,120,120], 1.5)
-    labels = ["PERSUASION", "EMPATIA", "ESTRATEGIA", "PRESION", "LOGICA"]
-    for i, label in enumerate(labels):
-        d.text(lab_pos[i], label, fill="#3A4A6A")
+    # Marca
+    d.text((40, 36), "CRYSIS", font=fnt_brand, fill=c_text_hi)
+    d.text((40, 66), "INTELLIGENCE UNIT · CERTIFIED PERFORMANCE", font=fnt_sub, fill=c_text_lo)
+    d.line([(40, 88), (W - 40, 88)], fill=c_border, width=1)
 
-    # 6. INFO DEL AGENTE Y ESCENARIO
-    d.rectangle([50, 1050, 950, 1180], outline="#4F8EF7", width=2)
-    esc_name = escenario.replace("OPERACION: ", "").upper()
-    d.text((80, 1070), f"OFFICIAL AGENT: {agente.upper()}", fill="#4F8EF7")
-    d.text((80, 1115), f"MISSION: {esc_name}", fill="white")
+    # Rango gigante
+    shadow_col = tuple(int(x * 0.25) for x in c_accent)
+    bbox = d.textbbox((0,0), rango, font=fnt_rango)
+    rw = bbox[2] - bbox[0]
+    rx = (W - rw) // 2
+    d.text((rx + 6, 146), rango, font=fnt_rango, fill=shadow_col)
+    d.text((rx, 140), rango, font=fnt_rango, fill=c_accent)
 
-    # 7. PIE DE PÁGINA (WEB Y SEGURIDAD)
-    d.text((80, 1220), "VERIFY AT: WWW.CRYSIS-APP.COM", fill="#3A4A6A")
-    # Dibujamos un falso código de barras para estilo
-    for i in range(700, 950, 10):
-        w_bar = (i % 3) + 2
-        d.rectangle([i, 1210, i+w_bar, 1240], fill="#18213A")
+    # Barra de progreso superior
+    d.rectangle([40, 420, W-40, 422], fill=c_border)
+    d.rectangle([40, 420, 40 + int((W-80) * nota / 100), 422], fill=c_accent)
 
-    # EXPORTAR
+    # Puntuación
+    score_txt = f"{nota}"
+    bbox2 = d.textbbox((0,0), score_txt, font=fnt_nota)
+    sw = bbox2[2] - bbox2[0]
+    d.text(((W - sw)//2, 435), score_txt, font=fnt_nota, fill=c_text_hi)
+    d.text(((W)//2 + sw//2 + 8, 470), "/ 100", font=fnt_med, fill=c_text_lo)
+    d.text(((W - 80)//2, 520), "PUNTUACIÓN FINAL", font=fnt_label, fill=c_text_lo)
+
+    # Barra rellena
+    bar_x, bar_y, bar_w, bar_h = 80, 570, W - 160, 10
+    d.rounded_rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], radius=5, fill=(18, 27, 50))
+    fill_w = int(bar_w * nota / 100)
+    if fill_w > 0:
+        d.rounded_rectangle([bar_x, bar_y, bar_x + fill_w, bar_y + bar_h], radius=5, fill=c_accent)
+
+    # Stats
+    stats = [
+        ("NEGOCIACIÓN", f"{min(100, int(nota * 0.95))}%"),
+        ("PERSUASIÓN",  f"{min(100, int(nota * 0.88))}%"),
+        ("ESTRATEGIA",  f"{min(100, int(nota * 1.0))}%"),
+    ]
+    col_w = (W - 80) // 3
+    for i, (lbl, val) in enumerate(stats):
+        cx = 40 + col_w * i + col_w // 2
+        bx1 = 40 + col_w * i + 8
+        d.rounded_rectangle([bx1, 600, bx1 + col_w - 16, 680], radius=4, fill=c_bg2, outline=c_border)
+        vb = d.textbbox((0,0), val, font=fnt_stat_val)
+        d.text((cx - (vb[2]-vb[0])//2, 610), val, font=fnt_stat_val, fill=c_accent)
+        lb = d.textbbox((0,0), lbl, font=fnt_stat_lbl)
+        d.text((cx - (lb[2]-lb[0])//2, 655), lbl, font=fnt_stat_lbl, fill=c_text_lo)
+
+    d.line([(40, 705), (W-40, 705)], fill=c_border, width=1)
+
+    # Agente y misión
+    agente_txt = agente.upper()
+    ab = d.textbbox((0,0), agente_txt, font=fnt_agente)
+    d.text(((W - (ab[2]-ab[0]))//2, 725), agente_txt, font=fnt_agente, fill=c_text_hi)
+
+    esc_limpio = escenario.replace("OPERACION: ", "").replace("OPERACIÓN: ", "")[:40].upper()
+    eb = d.textbbox((0,0), esc_limpio, font=fnt_mision)
+    d.text(((W - (eb[2]-eb[0]))//2, 775), esc_limpio, font=fnt_mision, fill=c_text_lo)
+
+    # Badge rango
+    rango_labels = {"S+": "OPERADOR DE ÉLITE", "S": "ESPECIALISTA", "A": "OPERATIVO", "B": "RECLUTA", "F": "MISIÓN FALLIDA"}
+    badge_txt = rango_labels.get(rango, rango)
+    bb = d.textbbox((0,0), badge_txt, font=fnt_badge)
+    bw = bb[2] - bb[0]
+    pad = 16
+    bx1 = (W - bw - pad*2)//2
+    d.rounded_rectangle([bx1, 810, bx1 + bw + pad*2, 848], radius=3,
+                         fill=tuple(int(x*0.15) for x in c_accent), outline=c_accent)
+    d.text((bx1 + pad, 818), badge_txt, font=fnt_badge, fill=c_accent)
+
+    # Pie
+    d.line([(40, 920), (W-40, 920)], fill=c_border, width=1)
+    d.text((40, 934), "VERIFIED BY CRYSIS TACTICAL ENGINE", font=fnt_pie, fill=c_text_lo)
+    d.text((40, 950), "WWW.CRYSIS-APP.COM", font=fnt_pie, fill=(30, 45, 80))
+
+    import random
+    random.seed(42)
+    for i in range(6):
+        bar_len = random.randint(20, 80)
+        d.rectangle([W - 200 + i*22, 930, W - 196 + i*22, 930 + bar_len], fill=c_border)
+
     buf = io.BytesIO()
     img.save(buf, format='PNG')
     return buf.getvalue()
