@@ -865,8 +865,8 @@ if st.session_state.usuario_actual is None:
 
                         
                         if submitted:
-                        # --- LOGIN SEGURO ---
-                        agente_db = cargar_perfil_usuario(u_id)
+                            # --- LOGIN SEGURO ---
+                            agente_db = cargar_perfil_usuario(u_id)
                         
                         if agente_db:
                             # Primero fabricamos la respuesta de la contraseña
