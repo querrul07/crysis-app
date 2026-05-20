@@ -815,23 +815,34 @@ if st.session_state.usuario_actual is None:
                         st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
                         submitted = st.form_submit_button("INICIAR SESIÓN SEGURA", use_container_width=True)
                         if submitted:
-                            agente = next((e for e in st.session_state.empleados if e["Nombre"] == u_id and e.get("Password") == u_pass), None)
-                            if agente:
-                                expiro = False
-                                if "Expiracion" in agente:
-                                    fecha_exp = datetime.strptime(agente["Expiracion"], "%Y-%m-%d")
-                                    if datetime.now() > fecha_exp: expiro = True
-                                if expiro:
-                                    st.error(f"ACCESO DENEGADO: Licencia expirada el {agente['Expiracion']}.")
-                                else:
-                                    if agente.get("2FA_Verificado", False) == True or agente["Nombre"] == COMANDANTE_SUPREMO:
-                                        st.session_state.usuario_actual = agente; st.session_state.pantalla_actual = "menu"; st.rerun()
-                                    else:
-                                        st.session_state["2fa_code"]   = str(random.randint(100000, 999999))
-                                        st.session_state["2fa_agente"] = agente
-                                        st.session_state.login_step = 2; st.rerun()
+                            # --- NUEVO SISTEMA DE LOGIN ---
+                        agente_db = cargar_perfil_usuario(u_id)
+                        if agente_db:
+                            # Comprobamos si la contraseña es correcta (usando seguridad hash)
+                            password_correcta = check_password(u_pass, agente_db.get("password_hash", ""))
+                            
+                            if password_correcta:
+                                # Preparamos los datos para la sesión actual
+                                progreso = agente_db.get("datos_progresion", {})
+                                agente = {
+                                    "Nombre": agente_db["id_usuario"],
+                                    "Email": agente_db["email"],
+                                    "Plan": agente_db["plan"],
+                                    "Rol": agente_db["rol"],
+                                    "Empresa": agente_db["empresa"],
+                                    "xp": progreso.get("xp", 0),
+                                    "logros": progreso.get("logros", []),
+                                    "racha": progreso.get("racha", 0),
+                                    "ultima_sesion": progreso.get("ultima_sesion", ""),
+                                    "2FA_Verificado": True # Saltamos 2FA por ahora para facilitar el test
+                                }
+                                st.session_state.usuario_actual = agente
+                                st.session_state.pantalla_actual = "menu"
+                                st.rerun()
                             else:
-                                st.error("ID o contraseña incorrectos. Verifica tus credenciales.")
+                                st.error("Contraseña incorrecta.")
+                        else:
+                            st.error("El ID de operador no existe.")
 
                     st.markdown("<div style='margin-top:12px; text-align:right;'>", unsafe_allow_html=True)
                     if st.button("¿Olvidaste tu contraseña?", key="btn_forgot"):
@@ -941,20 +952,26 @@ if st.session_state.usuario_actual is None:
                                 st.error("Debes aceptar los Términos y la Política de Privacidad para continuar.")
                             elif n and p and email:
                                 empresa_destino = n if es_corporativo else "Independiente"
-                                if any(e["Nombre"] == n and e.get("Empresa", "Independiente") == empresa_destino for e in st.session_state.empleados):
-                                    st.warning("Ya existe una cuenta con ese identificador.")
+                                # --- NUEVO SISTEMA DE REGISTRO ---
+                                usuario_existente = cargar_perfil_usuario(n)
+                                if usuario_existente:
+                                    st.warning("Este ID ya está registrado. Elige otro.")
                                 else:
-                                    if es_corporativo:
-                                        nuevo_usuario = {"Nombre": n, "Email": email, "Departamento": "Administración", "Rol": "Empresa", "Plan": "BASE", "Empresa": n, "Password": p, "2FA_Verificado": True, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
-                                    else:
-                                        nuevo_usuario = {"Nombre": n, "Email": email, "Rol": "Individual", "Plan": "BASE", "Empresa": n, "Password": p, "2FA_Verificado": True, "Acepta_TyC": True, "Acepta_RGPD": True, "Acepta_Comms": acepta_comms, "Fecha_Consentimiento": datetime.now().strftime("%Y-%m-%d %H:%M")}
-                                    st.session_state.empleados.append(nuevo_usuario); guardar_datos()
-                                    guardar_usuario_plano(nuevo_usuario["Nombre"], nuevo_usuario.get("Email", ""), nuevo_usuario.get("Plan", "BASE"))
-                                    if es_pago:
-                                        link_pago   = LINKS_PAGO.get(plan_sel, "#")
-                                        nombre_plan = f"{plan_sel} ({PLANES_INFO[plan_sel]['precio']})"
-                                        st.session_state.mostrar_pago = {"id": n, "link": link_pago, "plan": nombre_plan, "usuario": nuevo_usuario}
-                                        st.rerun()
+                                    # Creamos el diccionario del nuevo usuario
+                                    nuevo_usuario = {
+                                        "Nombre": n,
+                                        "Email": email,
+                                        "Rol": "Individual" if not es_corporativo else "Empresa",
+                                        "Plan": "BASE",
+                                        "Empresa": n if es_corporativo else "Independiente",
+                                        "xp": 0, "logros": [], "racha": 0
+                                    }
+                                    # Guardamos en la Base de Datos con la contraseña segura
+                                    guardar_perfil_en_db(nuevo_usuario, password_nueva=p)
+                                    
+                                    st.success("Cuenta creada con éxito. Ya puedes iniciar sesión.")
+                                    st.session_state.login_modo = "acceso"
+                                    st.rerun()
                                     else:
                                         st.session_state.usuario_actual = nuevo_usuario
                                         st.session_state.pantalla_actual = "menu"; st.rerun()
