@@ -2115,7 +2115,7 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
     total_agentes    = len([e for e in st.session_state.empleados if e["Rol"] == "Agente"])
 
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
-    col_m1.markdown(f"""<div class="metric-card" style="border-left-color:#F0A500;"><div class="metric-label" style="color:#F0A500;">MRR ESTIMADO</div><div class="metric-value">{mrr_estimado}€</div></div>""", unsafe_allow_html=True)
+    col_m1.markdown(f"""<div class="metric-card" style="border-left-color:#F0A500;"><div class="metric-label" style="color:#F0A500;">MRR ESTIMADO</div><div class="metric-value">{mrr_estimado} EUR</div></div>""", unsafe_allow_html=True)
     col_m2.markdown(f"""<div class="metric-card"><div class="metric-label">CUENTAS DE PAGO</div><div class="metric-value">{total_enterprise+total_escuadron+total_elite+total_operador}</div></div>""", unsafe_allow_html=True)
     col_m3.markdown(f"""<div class="metric-card"><div class="metric-label">AGENTES DESPLEGADOS</div><div class="metric-value">{total_agentes}</div></div>""", unsafe_allow_html=True)
     col_m4.markdown(f"""<div class="metric-card"><div class="metric-label">SESIONES TOTALES</div><div class="metric-value">{len(st.session_state.historial_sesiones)}</div></div>""", unsafe_allow_html=True)
