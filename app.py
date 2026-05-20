@@ -42,11 +42,9 @@ def buscar_wikipedia(nombre: str):
     return None
 
 def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
-    # ── 1. GESTIÓN DE FUENTES 100% SEGURA ───────────────────────────────
+    # ── 1. GESTIÓN DE FUENTES ───────────────────────────────────────────
     def obtener_fuente(url, tamaño, nombre_archivo):
         ruta_local = f"/tmp/{nombre_archivo}"
-        
-        # Intento de descarga de Google Fonts
         if not os.path.exists(ruta_local):
             try:
                 ctx = ssl.create_default_context()
@@ -55,151 +53,101 @@ def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
                 req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
                 with urllib.request.urlopen(req, context=ctx) as response, open(ruta_local, 'wb') as out_file:
                     out_file.write(response.read())
-            except Exception:
-                pass # Si falla, pasamos al bloque de fallback silenciosamente
-        
-        # Intentar cargar la fuente descargada
+            except: pass
         try:
             return ImageFont.truetype(ruta_local, tamaño)
-        except Exception:
-            # FALLBACK ROBUSTO: Si falla, usamos fuentes nativas de Linux con el TAMAÑO CORRECTO
-            fuentes_linux = [
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-                "/usr/share/fonts/truetype/ubuntu/Ubuntu-B.ttf"
-            ]
-            for f in fuentes_linux:
-                if os.path.exists(f):
-                    return ImageFont.truetype(f, tamaño)
-            # Último recurso (se verá feo, pero no romperá la app)
+        except:
             return ImageFont.load_default()
 
-    # URLs de Montserrat
     URL_BOLD = "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Bold.ttf"
-    URL_REG = "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Medium.ttf"
+    URL_REG  = "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Medium.ttf"
 
-    fnt_hero    = obtener_fuente(URL_BOLD, 220, "Mont-Bold.ttf")
-    fnt_hero_sm = obtener_fuente(URL_BOLD, 45,  "Mont-Bold.ttf")
-    fnt_title   = obtener_fuente(URL_BOLD, 32,  "Mont-Bold.ttf")
-    fnt_sub     = obtener_fuente(URL_REG, 20,   "Mont-Reg.ttf")
-    fnt_stats   = obtener_fuente(URL_BOLD, 24,  "Mont-Bold.ttf")
-    fnt_cta     = obtener_fuente(URL_BOLD, 26,  "Mont-Bold.ttf")
+    fnt_score    = obtener_fuente(URL_BOLD, 320, "Mont-Bold.ttf") # PUNTUACIÓN GIGANTE
+    fnt_rank     = obtener_fuente(URL_BOLD, 80,  "Mont-Bold.ttf") # Letra pequeña
+    fnt_title    = obtener_fuente(URL_BOLD, 42,  "Mont-Bold.ttf") # Crysis
+    fnt_label    = obtener_fuente(URL_REG, 20,   "Mont-Reg.ttf")  # Etiquetas
+    fnt_data     = obtener_fuente(URL_BOLD, 28,  "Mont-Bold.ttf") # Datos
+    fnt_footer   = obtener_fuente(URL_REG, 22,   "Mont-Reg.ttf")  # Link
 
-    # ── 2. CONFIGURACIÓN DE COLORES Y LIENZO ────────────────────────────
+    # ── 2. CONFIGURACIÓN DE LIENZO ──────────────────────────────────────
     W, H = 1080, 1080
-    
     def hex_to_rgb(h):
         h = h.lstrip('#')
         return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
     
     c_accent = hex_to_rgb(color_hex)
-    c_bg = (12, 18, 30)         # Fondo azul oscuro sólido
-    c_text_hi = (255, 255, 255) # Blanco puro
-    c_text_lo = (130, 150, 180) # Gris azulado
-    c_border = (30, 45, 70)     # Azul intermedio
+    c_bg     = (5, 7, 12)       # Negro azulado profundo
+    c_card   = (15, 20, 35)     # Gris azulado oscuro
+    c_text_h = (255, 255, 255)  # Blanco
+    c_text_l = (80, 100, 130)   # Gris tenue
 
-    # Imagen en RGB directo (sin RGBA para evitar los errores de cuadrícula blanca)
     img = Image.new('RGB', (W, H), c_bg)
     d = ImageDraw.Draw(img)
 
-    # ── 3. FONDO TÁCTICO LIMPIO (Colores sólidos calculados) ────────────
-    c_grid = (18, 26, 42)  # Apenas visible sobre el fondo
-    c_rad = (22, 30, 48)
-
-    # Cuadrícula muy sutil y espaciada
-    for x in range(0, W, 80):
-        d.line([(x, 0), (x, H)], fill=c_grid, width=1)
-    for y in range(0, H, 80):
-        d.line([(0, y), (W, y)], fill=c_grid, width=1)
-
-    # Anillos concéntricos de radar espaciados
-    for r in range(800, 100, -120):
-        d.ellipse([W//2 - r, H//2 - r, W//2 + r, H//2 + r], outline=c_rad, width=1)
-
-    # ── 4. CABECERA ─────────────────────────────────────────────────────
-    d.rectangle([40, 40, 52, 105], fill=c_accent) 
-    d.text((75, 40), "CRYSIS INTELLIGENCE ENGINE", font=fnt_title, fill=c_text_hi)
-    d.text((75, 85), "EVALUACIÓN DE PERFIL CERTIFICADA", font=fnt_sub, fill=c_text_lo)
-    d.line([(40, 135), (W-40, 135)], fill=c_border, width=2)
-
-    # ── 5. SECCIÓN HÉROE: LA NOTA (Mitad Izquierda) ─────────────────────
-    cx, cy = 340, 480
-    radio = 220
+    # ── 3. DISEÑO DE FONDO (TECH GRID) ──────────────────────────────────
+    # Cuadrícula técnica sutil
+    for i in range(0, W, 60):
+        d.line([(i, 0), (i, H)], fill=(10, 15, 25), width=1)
+        d.line([(0, i), (W, i)], fill=(10, 15, 25), width=1)
     
-    # Anillo de fondo grueso
-    d.arc([cx-radio, cy-radio, cx+radio, cy+radio], start=0, end=360, fill=(20, 30, 48), width=35)
+    # Marco exterior decorativo
+    d.rectangle([20, 20, W-20, H-20], outline=(30, 40, 60), width=2)
     
-    # Anillo de progreso grueso
-    end_angle = -90 + int(360 * nota / 100)
-    if nota > 0:
-        d.arc([cx-radio, cy-radio, cx+radio, cy+radio], start=-90, end=end_angle, fill=c_accent, width=35)
-
-    # Textos centrales anclados matemáticamente al centro ('mm')
-    d.text((cx, cy - 30), str(nota), font=fnt_hero, fill=c_text_hi, anchor="mm")
-    d.text((cx, cy + 110), "/ 100", font=fnt_hero_sm, fill=c_text_lo, anchor="mm")
-
-    # Botonera de Rango
-    box_w = 340
-    box_h = 65
-    d.rectangle([cx - box_w//2, cy + 280, cx + box_w//2, cy + 280 + box_h], fill=c_bg, outline=c_accent, width=2)
-    rango_txt = f"RANGO OBTENIDO: {rango}"
-    d.text((cx, cy + 280 + box_h//2), rango_txt, font=fnt_stats, fill=c_text_hi, anchor="mm")
-
-    # ── 6. SECCIÓN DATOS Y BARRAS (Mitad Derecha) ───────────────────────
-    rx = 620  
-    ry = 220
+    # ── 4. CABECERA (BRANDING) ──────────────────────────────────────────
+    d.text((60, 60), "CRYSIS", font=fnt_title, fill=c_text_h)
+    d.text((60, 110), "INTELLIGENCE UNIT // CERTIFICADO OFICIAL", font=fnt_label, fill=c_accent)
     
-    # Textos ID
-    d.text((rx, ry), "AGENTE / ID", font=fnt_sub, fill=c_text_lo)
-    d.text((rx, ry + 30), agente.upper(), font=fnt_title, fill=c_text_hi)
-    
-    # Textos Operación
-    d.text((rx, ry + 100), "CÓDIGO DE OPERACIÓN", font=fnt_sub, fill=c_text_lo)
-    esc_limpio = escenario.replace("OPERACION: ", "").replace("OPERACIÓN: ", "")[:30].upper()
-    d.text((rx, ry + 130), esc_limpio, font=fnt_title, fill=c_text_hi)
+    # Sello de verificación visual (Círculo tech en la esquina superior derecha)
+    d.ellipse([W-160, 60, W-60, 160], outline=c_accent, width=3)
+    d.text((W-110, 110), "VERIFIED", font=fnt_label, fill=c_text_h, anchor="mm")
 
-    # Línea divisoria
-    d.line([(rx, ry + 200), (W-40, ry + 200)], fill=c_border, width=1)
-    d.text((rx, ry + 230), "DESGLOSE DE HABILIDADES", font=fnt_sub, fill=c_text_lo)
+    # ── 5. ELEMENTO CENTRAL: LA PUNTUACIÓN ──────────────────────────────
+    # Un anillo de progreso sutil detrás del número
+    cx, cy = W//2, H//2 - 50
+    r_ring = 380
+    d.arc([cx-r_ring, cy-r_ring, cx+r_ring, cy+r_ring], start=0, end=360, fill=(20, 30, 50), width=15)
+    d.arc([cx-r_ring, cy-r_ring, cx+r_ring, cy+r_ring], start=-90, end=-90 + (nota*3.6), fill=c_accent, width=15)
+
+    # El Número (Protagonista)
+    d.text((cx, cy), str(nota), font=fnt_score, fill=c_text_h, anchor="mm")
+    d.text((cx, cy + 160), "PUNTUACIÓN TÁCTICA", font=fnt_label, fill=c_accent, anchor="mm")
+
+    # El Rango (Letra) como un Badge flotante
+    badge_x, badge_y = cx + 220, cy - 140
+    d.rounded_rectangle([badge_x, badge_y, badge_x+120, badge_y+120], radius=10, fill=c_accent)
+    d.text((badge_x+60, badge_y+60), rango, font=fnt_rank, fill=c_bg, anchor="mm")
+
+    # ── 6. BLOQUE DE DATOS (INFERIOR) ───────────────────────────────────
+    # Rectángulo contenedor de datos
+    d.rectangle([60, H-360, W-60, H-140], fill=c_card, outline=(40, 50, 80), width=1)
     
-    # Lógica de Barras gruesas
-    stats = [
-        ("NEGOCIACIÓN", min(100, int(nota * 0.95))),
-        ("PERSUASIÓN",  min(100, int(nota * 0.88))),
-        ("ESTRATEGIA",  min(100, int(nota * 1.0)))
+    # Columnas de datos
+    datos = [
+        ("OPERADOR", agente.upper()),
+        ("MISIÓN", escenario.replace("OPERACION: ", "")[:22]),
+        ("ESTADO", "COMPLETADO"),
+        ("VERIFICACIÓN", hashlib.md5(agente.encode()).hexdigest()[:8].upper())
     ]
     
-    bar_y = ry + 280
-    bar_w = 400
-    bar_h = 24  # Grosor de la barra
-    
-    for label, val in stats:
-        d.text((rx, bar_y), label, font=fnt_stats, fill=c_text_hi)
-        d.text((rx + bar_w, bar_y), f"{val}%", font=fnt_stats, fill=c_accent, anchor="ra")
-        
-        # Fondo oscuro de la barra
-        d.rectangle([rx, bar_y + 40, rx + bar_w, bar_y + 40 + bar_h], fill=(24, 34, 54))
-        
-        # Relleno de color
-        if val > 0:
-            fill_w = int(bar_w * val / 100)
-            d.rectangle([rx, bar_y + 40, rx + fill_w, bar_y + 40 + bar_h], fill=c_accent)
-            
-        bar_y += 105
+    for i, (label, value) in enumerate(datos):
+        x_pos = 100 + (i % 2) * 450
+        y_pos = H - 310 + (i // 2) * 90
+        d.text((x_pos, y_pos), label, font=fnt_label, fill=c_text_l)
+        d.text((x_pos, y_pos + 35), value, font=fnt_data, fill=c_text_h)
 
-    # ── 7. FOOTER SÓLIDO (Publicidad) ───────────────────────────────────
-    footer_h = 130
-    footer_y = H - footer_h
-    d.rectangle([0, footer_y, W, H], fill=c_accent)
-    
-    # Código de barras decorativo a la izquierda
-    for i in range(14):
-        w_line = (i * 13) % 6 + 3
-        d.rectangle([40 + i*11, footer_y + 35, 40 + i*11 + w_line, footer_y + 95], fill=(15, 23, 42))
+    # ── 7. FOOTER CON LINK Y "CÓDIGO QR" SIMULADO ──────────────────────
+    footer_y = H - 80
+    # Dibujamos un "Data Matrix" decorativo (cuadrado de puntos tech)
+    for row in range(5):
+        for col in range(5):
+            if (row + col) % 2 == 0:
+                d.rectangle([W-120 + col*10, footer_y - 30 + row*10, W-112 + col*10, footer_y - 22 + row*10], fill=c_accent)
 
-    # CTA Centrado
-    cta_texto = "PON A PRUEBA TUS HABILIDADES EN: HTTPS://CRYSIS.STREAMLIT.APP/"
-    d.text((W//2 + 50, footer_y + footer_h//2), cta_texto, font=fnt_cta, fill=(15, 23, 42), anchor="mm")
+    link_text = "PONTE A PRUEBA EN: HTTPS://CRYSIS.STREAMLIT.APP"
+    d.text((60, footer_y), link_text, font=fnt_footer, fill=c_text_l)
+    
+    # Línea final de acento
+    d.line([(60, H-40), (W-60, H-40)], fill=c_accent, width=4)
 
     # ── 8. EXPORTAR ─────────────────────────────────────────────────────
     buf = io.BytesIO()
