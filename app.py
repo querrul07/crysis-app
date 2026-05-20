@@ -939,22 +939,28 @@ if st.session_state.usuario_actual is None:
                             if not acepta_tyc or not acepta_rgpd:
                                 st.error("Debes aceptar los Términos y la Política de Privacidad para continuar.")
                             elif n and p and email:
-                                usuario_existente = cargar_perfil_usuario(n)
-                                if usuario_existente:
+                                # 1. Comprobar si el ID ya existe
+                                if cargar_perfil_usuario(n):
                                     st.warning("Este ID ya está registrado. Elige otro.")
                                 else:
-                                    nuevo_usuario = {
-                                        "Nombre":  n,
-                                        "Email":   email,
-                                        "Rol":     "Individual" if not es_corporativo else "Empresa",
-                                        "Plan":    "BASE",
-                                        "Empresa": n if es_corporativo else "Independiente",
-                                        "xp": 0, "logros": [], "racha": 0
-                                    }
-                                    guardar_perfil_en_db(nuevo_usuario, password_nueva=p)
-                                    st.success("Cuenta creada con éxito. Ya puedes iniciar sesión.")
-                                    st.session_state.login_modo = "acceso"
-                                    st.rerun()
+                                    # 2. Comprobar si el EMAIL ya existe (solo para registros nuevos)
+                                    res_email = supabase.table("perfiles").select("email").eq("email", email).execute()
+                                    if res_email.data:
+                                        st.error("Este correo electrónico ya está vinculado a otra cuenta.")
+                                    else:
+                                        # 3. Crear el usuario si todo es único
+                                        nuevo_usuario = {
+                                            "Nombre": n,
+                                            "Email": email,
+                                            "Rol": "Individual" if not es_corporativo else "Empresa",
+                                            "Plan": "BASE",
+                                            "Empresa": n if es_corporativo else "Independiente",
+                                            "xp": 0, "logros": [], "racha": 0
+                                        }
+                                        guardar_perfil_en_db(nuevo_usuario, password_nueva=p)
+                                        st.success("Cuenta creada con éxito. Ya puedes iniciar sesión.")
+                                        st.session_state.login_modo = "acceso"
+                                        st.rerun()
                             else:
                                 st.warning("Rellena todos los campos para continuar.")
 
