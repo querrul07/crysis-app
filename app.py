@@ -1445,6 +1445,30 @@ elif st.session_state.pantalla_actual == "cuenta":
                 guardar_datos()
                 st.success(f"Correo actualizado a: {nuevo_email}")
 
+    # --- Cambiar ID de Operador ---
+    st.markdown("<br><div class='section-label'>CAMBIAR ID DE OPERADOR</div>", unsafe_allow_html=True)
+    with st.expander("ACTUALIZAR IDENTIFICADOR (ID)"):
+        nuevo_id_input = st.text_input("Nuevo ID Operativo", key="nuevo_id_cuenta")
+        if st.button("ACTUALIZAR MI ID", key="btn_cambiar_id"):
+            if not nuevo_id_input:
+                st.warning("Introduce un ID válido.")
+            elif nuevo_id_input == u["Nombre"]:
+                st.info("El nuevo ID es idéntico al actual.")
+            else:
+                # 1. Comprobar si el nuevo ID ya está pillado por otro
+                if cargar_perfil_usuario(nuevo_id_input):
+                    st.error("Este ID ya está siendo usado por otro agente.")
+                else:
+                    try:
+                        # 2. Actualizar en la base de datos
+                        supabase.table("perfiles").update({"id_usuario": nuevo_id_input}).eq("id_usuario", u["Nombre"]).execute()
+                        # 3. Actualizar la sesión actual para que la web sepa quién eres ahora
+                        st.session_state.usuario_actual["Nombre"] = nuevo_id_input
+                        st.success(f"Identificador cambiado a: {nuevo_id_input}")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Fallo al actualizar el ID: {e}")
+
     # --- Cambiar Contraseña ---
     st.markdown("<br><div class='section-label'>CAMBIAR CONTRASEÑA</div>", unsafe_allow_html=True)
     with st.expander("ACTUALIZAR CLAVE DE ACCESO"):
