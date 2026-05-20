@@ -42,48 +42,44 @@ def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
     from PIL import Image, ImageDraw, ImageFont
     import io
     
-    # Crear lienzo de alta resolución
-    img = Image.new('RGB', (800, 1000), color='#060810')
+    # 1. Lienzo vertical de alta calidad (1000x1300)
+    img = Image.new('RGB', (1000, 1300), color='#060810')
     d = ImageDraw.Draw(img)
     
-    # Dibujar rejilla de fondo (estilo técnico)
-    for i in range(0, 800, 40): d.line([(i, 0), (i, 1000)], fill='#0A0E1A', width=1)
-    for i in range(0, 1000, 40): d.line([(0, i), (800, i)], fill='#0A0E1A', width=1)
-    
-    # Marco principal
-    d.rectangle([20, 20, 780, 980], outline=color_hex, width=4)
-    d.rectangle([30, 30, 770, 970], outline=color_hex, width=1)
+    # 2. Decoración de fondo (Líneas de escaneo)
+    for i in range(0, 1300, 8):
+        d.line([(0, i), (1000, i)], fill='#080A15', width=1)
 
-    # Cabecera
-    d.text((50, 60), "CRYSIS // UNIT IDENTIFICATION", fill=color_hex)
-    d.text((50, 100), "CLASSIFIED DOCUMENT - LEVEL 4 ACCESS", fill="#3A4A6A")
-    
-    # Rango Gigante
-    # Nota: Usamos texto simple si no hay fuentes, pero con diseño de caja
-    d.rectangle([300, 250, 500, 450], outline=color_hex, width=2)
-    # Dibujamos el rango grande (como no podemos asegurar fuentes TTF en Streamlit Cloud,
-    # usamos un truco de dibujo para que la letra se vea grande)
-    d.text((375, 320), rango, fill=color_hex) # El rango
+    # 3. Cabecera - PUBLICIDAD DE TU MARCA
+    d.rectangle([0, 0, 1000, 150], fill='#4F8EF7') # Bloque azul
+    d.text((50, 40), "CRYSIS", fill="white") # Imagina que es el logo
+    d.text((50, 90), "INTELLIGENCE UNIT // OFFICIAL EVALUATION", fill="#060810")
 
-    # Datos
-    d.text((50, 550), "PROTOCOL:", fill="#3A4A6A")
-    d.text((200, 550), escenario.upper(), fill="white")
-    
-    d.text((50, 600), "OPERATOR:", fill="#3A4A6A")
-    d.text((200, 600), agente.upper(), fill=color_hex)
-    
-    d.text((50, 650), "EVALUATION:", fill="#3A4A6A")
-    d.text((200, 650), f"{nota}/100", fill="white")
-    
-    # Pie de página
-    d.rectangle([50, 850, 750, 852], fill="#18213A")
-    d.text((50, 880), "SYSTEM: TACTICAL ENGINE V3.1", fill="#18213A")
-    d.text((50, 910), "HASH: " + hashlib.md5(agente.encode()).hexdigest()[:16].upper(), fill="#18213A")
+    # 4. Marco de Rango (El Trofeo)
+    d.rectangle([250, 250, 750, 650], outline=color_hex, width=5)
+    d.text((430, 380), rango, fill=color_hex) # Rango gigante
+    d.text((400, 580), "STATUS: VERIFIED", fill=color_hex)
 
+    # 5. Información del Agente
+    # Caja de Puntuación
+    d.rectangle([50, 750, 950, 950], outline="#18213A", width=2)
+    d.text((80, 780), "OPERATOR IDENTITY:", fill="#3A4A6A")
+    d.text((80, 830), agente.upper(), fill="white")
+    
+    d.text((600, 780), "MISSION SCORE:", fill="#3A4A6A")
+    d.text((600, 830), f"{nota}/100", fill=color_hex)
+
+    # Detalles de Misión
+    d.text((80, 1000), "MISSION PROTOCOL:", fill="#3A4A6A")
+    d.text((80, 1050), escenario.upper(), fill="white")
+
+    # 6. Pie de página - Publicidad sutil pero profesional
+    d.text((50, 1200), "WWW.CRYSIS-APP.COM", fill="#4F8EF7")
+    d.text((800, 1200), "V3.1 SECURE", fill="#18213A")
+    
     buf = io.BytesIO()
     img.save(buf, format='PNG')
     return buf.getvalue()
-
 # ─────────────────────────────────────────
 # CONFIGURACIÓN DE SUPERUSUARIO
 # ─────────────────────────────────────────
@@ -1396,15 +1392,38 @@ elif st.session_state.pantalla_actual == "expedientes":
                             <div style="font-size:0.85rem; color:#B8C4DC; margin-bottom:10px;">{s['Evaluacion']}</div>
                             """, unsafe_allow_html=True)
 
-                            col_pdf, col_del = st.columns([3, 1])
-                            with col_pdf:
-                                st.download_button(
-                                    label="EXTRAER DOSSIER PDF",
-                                    data=generar_pdf_dossier(s),
-                                    file_name=f"CRYSIS_{s['Agente']}_{s['Fecha'][:10]}.pdf",
-                                    mime="application/pdf",
-                                    key=f"pdf_{s['Agente']}_{s['Fecha']}"
-                                )
+                            # --- BLOQUE DE EXPORTACIÓN (PDF + TROFEO) ---
+                            col_export, col_del = st.columns([3, 1])
+                            with col_export:
+                                c_pdf, c_img = st.columns(2)
+                                with c_pdf:
+                                    # Tu botón de PDF de siempre
+                                    st.download_button(
+                                        label="📥 DOSSIER PDF",
+                                        data=generar_pdf_dossier(s),
+                                        file_name=f"CRYSIS_{s['Agente']}_{s['Fecha'][:10]}.pdf",
+                                        mime="application/pdf",
+                                        key=f"pdf_hist_{s['Agente']}_{s['Fecha']}",
+                                        use_container_width=True
+                                    )
+                                with c_img:
+                                    # NUEVO: Botón para descargar el trofeo visual
+                                    r_l, r_c, _ = obtener_rango_mision(s['Nota'])
+                                    img_data = generar_imagen_dossier(
+                                        s['Agente'], 
+                                        s['Escenario'], 
+                                        s['Nota'], 
+                                        r_l, 
+                                        r_c
+                                    )
+                                    st.download_button(
+                                        label="🏆 DESCARGAR TROFEO",
+                                        data=img_data,
+                                        file_name=f"Trofeo_CRYSIS_{s['Agente']}.png",
+                                        mime="image/png",
+                                        key=f"img_hist_{s['Agente']}_{s['Fecha']}",
+                                        use_container_width=True
+                                    )
                             with col_del:
                                 if puede_borrar:
                                     confirm_key = f"confirm_del_{s['Agente']}_{s['Fecha']}"
@@ -1702,76 +1721,42 @@ elif st.session_state.pantalla_actual == "simulador":
             st.rerun()
 
     elif st.session_state.evaluacion_actual:
-        # --- 1. LÓGICA DE DATOS Y RANGO ---
         ultima_sesion = st.session_state.historial_sesiones[-1]
         nota_final = ultima_sesion["Nota"]
         rango_letra, rango_color, rango_desc = obtener_rango_mision(nota_final)
 
-        # --- 2. BANNER DE XP Y LOGROS ---
+        # Banner de XP corregido
         xp_ob = st.session_state.get("xp_ganado_ultimo", 0)
-        log_n = st.session_state.get("logros_nuevos_ultimo", [])
         if xp_ob > 0:
-            logros_html = ""
-            for l in log_n:
-                nombre_logro = LOGROS_DEF[l]["nombre"]
-                xp_logro = LOGROS_DEF[l]["xp"]
-                logros_html += f'<div style="margin-top:5px; font-family:var(--mono); font-size:0.6rem; color:#10B981;">◉ LOGRO: {nombre_logro} (+{xp_logro} XP)</div>'
-            
             st.markdown(f"""
-            <div style="background: rgba(240,165,0,0.05); border-left: 3px solid #F0A500; padding: 15px; margin-bottom: 20px;">
-                <div style="color:#F0A500; font-family:var(--mono); font-weight:700; font-size:0.8rem;">+{xp_ob} XP OBTENIDOS EN ESTA MISIÓN</div>
-                {logros_html}
+            <div style="background: rgba(79,142,247,0.1); border-left: 3px solid #4F8EF7; padding: 15px; margin-bottom: 20px; font-family: 'Share Tech Mono';">
+                <span style="color:#4F8EF7; font-weight:bold;">+ {xp_ob} XP</span> | REPORTE TÁCTICO GENERADO
             </div>
             """, unsafe_allow_html=True)
 
-        # --- 3. TARJETA VISUAL DE RANGO ---
+        # TARJETA TIPO TROFEO (Visual en web)
         st.markdown(f"""
-        <div class="share-card" style="border-color: {rango_color}">
-            <div class="share-meta">CRYSIS // INTELLIGENCE UNIT</div>
-            <div style="font-size: 1.2rem; color: #E2EAF8; margin-top:15px;">{st.session_state.escenario_activo}</div>
-            <div class="share-rank" style="color: {rango_color}">{rango_letra}</div>
-            <div style="font-size: 1.8rem; font-weight: bold; color: white;">{nota_final}/100</div>
-            <div style="color: {rango_color}; font-size: 0.8rem; margin-bottom: 20px;">{rango_desc}</div>
-            <div class="share-meta">AGENTE: {st.session_state.agente_activo.upper()}</div>
+        <div style="background: #0B0E1A; border: 2px solid {rango_color}; padding: 40px; border-radius: 5px; text-align: center; margin-bottom: 25px;">
+            <div style="color: #3A4A6A; font-family: 'Share Tech Mono'; letter-spacing: 5px; font-size: 0.8rem;">CRYSIS // INTELLIGENCE UNIT</div>
+            <div style="color: {rango_color}; font-size: 6rem; font-weight: bold; font-family: 'Share Tech Mono'; margin: 20px 0;">{rango_letra}</div>
+            <div style="color: white; font-size: 1.5rem; font-weight: bold;">{nota_final}/100</div>
+            <div style="color: {rango_color}; font-family: 'Share Tech Mono';">{rango_desc}</div>
+            <hr style="border-color: #18213A; margin: 20px 0;">
+            <div style="color: #4F8EF7; font-size: 0.9rem;">AGENTE: {st.session_state.agente_activo.upper()}</div>
         </div>
         """, unsafe_allow_html=True)
 
-        # --- 4. BOTONES DE EXPORTACIÓN (3 COLUMNAS) ---
-        st.markdown("<div class='section-label'>GESTIÓN DE EXPEDIENTE</div>", unsafe_allow_html=True)
+        # Botones de descarga
         c1, c2, c3 = st.columns(3)
-        
         with c1:
-            pdf_data = generar_pdf_dossier(ultima_sesion)
-            st.download_button(
-                label="📥 DOSSIER PDF",
-                data=pdf_data,
-                file_name=f"CRYSIS_{st.session_state.agente_activo}_Report.pdf",
-                mime="application/pdf",
-                use_container_width=True
-            )
-            
+            st.download_button("📥 DESCARGAR PDF", data=generar_pdf_dossier(ultima_sesion), file_name="Dossier.pdf", use_container_width=True)
         with c2:
-            img_data = generar_imagen_dossier(
-                st.session_state.agente_activo,
-                st.session_state.escenario_activo,
-                nota_final,
-                rango_letra,
-                rango_color
-            )
-            st.download_button(
-                label="🖼️ GUARDAR IMAGEN",
-                data=img_data,
-                file_name=f"CRYSIS_Rango_{rango_letra}_{st.session_state.agente_activo}.png",
-                mime="image/png",
-                use_container_width=True
-            )
-            
+            img_trofeo = generar_imagen_dossier(st.session_state.agente_activo, st.session_state.escenario_activo, nota_final, rango_letra, rango_color)
+            st.download_button("DESCARGAR IMAGEN (IMG)", data=img_trofeo, file_name="Crysis_Trophy.png", mime="image/png", use_container_width=True)
         with c3:
             if st.button("⬅ VOLVER AL MENÚ", use_container_width=True):
                 st.session_state.mision_iniciada = False
                 st.session_state.evaluacion_actual = None
-                st.session_state.mensajes = []
-                st.session_state.tarjeta_objetivo = None
                 st.session_state.pantalla_actual = "menu"
                 st.rerun()
 
