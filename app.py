@@ -2202,7 +2202,7 @@ elif st.session_state.pantalla_actual == "admin" and u["Nombre"] == COMANDANTE_S
                 st.info("No hay usuarios registrados.")
 
     st.markdown("<br><div class='section-label'>ZONA DE PELIGRO</div>", unsafe_allow_html=True)
-    st.markdown("""<div class="alert-box error">Esta acción destruirá todos los datos de la plataforma de forma irreversible.</div>""", unsafe_allow_html=True)
+    st.markdown('<div class="alert-box error">Esta accion destruira todos los datos de la plataforma de forma irreversible.</div>', unsafe_allow_html=True)
     if st.button("FORMATEAR PLATAFORMA COMPLETA", use_container_width=True, key="btn_formatear"):
         st.session_state.empleados          = []
         st.session_state.historial_sesiones = []
