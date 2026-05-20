@@ -1112,7 +1112,7 @@ if st.session_state.pantalla_actual == "menu":
             <div style="font-size:11px; color:#8B9CC8; margin-bottom:14px;">{ops_mes} OPERACIONES ESTE MES</div>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("⚡  INICIAR SIMULADOR", key="menu_sim", use_container_width=True):
+        if st.button("INICIAR SIMULADOR", key="menu_sim", use_container_width=True):
             st.session_state.pantalla_actual = "simulador"; st.rerun()
 
     with col_daily:
