@@ -854,15 +854,27 @@ if st.session_state.usuario_actual is None:
                         # BOTÓN TEMPORAL PARA RECUPERAR USUARIOS
                         if st.form_submit_button("RECUPERAR CUENTAS ANTIGUAS"):
                                 migrar_usuarios_antiguos()
+                        with st.expander("ASISTENCIA TÉCNICA"):
+                        u_res = st.text_input("Usuario a resetear")
+                        p_nue = st.text_input("Nueva Clave", type="password")
+                        if st.button("CAMBIAR CLAVE"):
+                            h = hash_password(p_nue)
+                            supabase.table("perfiles").update({"password_hash": h}).eq("id_usuario", u_res).execute()
+                            st.success("Clave cambiada.")
+
+
+                        
                         if submitted:
-                                    # --- NUEVO SISTEMA DE LOGIN ---
-                            agente_db = cargar_perfil_usuario(u_id)
-                            if agente_db:
-                                 # Comprobamos si la contraseña es correcta (usando seguridad hash)
-                                 password_correcta = check_password(u_pass, agente_db.get("password_hash", ""))
-                                        
-                            if password_correcta:
-                                 # Preparamos los datos para la sesión actual
+                        # --- LOGIN SEGURO ---
+                        agente_db = cargar_perfil_usuario(u_id)
+                        
+                        if agente_db:
+                            # Primero fabricamos la respuesta de la contraseña
+                            pass_db = agente_db.get("password_hash", "")
+                            es_valida = check_password(u_pass, pass_db)
+                            
+                            if es_valida:
+                                # Si todo es correcto, entramos
                                 progreso = agente_db.get("datos_progresion", {})
                                 agente = {
                                     "Nombre": agente_db["id_usuario"],
@@ -874,16 +886,16 @@ if st.session_state.usuario_actual is None:
                                     "logros": progreso.get("logros", []),
                                     "racha": progreso.get("racha", 0),
                                     "ultima_sesion": progreso.get("ultima_sesion", ""),
-                                    "2FA_Verificado": True # Saltamos 2FA por ahora para facilitar el test
+                                    "2FA_Verificado": True
                                 }
                                 st.session_state.usuario_actual = agente
                                 st.session_state.pantalla_actual = "menu"
                                 st.rerun()
                             else:
-                                st.error("Contraseña incorrecta.")
+                                st.error("CONTRASEÑA INCORRECTA")
                         else:
-                            st.error("El ID de operador no existe.")
-
+                            st.error("EL ID DE OPERADOR NO EXISTE")
+                            
                     st.markdown("<div style='margin-top:12px; text-align:right;'>", unsafe_allow_html=True)
                     if st.button("¿Olvidaste tu contraseña?", key="btn_forgot"):
                         st.session_state.login_subpantalla = "forgot"; st.rerun()
