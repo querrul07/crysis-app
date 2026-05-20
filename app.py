@@ -1454,9 +1454,9 @@ elif st.session_state.pantalla_actual == "expedientes":
                                         r_c
                                     )
                                     st.download_button(
-                                        label="DESCARGAR TROFEO",
+                                        label="DESCARGAR IMAGEN",
                                         data=img_data,
-                                        file_name=f"Trofeo_CRYSIS_{s['Agente']}.png",
+                                        file_name=f"DIPLOMA_CRYSIS_{s['Agente']}.png",
                                         mime="image/png",
                                         key=f"img_hist_{s['Agente']}_{s['Fecha']}",
                                         use_container_width=True
