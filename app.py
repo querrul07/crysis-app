@@ -1049,60 +1049,136 @@ def ir_a(p):
 # ─────────────────────────────────────────
 if st.session_state.pantalla_actual == "menu":
     ahora = datetime.now()
-    fecha_str = ahora.strftime("%H.%M - %d.%m.%Y")
-    st.markdown(f"""
-    <div class="dashboard-header">
-        <div class="dashboard-greeting">Bienvenido, {u['Nombre'].upper()}</div>
-        <div class="dashboard-meta">{fecha_str} · SISTEMA OPERATIVO</div>
-        <div class="dashboard-status">
-            <span>SYSTEM STATUS: SECURE</span>
-            <span>GLOBAL NETWORK: OPTIMIZED</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    fecha_str = ahora.strftime("%H.%M — %d.%m.%Y")
 
-    total_ops    = len(historial_visible)
-    media_global = int(sum(s["Nota"] for s in historial_visible) / total_ops) if total_ops > 0 else 0
-    mes_actual   = datetime.now().strftime("%Y-%m")
-    ops_mes      = len([s for s in historial_visible if str(s.get("Fecha","")).startswith(mes_actual)])
-    agentes_act  = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"])
-    esc_creados  = len(mis_escenarios)
-    metrica_cuenta = f"{u['Nombre'].upper()} · {mi_plan}"
-    metrica_agentes = f"AGENTES ACTIVOS {agentes_act}"
+    # Datos del usuario para el header
+    u_data_menu   = next((e for e in st.session_state.empleados if e["Nombre"] == u["Nombre"]), {})
+    xp_act        = u_data_menu.get("xp", 0)
+    racha_act     = u_data_menu.get("racha", 0)
+    niv_nom, niv_col, xp_falta, pct_niv = get_nivel_usuario(xp_act)
+    ya_hizo_diaria = u_data_menu.get("diaria_hoy", "") == ahora.strftime("%Y-%m-%d")
+
+    total_ops     = len(historial_visible)
+    media_global  = int(sum(s["Nota"] for s in historial_visible) / total_ops) if total_ops > 0 else 0
+    mes_actual    = ahora.strftime("%Y-%m")
+    ops_mes       = len([s for s in historial_visible if str(s.get("Fecha","")).startswith(mes_actual)])
+    esc_creados   = len(mis_escenarios)
+    agentes_act   = len([e for e in st.session_state.empleados if e.get("Empresa") == empresa_actual and e.get("Rol") == "Agente"])
+    estado_diaria = "COMPLETADA HOY" if ya_hizo_diaria else "DISPONIBLE · +80 XP"
+
     _precios = {"COMANDANCIA":199,"ESCUADRON":89,"ELITE":49,"OPERADOR":19,"BASE":0,
                 "Enterprise":199,"Pro":89,"Individual":19,"Gratis":0}
     mrr = sum(_precios.get(_legacy.get(e.get("Plan","BASE"), e.get("Plan","BASE")), 0)
               for e in st.session_state.empleados)
 
-    tarjetas = [
-        ("estadisticas", "ANÁLISIS DE RENDIMIENTO",  f"RENDIMIENTO MEDIO {media_global}%",         "#4F8EF7"),
-        ("simulador",    "SIMULADOR TÁCTICO",         f"OPERACIONES ACTIVAS ESTE MES {ops_mes}",     "#00D4A0"),
-        ("expedientes",  "HISTORIAL DE EXPEDIENTES",  f"EXPEDIENTES TOTALES {total_ops}",            "#F0A500"),
+    # ── HEADER ──────────────────────────────────────────────────
+    st.markdown(f"""
+    <div style="display:flex; justify-content:space-between; align-items:flex-end;
+                padding-bottom:20px; border-bottom:1px solid #18213A; margin-bottom:24px;">
+        <div>
+            <div style="font-size:11px; color:#3A4A6A; letter-spacing:3px; margin-bottom:8px;">
+                BIENVENIDO DE VUELTA · {fecha_str}
+            </div>
+            <div style="font-size:22px; font-weight:700; color:#E2EAF8; letter-spacing:1px; font-family:'Courier New',monospace;">
+                CRYSIS
+            </div>
+            <div style="display:flex; gap:14px; margin-top:8px;">
+                <span style="font-size:11px; color:#00D4A0; letter-spacing:2px;">● {niv_nom}</span>
+                <span style="font-size:11px; color:#3A4A6A; letter-spacing:2px;">RACHA {racha_act} DÍAS</span>
+                <span style="font-size:11px; color:#3A4A6A; letter-spacing:2px;">{xp_act} XP TOTAL</span>
+            </div>
+        </div>
+        <div style="text-align:right;">
+            <div style="font-size:10px; color:#3A4A6A; letter-spacing:3px; margin-bottom:6px;">PROGRESO DE NIVEL</div>
+            <div style="width:180px; height:5px; background:#18213A; border-radius:3px; overflow:hidden;">
+                <div style="height:100%; width:{pct_niv}%; background:{niv_col}; border-radius:3px;"></div>
+            </div>
+            <div style="font-size:10px; color:#3A4A6A; margin-top:4px;">{pct_niv}% · {xp_falta} XP para siguiente nivel</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── SECCIÓN: ACCIONES PRINCIPALES ───────────────────────────
+    st.markdown("<div style='font-size:10px; color:#3A4A6A; letter-spacing:4px; margin-bottom:10px;'>▸ ACCIONES PRINCIPALES</div>", unsafe_allow_html=True)
+    col_sim, col_daily = st.columns([3, 2])
+
+    with col_sim:
+        st.markdown(f"""
+        <div style="background:#051A30; border:1px solid #1A3A5C; border-top:3px solid #4F8EF7;
+                    border-radius:4px; padding:22px 20px; position:relative; overflow:hidden; margin-bottom:10px;">
+            <div style="position:absolute; top:-10px; right:-10px; font-size:80px; opacity:0.07; line-height:1;">⚡</div>
+            <div style="font-size:10px; letter-spacing:3px; color:#4F8EF7; margin-bottom:8px;">MOD-02 · ENTRENAMIENTO ACTIVO</div>
+            <div style="font-size:18px; font-weight:700; color:#E2EAF8; letter-spacing:2px; margin-bottom:6px; font-family:'Courier New',monospace;">SIMULADOR TÁCTICO</div>
+            <div style="font-size:11px; color:#8B9CC8; margin-bottom:14px;">{ops_mes} OPERACIONES ESTE MES</div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("⚡  INICIAR SIMULADOR", key="menu_sim", use_container_width=True):
+            st.session_state.pantalla_actual = "simulador"; st.rerun()
+
+    with col_daily:
+        diaria_color = "#10B981"
+        st.markdown(f"""
+        <div style="background:#051A12; border:1px solid #10B98133; border-top:3px solid {diaria_color};
+                    border-radius:4px; padding:22px 20px; position:relative; overflow:hidden; margin-bottom:10px;">
+            <div style="position:absolute; top:-10px; right:-10px; font-size:80px; opacity:0.07; line-height:1;">◎</div>
+            <div style="font-size:10px; letter-spacing:3px; color:{diaria_color}; margin-bottom:8px;">MISIÓN DIARIA · {estado_diaria}</div>
+            <div style="font-size:18px; font-weight:700; color:#E2EAF8; letter-spacing:2px; margin-bottom:6px; font-family:'Courier New',monospace;">OPERACIÓN DEL DÍA</div>
+            <div style="font-size:11px; color:#8B9CC8; margin-bottom:14px;">DIFICULTAD ALEATORIA DIARIA</div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("◎  MISIÓN DIARIA", key="menu_daily", use_container_width=True):
+            st.session_state.pantalla_actual = "mision_diaria"; st.rerun()
+
+    # ── SECCIÓN: INTELIGENCIA Y ANÁLISIS ────────────────────────
+    st.markdown("<div style='font-size:10px; color:#3A4A6A; letter-spacing:4px; margin:20px 0 10px 0;'>▸ INTELIGENCIA Y ANÁLISIS</div>", unsafe_allow_html=True)
+    col_a1, col_a2, col_a3, col_a4 = st.columns(4)
+
+    cards_ana = [
+        (col_a1, "#F0A500", "#1A1000", "◈ ANÁLISIS",  f"{media_global}%", "RENDIMIENTO",    "Evaluación de desempeño operacional", "estadisticas"),
+        (col_a2, "#E8394A", "#1A0505", "◉ ARCHIVO",   str(total_ops),     "EXPEDIENTES",    "Historial completo de misiones",       "expedientes"),
+        (col_a3, "#A855F7", "#0F0A1A", "◇ SÍNTESIS",  str(esc_creados),   "ESCENARIOS IA",  "Generación de simulaciones custom",    "sintesis"),
+        (col_a4, "#6366F1", "#0A0A1A", "▲ RANKING",   "GLOBAL",           "CLASIFICACIÓN",  "Tabla de líderes en tiempo real",      "ranking"),
     ]
-    tarjetas.append(("cuenta", "TU CUENTA", metrica_cuenta, "#6B7280"))
+
+    for col, color, bg, tag, val, titulo, desc, destino in cards_ana:
+        with col:
+            st.markdown(f"""
+            <div style="background:{bg}; border:1px solid {color}22; border-left:3px solid {color};
+                        border-radius:4px; padding:18px 14px; margin-bottom:6px;">
+                <div style="font-size:10px; letter-spacing:3px; color:{color}; margin-bottom:8px;">{tag}</div>
+                <div style="font-size:22px; font-weight:700; color:{color}; line-height:1; margin-bottom:4px; font-family:'Courier New',monospace;">{val}</div>
+                <div style="font-size:11px; color:#E2EAF8; font-weight:700; letter-spacing:2px; margin-bottom:4px;">{titulo}</div>
+                <div style="font-size:10px; color:#3A4A6A; line-height:1.5;">{desc}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("ABRIR", key=f"menu_{destino}", use_container_width=True):
+                st.session_state.pantalla_actual = destino; st.rerun()
+
+    # ── SECCIÓN: GESTIÓN Y SISTEMA ───────────────────────────────
+    st.markdown("<div style='font-size:10px; color:#3A4A6A; letter-spacing:4px; margin:20px 0 10px 0;'>▸ GESTIÓN Y SISTEMA</div>", unsafe_allow_html=True)
+
+    # construimos la lista de cards de gestión según permisos
+    cards_gest = [
+        ("#6B7280", "#101010", "CUENTA",        f"PLAN {mi_plan}",              "Configuración y suscripción",    "cuenta"),
+    ]
     if es_empresa:
-        tarjetas.append(("personal", "GESTIÓN DE AGENTES", metrica_agentes, "#E8394A"))
-    tarjetas.append(("sintesis", "GENERACIÓN DE ESCENARIOS", f"ESCENARIOS ACTIVOS {esc_creados}", "#A855F7"))
+        cards_gest.append(("#E8394A", "#1A0508", "AGENTES", f"{agentes_act} ACTIVOS", "Gestión de operadores", "personal"))
     if u["Nombre"] == COMANDANTE_SUPREMO:
-        tarjetas.append(("admin", "CONSOLA OMEGA", f"ESTIMATED VALUE {mrr} EUR", "#F59E0B"))
+        cards_gest.append(("#F59E0B", "#1A1000", "CONSOLA OMEGA", f"{mrr} EUR MRR", "Panel de administración global", "admin"))
 
-    # Tarjetas de progresión
-    mision_hoy    = get_mision_diaria_hoy()
-    u_data_menu   = next((e for e in st.session_state.empleados if e["Nombre"] == u["Nombre"]), {})
-    ya_hizo_diaria = u_data_menu.get("diaria_hoy", "") == datetime.now().strftime("%Y-%m-%d")
-    estado_diaria  = "COMPLETADA HOY" if ya_hizo_diaria else "DISPONIBLE AHORA"
-    tarjetas.append(("mision_diaria", "MISIÓN DIARIA", f"{estado_diaria} · +80 XP BONUS", "#10B981"))
-    tarjetas.append(("ranking", "RANKING GLOBAL", "CLASIFICACIÓN EN TIEMPO REAL", "#6366F1"))
-
-    for fila in range(0, len(tarjetas), 3):
-        cols = st.columns(3)
-        for i, (destino, titulo, metrica, color) in enumerate(tarjetas[fila:fila+3]):
-            with cols[i]:
-                st.markdown(f'<div class="card-wrapper" style="--card-color: {color};">', unsafe_allow_html=True)
-                if st.button(f"**{titulo}**\n\n**{metrica}**", key=f"btn_{destino}", use_container_width=True):
-                    st.session_state.pantalla_actual = destino
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
+    cols_gest = st.columns(len(cards_gest))
+    for col, (color, bg, titulo, val, desc, destino) in zip(cols_gest, cards_gest):
+        with col:
+            st.markdown(f"""
+            <div style="background:{bg}; border:1px solid {color}22; border-left:3px solid {color};
+                        border-radius:4px; padding:14px; margin-bottom:6px;">
+                <div style="font-size:11px; font-weight:700; color:#E2EAF8; letter-spacing:2px; margin-bottom:4px;">{titulo}</div>
+                <div style="font-size:13px; font-weight:700; color:{color}; margin-bottom:4px; font-family:'Courier New',monospace;">{val}</div>
+                <div style="font-size:10px; color:#3A4A6A;">{desc}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button(f"IR A {titulo}", key=f"menu_{destino}_gest", use_container_width=True):
+                st.session_state.pantalla_actual = destino; st.rerun()
 
 # ─────────────────────────────────────────
 # ESTADÍSTICAS
