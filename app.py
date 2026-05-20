@@ -1336,7 +1336,6 @@ elif st.session_state.pantalla_actual == "expedientes":
                             with col_export:
                                 c_pdf, c_img = st.columns(2)
                                 with c_pdf:
-                                    # Tu botón de PDF de siempre
                                     st.download_button(
                                         label="📥 DOSSIER PDF",
                                         data=generar_pdf_dossier(s),
@@ -1345,9 +1344,8 @@ elif st.session_state.pantalla_actual == "expedientes":
                                         key=f"pdf_hist_{s['Agente']}_{s['Fecha']}",
                                         use_container_width=True
                                     )
-                                # Descarga de imagen eliminada - solo PDF disponible
-                                with col_del:
-                                    if puede_borrar:
+                            with col_del:
+                                if puede_borrar:
                                     confirm_key = f"confirm_del_{s['Agente']}_{s['Fecha']}"
                                     input_key   = f"input_del_{s['Agente']}_{s['Fecha']}"
                                     if not st.session_state.get(confirm_key, False):
