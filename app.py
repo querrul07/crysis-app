@@ -2017,7 +2017,12 @@ elif st.session_state.pantalla_actual == "mision_diaria":
 # RANKING GLOBAL
 # ─────────────────────────────────────────
 elif st.session_state.pantalla_actual == "ranking":
-    st.markdown("""<div class='section-header'><div>
+    # Recargar datos frescos siempre al entrar al ranking
+    datos_frescos = cargar_datos()
+    st.session_state.empleados          = datos_frescos["empleados"]
+    st.session_state.historial_sesiones = datos_frescos["historial_sesiones"]
+
+    st.markdown("""<div class='section-header'>..."""
         <div class='section-code'>RANKING</div>
         <div class='section-title'>Clasificación Global</div>
     </div></div>""", unsafe_allow_html=True)
