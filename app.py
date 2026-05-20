@@ -162,59 +162,7 @@ def registrar_mision_en_db(mision):
 
 # Estas funciones las dejamos vacías para que el resto del código no de error por ahora
 def cargar_datos(): return {"empleados": [], "historial_sesiones": [], "escenarios_custom": {}}
-def guardar_datos(): pass 
-# ──────────────────────────────────────
-
-def migrar_usuarios_antiguos():
-    try:
-        st.info("Buscando en la base de datos antigua...")
-        response = supabase.table("crysis_data").select("memoria").eq("id", "main").execute()
-        
-        if not response.data:
-            st.error("No se encontraron datos en la tabla antigua (crysis_data).")
-            return
-
-        contenido_cifrado = response.data[0]["memoria"]
-        f = Fernet(st.secrets["ENCRYPTION_KEY"])
-        datos_viejos = json.loads(f.decrypt(contenido_cifrado.encode()).decode())
-        
-        usuarios_viejos = datos_viejos.get("empleados", [])
-        st.write(f"Usuarios encontrados en archivo antiguo: {len(usuarios_viejos)}")
-        
-        contador = 0
-        for u_viejo in usuarios_viejos:
-            nombre = u_viejo.get("Nombre")
-            # Forzamos que el nombre no tenga espacios vacíos
-            nombre = nombre.strip() 
-            
-            # Si no existe, lo creamos
-            if not cargar_perfil_usuario(nombre):
-                nuevo_perfil = {
-                    "Nombre": nombre,
-                    "Email": u_viejo.get("Email", ""),
-                    "Plan": u_viejo.get("Plan", "BASE"),
-                    "Rol": u_viejo.get("Rol", "Individual"),
-                    "Empresa": u_viejo.get("Empresa", "Independiente"),
-                    "xp": u_viejo.get("xp", 0),
-                    "logros": u_viejo.get("logros", []),
-                    "racha": u_viejo.get("racha", 0),
-                    "ultima_sesion": u_viejo.get("ultima_sesion", ""),
-                    "diarias": u_viejo.get("diarias", 0),
-                    "diaria_hoy": u_viejo.get("diaria_hoy", "")
-                }
-                guardar_perfil_en_db(nuevo_perfil, password_nueva=u_viejo.get("Password", "1234"))
-                st.write(f"✅ Migrado: {nombre}")
-                contador += 1
-            else:
-                st.write(f"ℹ️ Ya existía: {nombre}")
-        
-        if contador > 0:
-            st.success(f"MIGRACIÓN EXITOSA: {contador} usuarios nuevos movidos.")
-        else:
-            st.warning("No había usuarios nuevos para migrar.")
-            
-    except Exception as e:
-        st.error(f"Fallo crítico en migración: {e}")
+def guardar_datos(): pass
 
 def enviar_correo_2fa(destinatario, codigo):
     try:
@@ -865,16 +813,6 @@ if st.session_state.usuario_actual is None:
                         u_pass = st.text_input("Clave de Seguridad", type="password")
                         st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
                         submitted = st.form_submit_button("INICIAR SESIÓN SEGURA", use_container_width=True)
-                        if st.form_submit_button("RECUPERAR CUENTAS ANTIGUAS"):
-                            migrar_usuarios_antiguos()
-
-                    with st.expander("ASISTENCIA TÉCNICA"):
-                        u_res = st.text_input("Usuario a resetear")
-                        p_nue = st.text_input("Nueva Clave", type="password")
-                        if st.button("CAMBIAR CLAVE"):
-                            h = hash_password(p_nue)
-                            supabase.table("perfiles").update({"password_hash": h}).eq("id_usuario", u_res).execute()
-                            st.success("Clave cambiada.")
 
                     if submitted:
                         agente_db = cargar_perfil_usuario(Du_id.strip())
