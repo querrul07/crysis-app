@@ -20,6 +20,8 @@ from urllib.parse import quote
 import hashlib
 from PIL import Image, ImageDraw, ImageFont
 import io
+import urllib.request
+import math
 
 @st.cache_data(ttl=86400)
 def buscar_wikipedia(nombre: str):
@@ -39,145 +41,131 @@ def buscar_wikipedia(nombre: str):
     return None
 
 def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
-    from PIL import Image, ImageDraw, ImageFont
-    import io, random
+    # ── 1. GESTIÓN DE FUENTES (Solución a las tildes) ────────────────
+    # Descargamos una fuente profesional de Google en memoria para asegurar soporte de tildes
+    def obtener_fuente(url, tamaño):
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            fuente_bytes = urllib.request.urlopen(req).read()
+            return ImageFont.truetype(io.BytesIO(fuente_bytes), tamaño)
+        except Exception:
+            return ImageFont.load_default()
 
-    def cargar_fuente(rutas, size):
-        for ruta in rutas:
-            try:
-                return ImageFont.truetype(ruta, size)
-            except (IOError, OSError):
-                continue
-        return ImageFont.load_default()
+    # Usamos Montserrat (muy limpia y profesional para LinkedIn)
+    URL_BOLD = "https://github.com/googlefonts/montserrat/raw/main/fonts/ttf/Montserrat-Bold.ttf"
+    URL_REG = "https://github.com/googlefonts/montserrat/raw/main/fonts/ttf/Montserrat-Medium.ttf"
 
-    BOLD_PATHS = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
-        "/usr/share/fonts/liberation/LiberationSans-Bold.ttf",
-    ]
-    REG_PATHS = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-        "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
-        "/usr/share/fonts/liberation/LiberationSans-Regular.ttf",
-    ]
-    MONO_PATHS = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf",
-        "/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf",
-        "/usr/share/fonts/liberation/LiberationMono-Bold.ttf",
-    ]
+    fnt_hero    = obtener_fuente(URL_BOLD, 280)  # NOTA GIGANTE
+    fnt_hero_sm = obtener_fuente(URL_BOLD, 60)
+    fnt_title   = obtener_fuente(URL_BOLD, 45)
+    fnt_sub     = obtener_fuente(URL_REG, 22)
+    fnt_stats   = obtener_fuente(URL_BOLD, 28)
+    fnt_cta     = obtener_fuente(URL_BOLD, 35)
+
+    # ── 2. CONFIGURACIÓN DE LIENZO Y COLORES ────────────────────────
+    W, H = 1080, 1080
+    c_bg = (11, 15, 25)          # Azul marino casi negro (muy premium)
+    img = Image.new('RGB', (W, H), c_bg)
+    d = ImageDraw.Draw(img)
 
     def hex_to_rgb(h):
         h = h.lstrip('#')
         return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
-
-    W, H = 1080, 1080
-    img = Image.new('RGB', (W, H), '#05080F')
-    d = ImageDraw.Draw(img)
-
-    c_accent  = hex_to_rgb(color_hex)
-    c_bg_dark = (5, 8, 15)
-    c_border  = (24, 33, 58)
-    c_text_hi = (226, 234, 248)
-    c_text_lo = (80, 95, 130)
-
-    # ── 1. FONDO Y EFECTOS ────────────────────────────────────────
-    # Rejilla
-    for x in range(0, W, 54):
-        d.line([(x, 0), (x, H)], fill=(12, 17, 30), width=1)
-    for y in range(0, H, 54):
-        d.line([(0, y), (W, y)], fill=(12, 17, 30), width=1)
-
-    # Glow central
-    for r in range(450, 0, -10):
-        overlay = Image.new('RGB', (W, H), c_bg_dark)
-        od = ImageDraw.Draw(overlay)
-        alpha = int(6 * (1 - r / 450))
-        glow_col = tuple(min(255, int(c * alpha / 255 * 3)) for c in c_accent)
-        od.ellipse([W//2 - r, H//2 - r, W//2 + r, H//2 + r], fill=glow_col)
-        img = Image.blend(img, overlay, 0.015)
-        d = ImageDraw.Draw(img)
-
-    # Marca de agua GIGANTE en el fondo (Publicidad pasiva)
-    fnt_watermark = cargar_fuente(BOLD_PATHS, 250)
-    d.text((W//2, H//2 - 50), "CRYSIS", font=fnt_watermark, fill=(12, 18, 35), anchor="mm")
-
-    # Esquinas tácticas (UI)
-    L = 40
-    for x, y in [(0,0), (W-L,0), (0,H-L), (W-L,H-L)]:
-        d.rectangle([x, y, x+L, y+L], outline=c_accent, width=3)
-
-    # ── 2. FUENTES ────────────────────────────────────────────────
-    fnt_header   = cargar_fuente(MONO_PATHS, 18)
-    fnt_score    = cargar_fuente(BOLD_PATHS, 240) # Aún más grande
-    fnt_score_sm = cargar_fuente(BOLD_PATHS, 60)
-    fnt_rango    = cargar_fuente(MONO_PATHS, 22)
-    fnt_info_lbl = cargar_fuente(MONO_PATHS, 14)
-    fnt_info_val = cargar_fuente(BOLD_PATHS, 28)
-    fnt_cta      = cargar_fuente(BOLD_PATHS, 38)
-
-    # ── 3. CABECERA TÁCTICA ───────────────────────────────────────
-    d.text((40, 40), "CRYSIS INTELLIGENCE UNIT", font=fnt_header, fill=c_accent)
-    d.text((W - 40, 40), "PERFORMANCE REPORT", font=fnt_header, fill=c_text_lo, anchor="ra")
-    d.line([(40, 70), (W - 40, 70)], fill=c_border, width=2)
-
-    # ── 4. NOTA CENTRAL CON ANILLO DE PROGRESO (HÉROE) ────────────
-    cy = 450 # Centro vertical ajustado
-    r_arc = 260
     
-    # Fondo del anillo
-    d.arc([W//2 - r_arc, cy - r_arc, W//2 + r_arc, cy + r_arc], start=0, end=360, fill=(20, 28, 50), width=15)
+    c_accent = hex_to_rgb(color_hex)
+    c_text_hi = (240, 245, 255)
+    c_text_lo = (100, 120, 150)
+    c_border = (30, 45, 75)
+
+    # ── 3. MARCA DE AGUA Y FONDO TECNOLÓGICO ────────────────────────
+    # Cuadrícula sutil
+    for x in range(0, W, 60):
+        d.line([(x, 0), (x, H)], fill=(16, 22, 35), width=1)
+    for y in range(0, H, 60):
+        d.line([(0, y), (W, y)], fill=(16, 22, 35), width=1)
+
+    # Texto gigante en el fondo para Branding
+    fnt_watermark = obtener_fuente(URL_BOLD, 200)
+    d.text((W//2, H//2), "CRYSIS", font=fnt_watermark, fill=(15, 20, 32), anchor="mm")
+
+    # ── 4. CABECERA TÁCTICA ─────────────────────────────────────────
+    d.rectangle([40, 40, 50, 90], fill=c_accent) # Detalle visual izquierdo
+    d.text((70, 40), "CRYSIS INTELLIGENCE ENGINE", font=fnt_title, fill=c_text_hi)
+    d.text((70, 90), "EVALUACIÓN DE PERFIL CERTIFICADA", font=fnt_sub, fill=c_accent)
+    d.line([(40, 140), (W-40, 140)], fill=c_border, width=2)
+
+    # ── 5. SECCIÓN HÉROE: LA NOTA (Mitad Izquierda) ─────────────────
+    cx, cy = 350, 480
+    radio = 220
     
-    # Anillo de progreso según la nota
+    # Anillos tecnológicos de fondo
+    d.arc([cx-radio, cy-radio, cx+radio, cy+radio], start=0, end=360, fill=c_border, width=8)
+    d.arc([cx-radio-20, cy-radio-20, cx+radio+20, cy+radio+20], start=0, end=360, fill=(15, 20, 35), width=2)
+    
+    # Progreso de la nota
     end_angle = -90 + int(360 * nota / 100)
     if nota > 0:
-        d.arc([W//2 - r_arc, cy - r_arc, W//2 + r_arc, cy + r_arc], start=-90, end=end_angle, fill=c_accent, width=15)
+        d.arc([cx-radio, cy-radio, cx+radio, cy+radio], start=-90, end=end_angle, fill=c_accent, width=25)
 
-    # Texto de la nota gigante en el centro
-    shadow_col = tuple(int(c * 0.2) for c in c_accent)
-    d.text((W//2 + 8, cy + 8), str(nota), font=fnt_score, fill=shadow_col, anchor="mm")
-    d.text((W//2, cy), str(nota), font=fnt_score, fill=c_text_hi, anchor="mm")
+    # Nota masiva en el centro del círculo
+    d.text((cx, cy - 20), str(nota), font=fnt_hero, fill=c_text_hi, anchor="mm")
+    d.text((cx, cy + 140), "/ 100", font=fnt_hero_sm, fill=c_accent, anchor="mm")
+
+    # Rango como un "Tier" clasificado debajo del círculo
+    d.rectangle([cx - 150, cy + 260, cx + 150, cy + 310], fill=(20, 30, 50), outline=c_accent, width=2)
+    rango_txt = f"RANGO OBTENIDO: {rango}"
+    d.text((cx, cy + 285), rango_txt, font=fnt_stats, fill=c_accent, anchor="mm")
+
+    # ── 6. SECCIÓN DATOS: AGENTE, MISIÓN Y BARRAS (Mitad Derecha) ───
+    rx = 640  # Punto de inicio en X para el bloque derecho
+    ry = 200
     
-    # El "/100" más sutil debajo de la nota
-    d.text((W//2, cy + 120), "/ 100", font=fnt_score_sm, fill=c_accent, anchor="mm")
-
-    # El Rango pasa a ser un subtítulo discreto bajo el anillo
-    rango_labels = {
-        "S+": "OPERADOR DE ÉLITE", "S": "ESPECIALISTA", 
-        "A": "OPERATIVO", "B": "RECLUTA", "F": "MISIÓN FALLIDA"
-    }
-    txt_rango = f"TIER CLASS: {rango} — {rango_labels.get(rango, rango)}"
-    d.text((W//2, cy + 320), txt_rango, font=fnt_rango, fill=c_text_lo, anchor="mm")
-
-    # ── 5. INFORMACIÓN DE LA MISIÓN Y AGENTE ──────────────────────
-    info_y = 800
-    d.line([(40, info_y - 30), (W - 40, info_y - 30)], fill=c_border, width=1)
+    # Datos de la operación
+    d.text((rx, ry), "AGENTE / ID", font=fnt_sub, fill=c_text_lo)
+    d.text((rx, ry + 30), agente.upper(), font=fnt_title, fill=c_text_hi)
     
-    esc_limpio = escenario.replace("OPERACION: ", "").replace("OPERACIÓN: ", "")[:35].upper()
+    d.text((rx, ry + 110), "CÓDIGO DE OPERACIÓN", font=fnt_sub, fill=c_text_lo)
+    esc_limpio = escenario.replace("OPERACION: ", "").replace("OPERACIÓN: ", "")[:30].upper()
+    d.text((rx, ry + 140), esc_limpio, font=fnt_title, fill=c_text_hi)
+
+    # Barras de estadísticas
+    d.text((rx, ry + 250), "DESGLOSE DE HABILIDADES", font=fnt_sub, fill=c_text_lo)
     
-    # Agente (Izquierda)
-    d.text((40, info_y), "AGENTE ASIGNADO", font=fnt_info_lbl, fill=c_text_lo)
-    d.text((40, info_y + 25), agente.upper(), font=fnt_info_val, fill=c_text_hi)
-
-    # Operación (Centro)
-    d.text((W//2, info_y), "CÓDIGO DE MISIÓN", font=fnt_info_lbl, fill=c_text_lo, anchor="ma")
-    d.text((W//2, info_y + 25), esc_limpio, font=fnt_info_val, fill=c_text_hi, anchor="ma")
-
-    # Stats Rápidos (Derecha) - Cálculo simulado para rellenar
-    stat_val = f"NG: {int(nota*0.95)} | PR: {int(nota*0.88)}"
-    d.text((W - 40, info_y), "MÉTRICAS CLAVE", font=fnt_info_lbl, fill=c_text_lo, anchor="ra")
-    d.text((W - 40, info_y + 25), stat_val, font=fnt_info_val, fill=c_accent, anchor="ra")
-
-    # ── 6. BANNER PUBLICITARIO CRYSIS (FOOTER) ────────────────────
-    banner_y = H - 100
-    # Fondo del banner con el color de acento
-    d.rectangle([0, banner_y, W, H], fill=c_accent)
+    stats = [
+        ("NEGOCIACIÓN", min(100, int(nota * 0.95))),
+        ("PERSUASIÓN",  min(100, int(nota * 0.88))),
+        ("ESTRATEGIA",  min(100, int(nota * 1.0)))
+    ]
     
-    # Texto en negativo (oscuro) para máximo contraste
-    cta_text = "MEJORA TUS HABILIDADES EN  WWW.CRYSIS-APP.COM"
-    d.text((W//2, banner_y + 50), cta_text, font=fnt_cta, fill=c_bg_dark, anchor="mm")
+    bar_y = ry + 300
+    bar_w = 380
+    for label, val in stats:
+        # Texto de la estadística
+        d.text((rx, bar_y), label, font=fnt_stats, fill=c_text_hi)
+        d.text((rx + bar_w, bar_y), f"{val}%", font=fnt_stats, fill=c_accent, anchor="ra")
+        
+        # Fondo de la barra
+        d.rectangle([rx, bar_y + 40, rx + bar_w, bar_y + 55], fill=c_border)
+        # Relleno de la barra
+        if val > 0:
+            fill_w = int(bar_w * val / 100)
+            d.rectangle([rx, bar_y + 40, rx + fill_w, bar_y + 55], fill=c_accent)
+            
+        bar_y += 100
+
+    # ── 7. FOOTER DE ALTO IMPACTO (Llamada a la acción) ─────────────
+    # Un bloque sólido llamativo en la parte inferior para que nadie pierda el link
+    footer_y = H - 120
+    d.rectangle([0, footer_y, W, H], fill=c_accent)
+    
+    # Añadimos un pequeño detalle de código de barras falso para la estética
+    for i in range(15):
+        w_line = (i * 13) % 7 + 2
+        d.rectangle([40 + i*12, footer_y + 30, 40 + i*12 + w_line, footer_y + 90], fill=(0, 0, 0, 80))
+
+    cta_texto = "PÓN A PRUEBA TUS HABILIDADES EN:  WWW.CRYSIS-APP.COM"
+    # El texto va en el color oscuro del fondo para que contraste brutalmente con el acento
+    d.text((W//2 + 50, footer_y + 60), cta_texto, font=fnt_cta, fill=c_bg, anchor="mm")
 
     buf = io.BytesIO()
     img.save(buf, format='PNG')
