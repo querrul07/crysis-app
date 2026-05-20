@@ -1764,7 +1764,7 @@ elif st.session_state.pantalla_actual == "simulador":
             st.session_state.mision_iniciada = False
             st.rerun()
         nota_final = ultima_sesion["Nota"]         # ← también dentro del elif
-            rango_letra, rango_color, rango_desc = obtener_rango_mision(nota_final)
+        rango_letra, rango_color, rango_desc = obtener_rango_mision(nota_final)
 
         # Banner de XP corregido
         xp_ob = st.session_state.get("xp_ganado_ultimo", 0)
