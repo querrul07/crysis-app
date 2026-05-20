@@ -1758,7 +1758,7 @@ elif st.session_state.pantalla_actual == "simulador":
             st.rerun()
 
     elif st.session_state.evaluacion_actual:
-        ultima_sesion = st.session_state.historial_sesiones[-1]
+        ultima_sesion = st.session_state.get("ultima_sesion_cache", {})
         nota_final = ultima_sesion["Nota"]
         rango_letra, rango_color, rango_desc = obtener_rango_mision(nota_final)
 
@@ -2015,6 +2015,7 @@ PUNTUACIÓN FINAL: XX/100"""
                             "Tipo_Mision":  st.session_state.tipo_mision_actual,
                             "Dificultad":   dif_ev,
                         })
+                        st.session_state.ultima_sesion_cache = st.session_state.historial_sesiones[-1]
                         # ── Conceder XP y comprobar logros (BLOQUE 7) ──
                         es_diaria_act = st.session_state.get("es_mision_diaria", False)
                         xp_obt, logros_nuevos = otorgar_xp_y_logros(
