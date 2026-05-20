@@ -319,26 +319,6 @@ def obtener_rango_mision(nota):
     if nota >= 50: return "B", "#F0A500", "RECLUTA"
     return "F", "#E8394A", "FALLIDO"
 
-def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
-    from PIL import Image, ImageDraw, ImageFont
-    import io
-    # 1. Crear lienzo
-    img = Image.new('RGB', (500, 600), color='#060810')
-    draw = ImageDraw.Draw(img)
-    # 2. Dibujar borde
-    draw.rectangle([10, 10, 490, 590], outline=color_hex, width=3)
-    # 3. Textos básicos
-    draw.text((30, 40), "CRYSIS // INTELLIGENCE UNIT", fill="#3A4A6A")
-    draw.text((30, 80), f"OPERACION: {escenario[:30]}", fill="white")
-    draw.text((200, 200), rango, fill=color_hex)
-    draw.text((30, 400), f"PUNTUACION: {nota}/100", fill="white")
-    draw.text((30, 440), f"AGENTE: {agente.upper()}", fill="#4F8EF7")
-    draw.text((30, 540), "VERIFICADO POR CRYSIS TACTICAL ENGINE", fill="#18213A")
-    # 4. Exportar
-    buf = io.BytesIO()
-    img.save(buf, format='PNG')
-    return buf.getvalue()
-
 def enviar_correo_2fa(destinatario, codigo):
     try:
         remitente = st.secrets["SMTP_EMAIL"]
