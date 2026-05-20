@@ -1652,14 +1652,14 @@ elif st.session_state.pantalla_actual == "simulador":
         if st.session_state.mensajes and st.session_state.mensajes[-1]["role"] == "user":
             if GROQ_API_KEY:
                 client      = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
-            escenario_a = st.session_state.escenario_activo
-            if escenario_a not in TODAS_LAS_MISIONES:
-                st.error("El escenario ya no está disponible. La misión ha sido cancelada.")
-                st.session_state.mision_iniciada  = False
-                st.session_state.mensajes         = []
-                st.session_state.tarjeta_objetivo = None
-                st.rerun()
-            base_prompt = TODAS_LAS_MISIONES[escenario_a]["prompt"]
+                escenario_a = st.session_state.escenario_activo
+                if escenario_a not in TODAS_LAS_MISIONES:
+                    st.error("El escenario ya no está disponible. La misión ha sido cancelada.")
+                    st.session_state.mision_iniciada  = False
+                    st.session_state.mensajes         = []
+                    st.session_state.tarjeta_objetivo = None
+                    st.rerun()
+                base_prompt = TODAS_LAS_MISIONES[escenario_a]["prompt"]
                 dif_instruc = DIFICULTADES.get(dif_sesion, {}).get("instruccion","")
                 base_prompt += f"\n\n[NIVEL DE DIFICULTAD: {dif_sesion}. {dif_instruc}]"
                 if st.session_state.tarjeta_objetivo:
