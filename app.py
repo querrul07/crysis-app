@@ -847,7 +847,7 @@ if st.session_state.usuario_actual is None:
                 if st.session_state.login_step == 1:
                     with st.form("login_form"):
                         st.markdown("<div class='section-label'>IDENTIFICACIÓN DE OPERADOR</div>", unsafe_allow_html=True)
-                        u_id   = st.text_input("ID Operativo")
+                        Du_id   = st.text_input("ID Operativo")
                         u_pass = st.text_input("Clave de Seguridad", type="password")
                         st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
                         submitted = st.form_submit_button("INICIAR SESIÓN SEGURA", use_container_width=True)
@@ -855,12 +855,12 @@ if st.session_state.usuario_actual is None:
                         if st.form_submit_button("RECUPERAR CUENTAS ANTIGUAS"):
                                 migrar_usuarios_antiguos()
                         with st.expander("ASISTENCIA TÉCNICA"):
-                        u_res = st.text_input("Usuario a resetear")
-                        p_nue = st.text_input("Nueva Clave", type="password")
-                        if st.button("CAMBIAR CLAVE"):
-                            h = hash_password(p_nue)
-                            supabase.table("perfiles").update({"password_hash": h}).eq("id_usuario", u_res).execute()
-                            st.success("Clave cambiada.")
+                            u_res = st.text_input("Usuario a resetear")
+                            p_nue = st.text_input("Nueva Clave", type="password")
+                            if st.button("CAMBIAR CLAVE"):
+                                h = hash_password(p_nue)
+                                supabase.table("perfiles").update({"password_hash": h}).eq("id_usuario", u_res).execute()
+                                st.success("Clave cambiada.")
 
 
                         
