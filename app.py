@@ -39,35 +39,50 @@ def buscar_wikipedia(nombre: str):
     return None
 
 def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
-    # 1. Crear un lienzo oscuro (500x600 px)
-    img = Image.new('RGB', (500, 600), color='#060810')
-    draw = ImageDraw.Draw(img)
+    from PIL import Image, ImageDraw, ImageFont
+    import io
     
-    # 2. Dibujar borde según el rango
-    draw.rectangle([10, 10, 490, 590], outline=color_hex, width=3)
+    # Crear lienzo de alta resolución
+    img = Image.new('RGB', (800, 1000), color='#060810')
+    d = ImageDraw.Draw(img)
     
-    # 3. Añadir textos (usaremos fuentes básicas que vienen en todos los servidores)
-    # Si no encuentra fuente específica, usará la de sistema
-    try:
-        font_tit = ImageFont.load_default()
-    except:
-        font_tit = None
+    # Dibujar rejilla de fondo (estilo técnico)
+    for i in range(0, 800, 40): d.line([(i, 0), (i, 1000)], fill='#0A0E1A', width=1)
+    for i in range(0, 1000, 40): d.line([(0, i), (800, i)], fill='#0A0E1A', width=1)
+    
+    # Marco principal
+    d.rectangle([20, 20, 780, 980], outline=color_hex, width=4)
+    d.rectangle([30, 30, 770, 970], outline=color_hex, width=1)
 
-    draw.text((30, 40), "CRYSIS // INTELLIGENCE UNIT", fill="#3A4A6A")
-    draw.text((30, 80), f"OPERACION: {escenario}", fill="white")
+    # Cabecera
+    d.text((50, 60), "CRYSIS // UNIT IDENTIFICATION", fill=color_hex)
+    d.text((50, 100), "CLASSIFIED DOCUMENT - LEVEL 4 ACCESS", fill="#3A4A6A")
     
-    # Dibujar el Rango gigante
-    draw.text((180, 180), rango, fill=color_hex)
-    
-    draw.text((30, 400), f"PUNTUACION: {nota}/100", fill="white")
-    draw.text((30, 440), f"AGENTE: {agente.upper()}", fill="#4F8EF7")
-    draw.text((30, 540), "VERIFICADO POR CRYSIS TACTICAL ENGINE", fill="#18213A")
+    # Rango Gigante
+    # Nota: Usamos texto simple si no hay fuentes, pero con diseño de caja
+    d.rectangle([300, 250, 500, 450], outline=color_hex, width=2)
+    # Dibujamos el rango grande (como no podemos asegurar fuentes TTF en Streamlit Cloud,
+    # usamos un truco de dibujo para que la letra se vea grande)
+    d.text((375, 320), rango, fill=color_hex) # El rango
 
-    # Convertir a bytes para descargar
+    # Datos
+    d.text((50, 550), "PROTOCOL:", fill="#3A4A6A")
+    d.text((200, 550), escenario.upper(), fill="white")
+    
+    d.text((50, 600), "OPERATOR:", fill="#3A4A6A")
+    d.text((200, 600), agente.upper(), fill=color_hex)
+    
+    d.text((50, 650), "EVALUATION:", fill="#3A4A6A")
+    d.text((200, 650), f"{nota}/100", fill="white")
+    
+    # Pie de página
+    d.rectangle([50, 850, 750, 852], fill="#18213A")
+    d.text((50, 880), "SYSTEM: TACTICAL ENGINE V3.1", fill="#18213A")
+    d.text((50, 910), "HASH: " + hashlib.md5(agente.encode()).hexdigest()[:16].upper(), fill="#18213A")
+
     buf = io.BytesIO()
     img.save(buf, format='PNG')
-    byte_im = buf.getvalue()
-    return byte_im
+    return buf.getvalue()
 
 # ─────────────────────────────────────────
 # CONFIGURACIÓN DE SUPERUSUARIO
@@ -1696,16 +1711,18 @@ elif st.session_state.pantalla_actual == "simulador":
         xp_ob = st.session_state.get("xp_ganado_ultimo", 0)
         log_n = st.session_state.get("logros_nuevos_ultimo", [])
         if xp_ob > 0:
-            logros_html = "".join([
-                f'<div style="margin-top:8px; font-family:var(--mono); font-size:0.6rem; color:#10B981;">'
-                f'◉ LOGRO DESBLOQUEADO: {LOGROS_DEF[l]["nombre"]} (+{LOGROS_DEF[l]["xp"]} XP)</div>'
-                for l in log_n
-            ])
-            st.markdown(f"""<div class="alert-box" style="border-left-color:#F0A500; background:rgba(240,165,0,0.04);">
-                <span style="color:#F0A500; font-family:var(--mono); font-weight:700; font-size:0.8rem;">+{xp_ob} XP</span>
-                <span style="color:#3A4A6A; font-family:var(--mono); font-size:0.58rem;"> OBTENIDOS EN ESTA MISIÓN</span>
+            logros_html = ""
+            for l in log_n:
+                nombre_logro = LOGROS_DEF[l]["nombre"]
+                xp_logro = LOGROS_DEF[l]["xp"]
+                logros_html += f'<div style="margin-top:5px; font-family:var(--mono); font-size:0.6rem; color:#10B981;">◉ LOGRO: {nombre_logro} (+{xp_logro} XP)</div>'
+            
+            st.markdown(f"""
+            <div style="background: rgba(240,165,0,0.05); border-left: 3px solid #F0A500; padding: 15px; margin-bottom: 20px;">
+                <div style="color:#F0A500; font-family:var(--mono); font-weight:700; font-size:0.8rem;">+{xp_ob} XP OBTENIDOS EN ESTA MISIÓN</div>
                 {logros_html}
-            </div>""", unsafe_allow_html=True)
+            </div>
+            """, unsafe_allow_html=True)
 
         # --- 3. TARJETA VISUAL DE RANGO ---
         st.markdown(f"""
