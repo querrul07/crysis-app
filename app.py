@@ -863,7 +863,7 @@ if st.session_state.usuario_actual is None:
                                         
                             if password_correcta:
                                  # Preparamos los datos para la sesión actual
-                                 progreso = agente_db.get("datos_progresion", {})
+                                progreso = agente_db.get("datos_progresion", {})
                                 agente = {
                                     "Nombre": agente_db["id_usuario"],
                                     "Email": agente_db["email"],
