@@ -854,7 +854,7 @@ if st.session_state.usuario_actual is None:
                         # BOTÓN TEMPORAL PARA RECUPERAR USUARIOS
                         if st.form_submit_button("RECUPERAR CUENTAS ANTIGUAS"):
                                 migrar_usuarios_antiguos()
-                        with st.expander("ASISTENCIA TÉCNICA"):
+                    with st.expander("ASISTENCIA TÉCNICA"):
                             u_res = st.text_input("Usuario a resetear")
                             p_nue = st.text_input("Nueva Clave", type="password")
                             if st.button("CAMBIAR CLAVE"):
@@ -864,7 +864,7 @@ if st.session_state.usuario_actual is None:
 
 
                         
-                        if submitted:
+                    if submitted:
                             # --- LOGIN SEGURO ---
                             agente_db = cargar_perfil_usuario(u_id)
                         
