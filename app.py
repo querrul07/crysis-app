@@ -165,6 +165,43 @@ def cargar_datos(): return {"empleados": [], "historial_sesiones": [], "escenari
 def guardar_datos(): pass 
 # ──────────────────────────────────────
 
+def migrar_usuarios_antiguos():
+    try:
+        # 1. Intentamos leer la "bolsa vieja" de datos
+        response = supabase.table("crysis_data").select("memoria").eq("id", "main").execute()
+        if response.data:
+            contenido_cifrado = response.data[0]["memoria"]
+            # Necesitamos descifrarlo (usamos la lógica antigua solo para esto)
+            f = Fernet(st.secrets["ENCRYPTION_KEY"])
+            datos_viejos = json.loads(f.decrypt(contenido_cifrado.encode()).decode())
+            
+            usuarios_viejos = datos_viejos.get("empleados", [])
+            
+            for u_viejo in usuarios_viejos:
+                nombre = u_viejo.get("Nombre")
+                # Comprobamos si ya existe en el sistema nuevo para no duplicar
+                if not cargar_perfil_usuario(nombre):
+                    # Lo movemos al cajón nuevo
+                    nuevo_perfil = {
+                        "Nombre": nombre,
+                        "Email": u_viejo.get("Email", ""),
+                        "Plan": u_viejo.get("Plan", "BASE"),
+                        "Rol": u_viejo.get("Rol", "Individual"),
+                        "Empresa": u_viejo.get("Empresa", "Independiente"),
+                        "xp": u_viejo.get("xp", 0),
+                        "logros": u_viejo.get("logros", []),
+                        "racha": u_viejo.get("racha", 0),
+                        "ultima_sesion": u_viejo.get("ultima_sesion", ""),
+                        "diarias": u_viejo.get("diarias", 0)
+                    }
+                    # IMPORTANTE: Hasheamos su contraseña antigua para que siga funcionando
+                    pass_antigua = u_viejo.get("Password", "1234") # 1234 por si acaso
+                    guardar_perfil_en_db(nuevo_perfil, password_nueva=pass_antigua)
+            
+            st.success("MIGRACIÓN COMPLETADA: Todos los usuarios antiguos ya pueden entrar.")
+    except Exception as e:
+        st.error(f"Error en la migración: {e}")
+
 def enviar_correo_2fa(destinatario, codigo):
     try:
         remitente = st.secrets["SMTP_EMAIL"]
@@ -814,6 +851,9 @@ if st.session_state.usuario_actual is None:
                         u_pass = st.text_input("Clave de Seguridad", type="password")
                         st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
                         submitted = st.form_submit_button("INICIAR SESIÓN SEGURA", use_container_width=True)
+                        # BOTÓN TEMPORAL PARA RECUPERAR USUARIOS
+                        if st.form_submit_button("RECUPERAR CUENTAS ANTIGUAS"):
+                        migrar_usuarios_antiguos()
                         if submitted:
                             # --- NUEVO SISTEMA DE LOGIN ---
                             agente_db = cargar_perfil_usuario(u_id)
