@@ -40,7 +40,7 @@ def buscar_wikipedia(nombre: str):
 
 def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
     from PIL import Image, ImageDraw, ImageFont
-    import math, io
+    import io, random
 
     def cargar_fuente(rutas, size):
         for ruta in rutas:
@@ -113,51 +113,83 @@ def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
     # Fuentes
     fnt_brand    = cargar_fuente(MONO_PATHS,     22)
     fnt_sub      = cargar_fuente(MONO_REG_PATHS, 11)
-    fnt_rango    = cargar_fuente(BOLD_PATHS,    220)
-    fnt_nota     = cargar_fuente(BOLD_PATHS,     72)
-    fnt_med      = cargar_fuente(BOLD_PATHS,     28)
-    fnt_label    = cargar_fuente(MONO_PATHS,     13)
-    fnt_small    = cargar_fuente(MONO_REG_PATHS, 13)
+    fnt_score    = cargar_fuente(BOLD_PATHS,    200)  # Puntuación principal ENORME
+    fnt_slash    = cargar_fuente(BOLD_PATHS,     60)  # "/100"
+    fnt_rango    = cargar_fuente(BOLD_PATHS,     52)  # Rango letra (más pequeño, secundario)
+    fnt_label    = cargar_fuente(MONO_PATHS,     15)
     fnt_stat_val = cargar_fuente(BOLD_PATHS,     36)
-    fnt_stat_lbl = cargar_fuente(MONO_REG_PATHS, 11)
-    fnt_agente   = cargar_fuente(BOLD_PATHS,     32)
-    fnt_mision   = cargar_fuente(MONO_REG_PATHS, 14)
-    fnt_badge    = cargar_fuente(MONO_PATHS,     14)
-    fnt_pie      = cargar_fuente(MONO_REG_PATHS, 10)
+    fnt_stat_lbl = cargar_fuente(MONO_REG_PATHS, 13)
+    fnt_agente   = cargar_fuente(BOLD_PATHS,     34)
+    fnt_mision   = cargar_fuente(MONO_REG_PATHS, 15)
+    fnt_badge    = cargar_fuente(MONO_PATHS,     16)
+    fnt_pie      = cargar_fuente(MONO_REG_PATHS, 11)
 
-    # Marca
+    # ── MARCA ───────────────────────────────────────────────────
     d.text((40, 36), "CRYSIS", font=fnt_brand, fill=c_text_hi)
     d.text((40, 66), "INTELLIGENCE UNIT · CERTIFIED PERFORMANCE", font=fnt_sub, fill=c_text_lo)
-    d.line([(40, 88), (W - 40, 88)], fill=c_border, width=1)
+    d.line([(40, 92), (W - 40, 92)], fill=c_border, width=1)
 
-    # Rango gigante
-    shadow_col = tuple(int(x * 0.25) for x in c_accent)
-    bbox = d.textbbox((0,0), rango, font=fnt_rango)
-    rw = bbox[2] - bbox[0]
+    # ── PUNTUACIÓN PRINCIPAL (elemento héroe) ───────────────────
+    score_txt = str(nota)
+    sb = d.textbbox((0, 0), score_txt, font=fnt_score)
+    sw = sb[2] - sb[0]
+    sh = sb[3] - sb[1]
+    sx = (W - sw) // 2
+    sy = 110
+
+    # Sombra/glow detrás del número
+    shadow_col = tuple(int(c * 0.3) for c in c_accent)
+    d.text((sx + 8, sy + 8), score_txt, font=fnt_score, fill=shadow_col)
+    d.text((sx, sy), score_txt, font=fnt_score, fill=c_accent)
+
+    # "/100" justo a la derecha del número, alineado abajo
+    slash_txt = "/100"
+    slash_b   = d.textbbox((0, 0), slash_txt, font=fnt_slash)
+    slash_x   = sx + sw + 12
+    slash_y   = sy + sh - (slash_b[3] - slash_b[1]) - 10
+    d.text((slash_x, slash_y), slash_txt, font=fnt_slash, fill=c_text_lo)
+
+    # ── RANGO (badge pequeño debajo del número) ─────────────────
+    rango_labels = {
+        "S+": "OPERADOR DE ÉLITE",
+        "S":  "ESPECIALISTA",
+        "A":  "OPERATIVO",
+        "B":  "RECLUTA",
+        "F":  "MISIÓN FALLIDA"
+    }
+    rango_txt = f"{rango}  ·  {rango_labels.get(rango, rango)}"
+    rb = d.textbbox((0, 0), rango_txt, font=fnt_rango)
+    rw = rb[2] - rb[0]
     rx = (W - rw) // 2
-    d.text((rx + 6, 146), rango, font=fnt_rango, fill=shadow_col)
-    d.text((rx, 140), rango, font=fnt_rango, fill=c_accent)
+    ry = sy + sh + 10
 
-    # Barra de progreso superior
-    d.rectangle([40, 420, W-40, 422], fill=c_border)
-    d.rectangle([40, 420, 40 + int((W-80) * nota / 100), 422], fill=c_accent)
+    # Píldora de fondo
+    pad_r = 20
+    pill_x1 = rx - pad_r
+    pill_y1 = ry - 8
+    pill_x2 = rx + rw + pad_r
+    pill_y2 = ry + (rb[3] - rb[1]) + 8
+    d.rounded_rectangle([pill_x1, pill_y1, pill_x2, pill_y2],
+                         radius=6,
+                         fill=tuple(int(c * 0.12) for c in c_accent),
+                         outline=c_accent)
+    d.text((rx, ry), rango_txt, font=fnt_rango, fill=c_accent)
 
-    # Puntuación
-    score_txt = f"{nota}"
-    bbox2 = d.textbbox((0,0), score_txt, font=fnt_nota)
-    sw = bbox2[2] - bbox2[0]
-    d.text(((W - sw)//2, 435), score_txt, font=fnt_nota, fill=c_text_hi)
-    d.text(((W)//2 + sw//2 + 8, 470), "/ 100", font=fnt_med, fill=c_text_lo)
-    d.text(((W - 80)//2, 520), "PUNTUACIÓN FINAL", font=fnt_label, fill=c_text_lo)
-
-    # Barra rellena
-    bar_x, bar_y, bar_w, bar_h = 80, 570, W - 160, 10
-    d.rounded_rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], radius=5, fill=(18, 27, 50))
-    fill_w = int(bar_w * nota / 100)
+    # ── BARRA DE PROGRESO ────────────────────────────────────────
+    bar_top = pill_y2 + 30
+    d.rectangle([40, bar_top, W - 40, bar_top + 8], fill=c_border)
+    fill_w = int((W - 80) * nota / 100)
     if fill_w > 0:
-        d.rounded_rectangle([bar_x, bar_y, bar_x + fill_w, bar_y + bar_h], radius=5, fill=c_accent)
+        d.rounded_rectangle([40, bar_top, 40 + fill_w, bar_top + 8], radius=4, fill=c_accent)
 
-    # Stats
+    # ── LABEL PUNTUACIÓN FINAL ───────────────────────────────────
+    lbl_y = bar_top + 20
+    lbl_txt = "PUNTUACIÓN FINAL"
+    lb = d.textbbox((0, 0), lbl_txt, font=fnt_label)
+    d.text(((W - (lb[2]-lb[0])) // 2, lbl_y), lbl_txt, font=fnt_label, fill=c_text_lo)
+
+    # ── STATS ────────────────────────────────────────────────────
+    stats_y = lbl_y + 44
     stats = [
         ("NEGOCIACIÓN", f"{min(100, int(nota * 0.95))}%"),
         ("PERSUASIÓN",  f"{min(100, int(nota * 0.88))}%"),
@@ -165,42 +197,33 @@ def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
     ]
     col_w = (W - 80) // 3
     for i, (lbl, val) in enumerate(stats):
-        cx = 40 + col_w * i + col_w // 2
+        cx  = 40 + col_w * i + col_w // 2
         bx1 = 40 + col_w * i + 8
-        d.rounded_rectangle([bx1, 600, bx1 + col_w - 16, 680], radius=4, fill=c_bg2, outline=c_border)
-        vb = d.textbbox((0,0), val, font=fnt_stat_val)
-        d.text((cx - (vb[2]-vb[0])//2, 610), val, font=fnt_stat_val, fill=c_accent)
-        lb = d.textbbox((0,0), lbl, font=fnt_stat_lbl)
-        d.text((cx - (lb[2]-lb[0])//2, 655), lbl, font=fnt_stat_lbl, fill=c_text_lo)
+        d.rounded_rectangle([bx1, stats_y, bx1 + col_w - 16, stats_y + 80],
+                             radius=4, fill=c_bg2, outline=c_border)
+        vb = d.textbbox((0, 0), val, font=fnt_stat_val)
+        d.text((cx - (vb[2]-vb[0])//2, stats_y + 10), val, font=fnt_stat_val, fill=c_accent)
+        lb2 = d.textbbox((0, 0), lbl, font=fnt_stat_lbl)
+        d.text((cx - (lb2[2]-lb2[0])//2, stats_y + 55), lbl, font=fnt_stat_lbl, fill=c_text_lo)
 
-    d.line([(40, 705), (W-40, 705)], fill=c_border, width=1)
+    # ── SEPARADOR ───────────────────────────────────────────────
+    sep_y = stats_y + 100
+    d.line([(40, sep_y), (W - 40, sep_y)], fill=c_border, width=1)
 
-    # Agente y misión
+    # ── AGENTE Y MISIÓN ──────────────────────────────────────────
     agente_txt = agente.upper()
-    ab = d.textbbox((0,0), agente_txt, font=fnt_agente)
-    d.text(((W - (ab[2]-ab[0]))//2, 725), agente_txt, font=fnt_agente, fill=c_text_hi)
+    ab = d.textbbox((0, 0), agente_txt, font=fnt_agente)
+    d.text(((W - (ab[2]-ab[0])) // 2, sep_y + 20), agente_txt, font=fnt_agente, fill=c_text_hi)
 
     esc_limpio = escenario.replace("OPERACION: ", "").replace("OPERACIÓN: ", "")[:40].upper()
-    eb = d.textbbox((0,0), esc_limpio, font=fnt_mision)
-    d.text(((W - (eb[2]-eb[0]))//2, 775), esc_limpio, font=fnt_mision, fill=c_text_lo)
+    eb = d.textbbox((0, 0), esc_limpio, font=fnt_mision)
+    d.text(((W - (eb[2]-eb[0])) // 2, sep_y + 68), esc_limpio, font=fnt_mision, fill=c_text_lo)
 
-    # Badge rango
-    rango_labels = {"S+": "OPERADOR DE ÉLITE", "S": "ESPECIALISTA", "A": "OPERATIVO", "B": "RECLUTA", "F": "MISIÓN FALLIDA"}
-    badge_txt = rango_labels.get(rango, rango)
-    bb = d.textbbox((0,0), badge_txt, font=fnt_badge)
-    bw = bb[2] - bb[0]
-    pad = 16
-    bx1 = (W - bw - pad*2)//2
-    d.rounded_rectangle([bx1, 810, bx1 + bw + pad*2, 848], radius=3,
-                         fill=tuple(int(x*0.15) for x in c_accent), outline=c_accent)
-    d.text((bx1 + pad, 818), badge_txt, font=fnt_badge, fill=c_accent)
-
-    # Pie
-    d.line([(40, 920), (W-40, 920)], fill=c_border, width=1)
+    # ── PIE ──────────────────────────────────────────────────────
+    d.line([(40, 920), (W - 40, 920)], fill=c_border, width=1)
     d.text((40, 934), "VERIFIED BY CRYSIS TACTICAL ENGINE", font=fnt_pie, fill=c_text_lo)
-    d.text((40, 950), "WWW.CRYSIS-APP.COM", font=fnt_pie, fill=(30, 45, 80))
+    d.text((40, 952), "WWW.CRYSIS-APP.COM", font=fnt_pie, fill=(30, 45, 80))
 
-    import random
     random.seed(42)
     for i in range(6):
         bar_len = random.randint(20, 80)
