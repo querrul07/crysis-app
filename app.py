@@ -167,40 +167,54 @@ def guardar_datos(): pass
 
 def migrar_usuarios_antiguos():
     try:
-        # 1. Intentamos leer la "bolsa vieja" de datos
+        st.info("Buscando en la base de datos antigua...")
         response = supabase.table("crysis_data").select("memoria").eq("id", "main").execute()
-        if response.data:
-            contenido_cifrado = response.data[0]["memoria"]
-            # Necesitamos descifrarlo (usamos la lógica antigua solo para esto)
-            f = Fernet(st.secrets["ENCRYPTION_KEY"])
-            datos_viejos = json.loads(f.decrypt(contenido_cifrado.encode()).decode())
+        
+        if not response.data:
+            st.error("No se encontraron datos en la tabla antigua (crysis_data).")
+            return
+
+        contenido_cifrado = response.data[0]["memoria"]
+        f = Fernet(st.secrets["ENCRYPTION_KEY"])
+        datos_viejos = json.loads(f.decrypt(contenido_cifrado.encode()).decode())
+        
+        usuarios_viejos = datos_viejos.get("empleados", [])
+        st.write(f"Usuarios encontrados en archivo antiguo: {len(usuarios_viejos)}")
+        
+        contador = 0
+        for u_viejo in usuarios_viejos:
+            nombre = u_viejo.get("Nombre")
+            # Forzamos que el nombre no tenga espacios vacíos
+            nombre = nombre.strip() 
             
-            usuarios_viejos = datos_viejos.get("empleados", [])
+            # Si no existe, lo creamos
+            if not cargar_perfil_usuario(nombre):
+                nuevo_perfil = {
+                    "Nombre": nombre,
+                    "Email": u_viejo.get("Email", ""),
+                    "Plan": u_viejo.get("Plan", "BASE"),
+                    "Rol": u_viejo.get("Rol", "Individual"),
+                    "Empresa": u_viejo.get("Empresa", "Independiente"),
+                    "xp": u_viejo.get("xp", 0),
+                    "logros": u_viejo.get("logros", []),
+                    "racha": u_viejo.get("racha", 0),
+                    "ultima_sesion": u_viejo.get("ultima_sesion", ""),
+                    "diarias": u_viejo.get("diarias", 0),
+                    "diaria_hoy": u_viejo.get("diaria_hoy", "")
+                }
+                guardar_perfil_en_db(nuevo_perfil, password_nueva=u_viejo.get("Password", "1234"))
+                st.write(f"✅ Migrado: {nombre}")
+                contador += 1
+            else:
+                st.write(f"ℹ️ Ya existía: {nombre}")
+        
+        if contador > 0:
+            st.success(f"MIGRACIÓN EXITOSA: {contador} usuarios nuevos movidos.")
+        else:
+            st.warning("No había usuarios nuevos para migrar.")
             
-            for u_viejo in usuarios_viejos:
-                nombre = u_viejo.get("Nombre")
-                # Comprobamos si ya existe en el sistema nuevo para no duplicar
-                if not cargar_perfil_usuario(nombre):
-                    # Lo movemos al cajón nuevo
-                    nuevo_perfil = {
-                        "Nombre": nombre,
-                        "Email": u_viejo.get("Email", ""),
-                        "Plan": u_viejo.get("Plan", "BASE"),
-                        "Rol": u_viejo.get("Rol", "Individual"),
-                        "Empresa": u_viejo.get("Empresa", "Independiente"),
-                        "xp": u_viejo.get("xp", 0),
-                        "logros": u_viejo.get("logros", []),
-                        "racha": u_viejo.get("racha", 0),
-                        "ultima_sesion": u_viejo.get("ultima_sesion", ""),
-                        "diarias": u_viejo.get("diarias", 0)
-                    }
-                    # IMPORTANTE: Hasheamos su contraseña antigua para que siga funcionando
-                    pass_antigua = u_viejo.get("Password", "1234") # 1234 por si acaso
-                    guardar_perfil_en_db(nuevo_perfil, password_nueva=pass_antigua)
-            
-            st.success("MIGRACIÓN COMPLETADA: Todos los usuarios antiguos ya pueden entrar.")
     except Exception as e:
-        st.error(f"Error en la migración: {e}")
+        st.error(f"Fallo crítico en migración: {e}")
 
 def enviar_correo_2fa(destinatario, codigo):
     try:
@@ -863,7 +877,7 @@ if st.session_state.usuario_actual is None:
                             st.success("Clave cambiada.")
 
                     if submitted:
-                        agente_db = cargar_perfil_usuario(Du_id)
+                        agente_db = cargar_perfil_usuario(Du_id.strip())
                         if agente_db:
                             pass_db   = agente_db.get("password_hash", "")
                             es_valida = check_password(u_pass, pass_db)
