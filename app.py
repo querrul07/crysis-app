@@ -972,9 +972,7 @@ if st.session_state.usuario_actual is None:
                                     st.success("Cuenta creada con éxito. Ya puedes iniciar sesión.")
                                     st.session_state.login_modo = "acceso"
                                     st.rerun()
-                                    else:
-                                        st.session_state.usuario_actual = nuevo_usuario
-                                        st.session_state.pantalla_actual = "menu"; st.rerun()
+                                    
                             else:
                                 st.warning("Rellena todos los campos para continuar.")
         st.markdown("</div>", unsafe_allow_html=True)
