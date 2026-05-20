@@ -41,7 +41,7 @@ def buscar_wikipedia(nombre: str):
         pass
     return None
 
-ef generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
+def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
     # ── 1. GESTIÓN DE FUENTES 100% SEGURA ───────────────────────────────
     def obtener_fuente(url, tamaño, nombre_archivo):
         ruta_local = f"/tmp/{nombre_archivo}"
