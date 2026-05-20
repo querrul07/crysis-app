@@ -23,6 +23,7 @@ import io
 import urllib.request
 import math
 import ssl
+import hashlib
 
 @st.cache_data(ttl=86400)
 def buscar_wikipedia(nombre: str):
@@ -41,191 +42,233 @@ def buscar_wikipedia(nombre: str):
         pass
     return None
 
-def generar_imagen_dossier(agente, escenario, nota, rango, color_hex=None):
+def generar_dossier_svg(agente, escenario, nota, rango):
     """
-    Genera un certificado táctico estilo Crysis.
-    El color de acento se asigna automáticamente según la nota,
-    excepto si se proporciona color_hex (entonces se usa ese).
+    Genera un certificado SVG estilo Crysis con diseño táctico.
+    El color se determina automáticamente según la nota.
     """
-    # ─── 1. DETERMINAR COLOR DE ACENTO ──────────────────────────────
-    if color_hex and color_hex.startswith('#'):
-        accent_hex = color_hex
+    # Determinar color de acento
+    if nota >= 70:
+        color = "#00E5A0"  # Verde élite
+        color_texto = "#00E5A0"
+    elif nota >= 40:
+        color = "#FF8C42"  # Naranja táctico
+        color_texto = "#FF8C42"
     else:
-        if nota >= 70:
-            accent_hex = "#00E5A0"      # Verde élite
-        elif nota >= 40:
-            accent_hex = "#FF8C42"      # Naranja táctico
-        else:
-            accent_hex = "#FF3A4D"      # Rojo crítico
+        color = "#FF3A4D"  # Rojo crítico
+        color_texto = "#FF3A4D"
+    
+    # Calcular ángulo del anillo de progreso (0-360)
+    angulo = int((nota / 100) * 360)
+    
+    # Calcular hash de verificación
+    verificacion = hashlib.md5(agente.encode()).hexdigest()[:8].upper()
+    
+    # SVG (con diseño responsive y fuentes de Google)
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="100%" height="100%" style="background-color: #0A0E17; font-family: 'Montserrat', 'Orbitron', 'Segoe UI', sans-serif;">
+    <defs>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&amp;family=Orbitron:wght@400;700&amp;display=swap');
+            .title {{ font-family: 'Orbitron', monospace; font-weight: 700; fill: #FFFFFF; }}
+            .sub {{ font-family: 'Montserrat', sans-serif; font-weight: 400; }}
+            .score {{ font-family: 'Montserrat', sans-serif; font-weight: 900; fill: #FFFFFF; }}
+            .label {{ font-family: 'Montserrat', sans-serif; font-weight: 400; fill: #8A9BB5; }}
+            .data {{ font-family: 'Montserrat', sans-serif; font-weight: 700; fill: #F0F4FF; }}
+            .rank {{ font-family: 'Orbitron', monospace; font-weight: 900; fill: #0A0E17; }}
+            .footer {{ font-family: 'Montserrat', sans-serif; font-weight: 400; fill: #5A6B8A; }}
+        </style>
+        
+        <!-- Filtro de brillo para el anillo -->
+        <filter id="glow">
+            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
+    
+    <!-- Fondo con retícula -->
+    <rect width="1080" height="1080" fill="#0A0E17"/>
+    <g stroke="#1A2035" stroke-width="1" opacity="0.5">
+        <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+            <path d="M 60 0 L 0 0 0 60" fill="none"/>
+        </pattern>
+        <rect width="1080" height="1080" fill="url(#grid)"/>
+    </g>
+    
+    <!-- Marco exterior -->
+    <rect x="40" y="40" width="1000" height="1000" fill="none" stroke="#2A3A5E" stroke-width="2"/>
+    
+    <!-- Esquinas tácticas -->
+    <g stroke="{color}" stroke-width="5" fill="none">
+        <polyline points="40,80 40,40 80,40"/>
+        <polyline points="1000,40 1040,40 1040,80"/>
+        <polyline points="1040,1000 1040,1040 1000,1040"/>
+        <polyline points="80,1040 40,1040 40,1000"/>
+    </g>
+    
+    <!-- Header: Título -->
+    <text x="80" y="90" font-size="36" class="title">CRYSIS</text>
+    <text x="80" y="130" font-size="18" class="sub" fill="{color}">INTELLIGENCE UNIT // CERTIFICATION DOSSIER</text>
+    
+    <!-- Sello VERIFIED arriba derecha -->
+    <g transform="translate(960, 80)">
+        <circle cx="0" cy="0" r="45" stroke="{color}" stroke-width="3" fill="none"/>
+        <circle cx="0" cy="0" r="35" stroke="#5A6B8A" stroke-width="1" fill="none" stroke-dasharray="4 4"/>
+        <text x="0" y="5" font-size="14" text-anchor="middle" class="sub" fill="{color}">VERIFIED</text>
+    </g>
+    
+    <!-- Anillo de progreso central -->
+    <g transform="translate(540, 520)">
+        <!-- Círculo base (track) -->
+        <circle cx="0" cy="0" r="280" fill="none" stroke="#1E263B" stroke-width="20"/>
+        <!-- Círculo de progreso (con glow) -->
+        <path d="M 0,-280 A 280,280 0 {1 if angulo>180 else 0},1 {280 * sin(radians(angulo))},{-280 * cos(radians(angulo))}" 
+              fill="none" stroke="{color}" stroke-width="20" stroke-linecap="round" filter="url(#glow)"
+              transform="rotate(-90)"/>
+        <!-- Si el ángulo es >180, dibujar el resto con otro path (por simplicidad usamos un círculo dinámico con dasharray - más fácil con JS, pero para SVG estático usamos aproximación) -->
+        <!-- Para evitar complejidad, usamos un arco con dashoffset calculado en Python mejor -->
+        <!-- Voy a recalcular con dasharray para que funcione siempre -->
+    </g>
+    
+    <!-- ANILLO DE PROGRESO (corregido con stroke-dasharray) -->
+    <svg>
+        <!-- Esto no funciona bien dentro de un solo SVG anidado, mejor lo calculamos bien con Python -->
+    </svg>'''
+    
+    # Mejor calculamos el anillo con dasharray (es más fiable)
+    circunferencia = 2 * 3.1415926 * 280
+    dasharray = (nota / 100) * circunferencia
+    dashoffset = circunferencia
+    
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="100%" height="100%" style="background-color: #0A0E17; font-family: 'Montserrat', 'Orbitron', 'Segoe UI', sans-serif;">
+    <defs>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&amp;family=Orbitron:wght@400;700&amp;display=swap');
+            .title {{ font-family: 'Orbitron', monospace; font-weight: 700; fill: #FFFFFF; }}
+            .sub {{ font-family: 'Montserrat', sans-serif; font-weight: 400; }}
+            .score {{ font-family: 'Montserrat', sans-serif; font-weight: 900; fill: #FFFFFF; }}
+            .label {{ font-family: 'Montserrat', sans-serif; font-weight: 400; fill: #8A9BB5; }}
+            .data {{ font-family: 'Montserrat', sans-serif; font-weight: 700; fill: #F0F4FF; }}
+            .rank {{ font-family: 'Orbitron', monospace; font-weight: 900; fill: #0A0E17; }}
+            .footer {{ font-family: 'Montserrat', sans-serif; font-weight: 400; fill: #5A6B8A; }}
+        </style>
+        <filter id="glow">
+            <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
+    
+    <rect width="1080" height="1080" fill="#0A0E17"/>
+    <g stroke="#1A2035" stroke-width="1" opacity="0.6">
+        <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+            <path d="M 60 0 L 0 0 0 60" fill="none"/>
+        </pattern>
+        <rect width="1080" height="1080" fill="url(#grid)"/>
+    </g>
+    
+    <rect x="40" y="40" width="1000" height="1000" fill="none" stroke="#2A3A5E" stroke-width="2"/>
+    
+    <g stroke="{color}" stroke-width="5" fill="none">
+        <polyline points="40,80 40,40 80,40"/>
+        <polyline points="1000,40 1040,40 1040,80"/>
+        <polyline points="1040,1000 1040,1040 1000,1040"/>
+        <polyline points="80,1040 40,1040 40,1000"/>
+    </g>
+    
+    <text x="80" y="90" font-size="36" class="title">CRYSIS</text>
+    <text x="80" y="130" font-size="18" class="sub" fill="{color}">INTELLIGENCE UNIT // CERTIFICATION DOSSIER</text>
+    
+    <g transform="translate(960, 80)">
+        <circle cx="0" cy="0" r="45" stroke="{color}" stroke-width="3" fill="none"/>
+        <circle cx="0" cy="0" r="35" stroke="#5A6B8A" stroke-width="1" fill="none" stroke-dasharray="4 4"/>
+        <text x="0" y="5" font-size="14" text-anchor="middle" class="sub" fill="{color}">VERIFIED</text>
+    </g>
+    
+    <!-- Anillo de progreso -->
+    <g transform="translate(540, 520)">
+        <circle cx="0" cy="0" r="280" fill="none" stroke="#1E263B" stroke-width="22"/>
+        <circle cx="0" cy="0" r="280" fill="none" stroke="{color}" stroke-width="22" stroke-linecap="round"
+                stroke-dasharray="{dasharray} {circunferencia}" stroke-dashoffset="{-dashoffset + dasharray/2}" transform="rotate(-90)"/>
+        <circle cx="0" cy="0" r="250" fill="none" stroke="#2A3A5E" stroke-width="1" stroke-dasharray="8 8"/>
+    </g>
+    
+    <!-- Número de puntuación -->
+    <text x="540" y="500" font-size="160" text-anchor="middle" class="score">{nota}</text>
+    <text x="540" y="580" font-size="22" text-anchor="middle" class="label" fill="{color}">PUNTUACIÓN TÁCTICA</text>
+    
+    <!-- Badge del rango -->
+    <g transform="translate(800, 360)">
+        <rect x="-50" y="-50" width="100" height="100" rx="15" fill="{color}"/>
+        <rect x="-42" y="-42" width="84" height="84" rx="10" fill="none" stroke="#0A0E17" stroke-width="4"/>
+        <text x="0" y="22" font-size="64" text-anchor="middle" class="rank">{rango[0].upper() if rango else '?'}</text>
+    </g>
+    
+    <!-- Tarjeta de datos inferior -->
+    <g transform="translate(80, 720)">
+        <rect x="0" y="0" width="920" height="220" rx="15" fill="#111827" fill-opacity="0.9" stroke="#2A3A5E" stroke-width="2"/>
+        <rect x="0" y="0" width="12" height="220" rx="6" fill="{color}"/>
+        
+        <!-- Línea divisoria vertical -->
+        <line x1="460" y1="30" x2="460" y2="190" stroke="#2A3A5E" stroke-width="2"/>
+        
+        <!-- Campo 1: Agente -->
+        <g transform="translate(50, 40)">
+            <rect x="0" y="2" width="8" height="12" fill="{color}"/>
+            <text x="20" y="14" font-size="16" class="label">AGENTE</text>
+            <text x="0" y="52" font-size="28" class="data">{agente.upper()}</text>
+        </g>
+        
+        <!-- Campo 2: Operación -->
+        <g transform="translate(50, 120)">
+            <rect x="0" y="2" width="8" height="12" fill="{color}"/>
+            <text x="20" y="14" font-size="16" class="label">OPERACIÓN</text>
+            <text x="0" y="52" font-size="24" class="data">{escenario[:35].upper()}</text>
+        </g>
+        
+        <!-- Campo 3: Dificultad -->
+        <g transform="translate(510, 40)">
+            <rect x="0" y="2" width="8" height="12" fill="{color}"/>
+            <text x="20" y="14" font-size="16" class="label">DIFICULTAD</text>
+            <text x="0" y="52" font-size="28" class="data">{rango.upper()}</text>
+        </g>
+        
+        <!-- Campo 4: Verificación -->
+        <g transform="translate(510, 120)">
+            <rect x="0" y="2" width="8" height="12" fill="{color}"/>
+            <text x="20" y="14" font-size="16" class="label">VERIFICACIÓN</text>
+            <text x="0" y="52" font-size="24" class="data">{verificacion}</text>
+        </g>
+    </g>
+    
+    <!-- Pie de página -->
+    <text x="80" y="1020" font-size="16" class="footer">HTTPS://CRYSIS.STREAMLIT.APP</text>
+    
+    <!-- Data matrix simulado -->
+    <g transform="translate(920, 1000)">
+        <!-- Pequeños cuadrados decorativos -->
+        <rect x="0" y="0" width="8" height="8" fill="{color}"/>
+        <rect x="14" y="0" width="8" height="8" fill="{color}"/>
+        <rect x="28" y="0" width="8" height="8" fill="{color}"/>
+        <rect x="7" y="14" width="8" height="8" fill="{color}"/>
+        <rect x="21" y="14" width="8" height="8" fill="{color}"/>
+        <rect x="0" y="28" width="8" height="8" fill="{color}"/>
+        <rect x="28" y="28" width="8" height="8" fill="{color}"/>
+    </g>
+    
+    <!-- Línea de acento inferior -->
+    <line x1="80" y1="1050" x2="1000" y2="1050" stroke="{color}" stroke-width="4"/>
+</svg>'''
+    
+    return svg
 
-    def hex_to_rgb(h):
-        h = h.lstrip('#')
-        return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
-
-    accent_rgb = hex_to_rgb(accent_hex)
-
-    # ─── 2. CONFIGURACIÓN DEL LIENZO ────────────────────────────────
-    W, H = 1080, 1080
-    bg_color = (8, 10, 18)        # Fondo profundo
-    card_color = (18, 22, 35)     # Fondo de tarjeta
-    text_primary = (235, 240, 255)
-    text_secondary = (120, 135, 170)
-
-    img = Image.new('RGB', (W, H), bg_color)
-    draw = ImageDraw.Draw(img)
-
-    # ─── 3. FUENTES (sin descargas, solo sistema o fallback) ──────
-    def get_font(size, bold=False):
-        # Intentar fuentes comunes en Linux (Streamlit Cloud) / Windows / Mac
-        font_paths = []
-        if bold:
-            font_paths = [
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                "C:/Windows/Fonts/ArialBD.ttf",
-                "/System/Library/Fonts/Helvetica.ttc",
-                "arialbd.ttf"
-            ]
-        else:
-            font_paths = [
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                "C:/Windows/Fonts/Arial.ttf",
-                "/System/Library/Fonts/Helvetica.ttc",
-                "arial.ttf"
-            ]
-        for path in font_paths:
-            try:
-                return ImageFont.truetype(path, size)
-            except:
-                continue
-        # Fallback absoluto
-        return ImageFont.load_default()
-
-    font_big = get_font(180, bold=True)      # Número central
-    font_rank = get_font(70, bold=True)      # Letra del rango
-    font_title = get_font(28, bold=True)     # Títulos
-    font_label = get_font(18)                # Etiquetas
-    font_data = get_font(24, bold=True)      # Datos operador
-    font_footer = get_font(16)               # Pie
-
-    # ─── 4. RETÍCULA Y BORDES TÁCTICOS ─────────────────────────────
-    margin = 50
-    # Cuadrícula
-    grid = 80
-    for x in range(0, W, grid):
-        draw.line([(x, 0), (x, H)], fill=(20, 24, 38), width=1)
-        draw.line([(0, x), (W, x)], fill=(20, 24, 38), width=1)
-
-    # Marco exterior
-    draw.rectangle([margin, margin, W-margin, H-margin], outline=(35, 45, 75), width=2)
-
-    # Esquinas angulares
-    def corner(x, y, dx, dy):
-        draw.line([(x, y), (x+dx, y)], fill=accent_rgb, width=4)
-        draw.line([(x, y), (x, y+dy)], fill=accent_rgb, width=4)
-
-    corner(margin, margin, 50, 50)
-    corner(W-margin, margin, -50, 50)
-    corner(margin, H-margin, 50, -50)
-    corner(W-margin, H-margin, -50, -50)
-
-    # ─── 5. CABECERA ───────────────────────────────────────────────
-    draw.text((margin+20, margin+30), "CRYSIS", font=font_title, fill=text_primary)
-    draw.text((margin+20, margin+70), "INTELLIGENCE UNIT // CERTIFICATION DOSSIER", 
-              font=font_label, fill=accent_rgb)
-
-    # Sello VERIFICADO (arriba derecha)
-    seal_x, seal_y = W-margin-90, margin+60
-    draw.ellipse([seal_x-35, seal_y-35, seal_x+35, seal_y+35], outline=accent_rgb, width=3)
-    draw.text((seal_x, seal_y), "VERIFIED", font=font_label, fill=text_primary, anchor="mm")
-
-    # ─── 6. PUNTUACIÓN CENTRAL + ANILLO DE PROGRESO ───────────────
-    cx, cy = W//2, H//2 - 40
-    ring_r = 270
-
-    # Anillo base (track)
-    draw.arc([cx-ring_r, cy-ring_r, cx+ring_r, cy+ring_r], 
-             start=0, end=360, fill=(40, 46, 70), width=18)
-
-    # Anillo de progreso (desde -90°)
-    progress_angle = (nota / 100) * 360
-    draw.arc([cx-ring_r, cy-ring_r, cx+ring_r, cy+ring_r], 
-             start=-90, end=-90+progress_angle, fill=accent_rgb, width=18)
-
-    # Decoración interior punteada
-    draw.arc([cx-ring_r+30, cy-ring_r+30, cx+ring_r-30, cy+ring_r-30], 
-             start=0, end=360, fill=(60, 70, 100), width=2)
-
-    # Número central
-    score_text = str(nota)
-    draw.text((cx, cy-25), score_text, font=font_big, fill=text_primary, anchor="mm")
-    draw.text((cx, cy+95), "PUNTUACIÓN TÁCTICA", font=font_label, fill=accent_rgb, anchor="mm")
-
-    # Badge del rango (flotante derecha)
-    badge_x, badge_y = cx+220, cy-220
-    badge_w = 100
-    draw.rounded_rectangle([badge_x, badge_y, badge_x+badge_w, badge_y+badge_w], 
-                           radius=15, fill=accent_rgb)
-    draw.rounded_rectangle([badge_x+5, badge_y+5, badge_x+badge_w-5, badge_y+badge_w-5],
-                           radius=10, outline=bg_color, width=3)
-    # Tomar primera letra del rango o el texto completo si es corto
-    rank_display = rango[0].upper() if len(rango) == 1 else rango[:2].upper()
-    draw.text((badge_x+badge_w//2, badge_y+badge_w//2), rank_display, 
-              font=font_rank, fill=bg_color, anchor="mm")
-
-    # ─── 7. TARJETA DE DATOS (inferior) ───────────────────────────
-    card_y = H - 320
-    card_h = 200
-    draw.rounded_rectangle([margin+20, card_y, W-margin-20, card_y+card_h], 
-                           radius=12, fill=card_color, outline=(45, 55, 85), width=2)
-
-    # Barra lateral izquierda
-    draw.rounded_rectangle([margin+20, card_y, margin+35, card_y+card_h], 
-                           radius=6, fill=accent_rgb)
-
-    # Divisor central
-    mid_x = (W - 2*margin) // 2 + margin
-    draw.line([(mid_x, card_y+30), (mid_x, card_y+card_h-30)], fill=(35, 45, 70), width=2)
-
-    # Campos
-    fields = [
-        ("AGENTE", agente.upper()),
-        ("OPERACIÓN", escenario[:30]),
-        ("DIFICULTAD", rango.upper()),
-        ("VERIFICACIÓN", hashlib.md5(agente.encode()).hexdigest()[:8].upper())
-    ]
-    for i, (label, value) in enumerate(fields):
-        col = i % 2
-        row = i // 2
-        x_base = margin + 80 if col == 0 else mid_x + 60
-        y_base = card_y + 50 + row * 70
-
-        draw.rectangle([x_base-12, y_base+2, x_base-6, y_base+12], fill=accent_rgb)
-        draw.text((x_base, y_base), label, font=font_label, fill=text_secondary)
-        draw.text((x_base, y_base+32), value, font=font_data, fill=text_primary)
-
-    # ─── 8. PIE DE PÁGINA ─────────────────────────────────────────
-    footer_y = H - 60
-    link = "HTTPS://CRYSIS.STREAMLIT.APP"
-    draw.text((margin+20, footer_y), link, font=font_footer, fill=text_secondary)
-
-    # Dots decorativos (simulando Data Matrix)
-    dot_size = 6
-    start_x = W - margin - 120
-    start_y = footer_y - 12
-    for row in range(6):
-        for col in range(6):
-            if (row + col) % 2 == 0:
-                x = start_x + col * 12
-                y = start_y + row * 12
-                draw.rectangle([x, y, x+dot_size, y+dot_size], fill=accent_rgb)
-
-    # Línea final de acento
-    draw.line([(margin+20, H-30), (W-margin-20, H-30)], fill=accent_rgb, width=3)
-
-    # ─── 9. EXPORTAR A BYTES ──────────────────────────────────────
-    buf = io.BytesIO()
-    img.save(buf, format='PNG')
-    return buf.getvalue()
+# Ejemplo de uso en Streamlit:
+# st.markdown(generar_dossier_svg("NOMAD-7", "OPERACIÓN: TORMENTA ROJA", 94, "ALFA"), unsafe_allow_html=True)
+✅ Ventajas de esta opción
 # ─────────────────────────────────────────
 # CONFIGURACIÓN DE SUPERUSUARIO
 # ─────────────────────────────────────────
