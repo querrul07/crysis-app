@@ -1578,8 +1578,7 @@ elif st.session_state.pantalla_actual == "expedientes":
                                         s['Agente'], 
                                         s['Escenario'], 
                                         s['Nota'], 
-                                        r_l, 
-                                        r_c
+                                        r_l
                                     )
                                     st.download_button(
                                         label="DESCARGAR IMAGEN",
@@ -1920,8 +1919,10 @@ elif st.session_state.pantalla_actual == "simulador":
         with c1:
             st.download_button("📥 DESCARGAR PDF", data=generar_pdf_dossier(ultima_sesion), file_name="Dossier.pdf", use_container_width=True)
         with c2:
-            img_trofeo = generar_imagen_dossier(st.session_state.agente_activo, st.session_state.escenario_activo, nota_final, rango_letra, rango_color)
-            st.download_button("DESCARGAR IMAGEN (IMG)", data=img_trofeo, file_name="Crysis_Trophy.png", mime="image/png", use_container_width=True)
+            svg_trofeo = generar_dossier_svg(st.session_state.agente_activo,st.session_state.escenario_activo,nota_final,
+    rango_letra
+)
+            st.download_button("DESCARGAR IMAGEN (SVG)",data=svg_trofeo.encode('utf-8'),file_name="Crysis_Trophy.svg",mime="image/svg+xml",use_container_width=True)
         with c3:
             if st.button("⬅ VOLVER AL MENÚ", use_container_width=True):
                 st.session_state.mision_iniciada = False
