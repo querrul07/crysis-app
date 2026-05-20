@@ -42,11 +42,10 @@ def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
     from PIL import Image, ImageDraw, ImageFont
     import math, io
 
-    FONT_BOLD     = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
-    FONT_REG      = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
-    FONT_MONO     = "/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf"
-    FONT_MONO_REG = "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf"
-
+    FONT_BOLD     = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    FONT_REG      = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    FONT_MONO     = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"
+    FONT_MONO_REG = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
     def hex_to_rgb(h):
         h = h.lstrip('#')
         return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
