@@ -42,10 +42,39 @@ def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
     from PIL import Image, ImageDraw, ImageFont
     import math, io
 
-    FONT_BOLD     = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    FONT_REG      = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    FONT_MONO     = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"
-    FONT_MONO_REG = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+    def cargar_fuente(rutas, size):
+        for ruta in rutas:
+            try:
+                return ImageFont.truetype(ruta, size)
+            except (IOError, OSError):
+                continue
+        return ImageFont.load_default()
+
+    BOLD_PATHS = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+        "/usr/share/fonts/liberation/LiberationSans-Bold.ttf",
+    ]
+    REG_PATHS = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+        "/usr/share/fonts/liberation/LiberationSans-Regular.ttf",
+    ]
+    MONO_PATHS = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf",
+        "/usr/share/fonts/liberation/LiberationMono-Bold.ttf",
+    ]
+    MONO_REG_PATHS = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeMono.ttf",
+        "/usr/share/fonts/liberation/LiberationMono-Regular.ttf",
+    ]
+
     def hex_to_rgb(h):
         h = h.lstrip('#')
         return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
@@ -82,19 +111,19 @@ def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
     d.rectangle([0, 0, W, 6], fill=c_accent)
 
     # Fuentes
-    fnt_brand    = ImageFont.truetype(FONT_MONO, 22)
-    fnt_sub      = ImageFont.truetype(FONT_MONO_REG, 11)
-    fnt_rango    = ImageFont.truetype(FONT_BOLD, 220)
-    fnt_nota     = ImageFont.truetype(FONT_BOLD, 72)
-    fnt_med      = ImageFont.truetype(FONT_BOLD, 28)
-    fnt_label    = ImageFont.truetype(FONT_MONO, 13)
-    fnt_small    = ImageFont.truetype(FONT_MONO_REG, 13)
-    fnt_stat_val = ImageFont.truetype(FONT_BOLD, 36)
-    fnt_stat_lbl = ImageFont.truetype(FONT_MONO_REG, 11)
-    fnt_agente   = ImageFont.truetype(FONT_BOLD, 32)
-    fnt_mision   = ImageFont.truetype(FONT_MONO_REG, 14)
-    fnt_badge    = ImageFont.truetype(FONT_MONO, 14)
-    fnt_pie      = ImageFont.truetype(FONT_MONO_REG, 10)
+    fnt_brand    = cargar_fuente(MONO_PATHS,     22)
+    fnt_sub      = cargar_fuente(MONO_REG_PATHS, 11)
+    fnt_rango    = cargar_fuente(BOLD_PATHS,    220)
+    fnt_nota     = cargar_fuente(BOLD_PATHS,     72)
+    fnt_med      = cargar_fuente(BOLD_PATHS,     28)
+    fnt_label    = cargar_fuente(MONO_PATHS,     13)
+    fnt_small    = cargar_fuente(MONO_REG_PATHS, 13)
+    fnt_stat_val = cargar_fuente(BOLD_PATHS,     36)
+    fnt_stat_lbl = cargar_fuente(MONO_REG_PATHS, 11)
+    fnt_agente   = cargar_fuente(BOLD_PATHS,     32)
+    fnt_mision   = cargar_fuente(MONO_REG_PATHS, 14)
+    fnt_badge    = cargar_fuente(MONO_PATHS,     14)
+    fnt_pie      = cargar_fuente(MONO_REG_PATHS, 10)
 
     # Marca
     d.text((40, 36), "CRYSIS", font=fnt_brand, fill=c_text_hi)
