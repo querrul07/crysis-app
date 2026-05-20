@@ -100,61 +100,70 @@ def init_supabase():
     return create_client(url, key)
 
 supabase = init_supabase()
+# --- NUEVAS FUNCIONES DE SEGURIDAD ---
+def hash_password(password):
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def check_password(password, hashed):
+    try:
+        return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+    except:
+        return False
+# -------------------------------------
 
 # 🔐 MOTOR DE CIFRADO
-def obtener_fernet():
-    return Fernet(st.secrets["ENCRYPTION_KEY"])
-
-def cifrar_memoria(datos_dict):
-    f = obtener_fernet()
-    datos_json = json.dumps(datos_dict)
-    return f.encrypt(datos_json.encode()).decode()
-
-def descifrar_memoria(texto_cifrado):
-    f = obtener_fernet()
+def cargar_perfil_usuario(nombre_usuario):
     try:
-        decodificado = f.decrypt(texto_cifrado.encode()).decode()
-        return json.loads(decodificado)
+        res = supabase.table("perfiles").select("*").eq("id_usuario", nombre_usuario).execute()
+        if res.data:
+            return res.data[0]
     except:
-        return None
+        pass
+    return None
 
-def cargar_datos():
+def guardar_perfil_en_db(u_dict, password_nueva=None):
     try:
-        response = supabase.table("crysis_data").select("memoria").eq("id", "main").execute()
-        if response.data:
-            contenido = response.data[0]["memoria"]
-            datos = descifrar_memoria(contenido)
-            if datos is None: datos = contenido if isinstance(contenido, dict) else {"empleados": [], "historial_sesiones": [], "escenarios_custom": {}}
-            if "escenarios_custom" not in datos: datos["escenarios_custom"] = {}
-            datos["empleados"] = [e for e in datos.get("empleados", []) if "Rol" in e]
-            # Inicializar campos de progresión para usuarios antiguos
-            for e in datos.get("empleados", []):
-                for campo, defecto in [("xp",0), ("logros",[]), ("racha",0), ("ultima_sesion",""), ("diarias",0), ("diaria_hoy","")]:
-                    if campo not in e:
-                        e[campo] = defecto
-            return datos
+        datos_prog = {
+            "xp": u_dict.get("xp", 0),
+            "logros": u_dict.get("logros", []),
+            "racha": u_dict.get("racha", 0),
+            "ultima_sesion": u_dict.get("ultima_sesion", ""),
+            "diarias": u_dict.get("diarias", 0),
+            "diaria_hoy": u_dict.get("diaria_hoy", "")
+        }
+        data_to_save = {
+            "id_usuario": u_dict["Nombre"],
+            "email": u_dict.get("Email"),
+            "plan": u_dict.get("Plan", "BASE"),
+            "rol": u_dict.get("Rol", "Individual"),
+            "empresa": u_dict.get("Empresa"),
+            "datos_progresion": datos_prog
+        }
+        if password_nueva:
+            data_to_save["password_hash"] = hash_password(password_nueva)
+        
+        supabase.table("perfiles").upsert(data_to_save).execute()
     except Exception as e:
-        st.error(f"Error al conectar con Base de Datos: {e}")
-    return {"empleados": [], "historial_sesiones": [], "escenarios_custom": {}}
+        st.error(f"Error al guardar: {e}")
 
-def guardar_usuario_plano(nombre, email, plan="BASE"):
+def registrar_mision_en_db(mision):
     try:
-        data = {"nombre": nombre, "email": email, "plan": plan}
-        supabase.table("usuarios").upsert(data, on_conflict="nombre").execute()
+        supabase.table("misiones").insert({
+            "id_usuario": mision["Agente"],
+            "escenario": mision["Escenario"],
+            "nota": mision["Nota"],
+            "evaluacion": mision["Evaluacion"],
+            "transcripcion": mision["Transcripcion"],
+            "dificultad": mision["Dificultad"],
+            "tipo_mision": mision["Tipo_Mision"]
+        }).execute()
     except:
         pass
 
-def guardar_datos():
-    try:
-        datos_actualizados = {
-            "empleados": st.session_state.empleados,
-            "historial_sesiones": st.session_state.historial_sesiones,
-            "escenarios_custom": st.session_state.escenarios_custom
-        }
-        memoria_cifrada = cifrar_memoria(datos_actualizados)
-        supabase.table("crysis_data").update({"memoria": memoria_cifrada}).eq("id", "main").execute()
-    except Exception as e:
-        st.error(f"Fallo crítico al sincronizar: {e}")
+# Estas funciones las dejamos vacías para que el resto del código no de error por ahora
+def cargar_datos(): return {"empleados": [], "historial_sesiones": [], "escenarios_custom": {}}
+def guardar_datos(): pass 
+# ──────────────────────────────────────
 
 def enviar_correo_2fa(destinatario, codigo):
     try:
