@@ -852,7 +852,7 @@ if st.session_state.usuario_actual is None:
                         st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
                         submitted = st.form_submit_button("INICIAR SESIÓN SEGURA", use_container_width=True)
                         # BOTÓN TEMPORAL PARA RECUPERAR USUARIOS
-                        if st.form_submit_button("RECUPERAR CUENTAS ANTIGUAS"):
+                    if st.form_submit_button("RECUPERAR CUENTAS ANTIGUAS"):
                         migrar_usuarios_antiguos()
                         if submitted:
                             # --- NUEVO SISTEMA DE LOGIN ---
