@@ -41,203 +41,188 @@ def buscar_wikipedia(nombre: str):
         pass
     return None
 
-def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
-    # ── 1. CONFIGURACIÓN DE ESCALA (SUPERSAMPLING) ──────────────────────
-    # Renderizamos al doble de resolución y reducimos al final para un antialiasing perfecto
-    scale = 2
-    W, H = 1080 * scale, 1080 * scale
+def generar_imagen_dossier(agente, escenario, nota, rango, color_hex=None):
+    """
+    Genera un certificado táctico estilo Crysis.
+    El color de acento se asigna automáticamente según la nota,
+    excepto si se proporciona color_hex (entonces se usa ese).
+    """
+    # ─── 1. DETERMINAR COLOR DE ACENTO ──────────────────────────────
+    if color_hex and color_hex.startswith('#'):
+        accent_hex = color_hex
+    else:
+        if nota >= 70:
+            accent_hex = "#00E5A0"      # Verde élite
+        elif nota >= 40:
+            accent_hex = "#FF8C42"      # Naranja táctico
+        else:
+            accent_hex = "#FF3A4D"      # Rojo crítico
 
-    # ── 2. GESTIÓN DE FUENTES CON FALLBACKS DE SISTEMA ──────────────────
-    def obtener_fuente(url, tamaño, nombre_archivo):
-        ruta_local = f"/tmp/{nombre_archivo}"
-        if not os.path.exists(ruta_local):
-            try:
-                ctx = ssl.create_default_context()
-                ctx.check_hostname = False
-                ctx.verify_mode = ssl.CERT_NONE
-                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-                with urllib.request.urlopen(req, context=ctx) as response, open(ruta_local, 'wb') as out_file:
-                    out_file.write(response.read())
-            except Exception:
-                pass
-        try:
-            return ImageFont.truetype(ruta_local, tamaño)
-        except Exception:
-            # Si falla la descarga, busca fuentes sans-serif comunes en el sistema
-            fuentes_sistema = [
-                "arial.ttf", "Arial.ttf", "segoeui.ttf", "Helvetica.ttf", 
-                "DejaVuSans.ttf", "LiberationSans-Regular.ttf", "Trebuchet MS.ttf"
-            ]
-            for f in fuentes_sistema:
-                try:
-                    return ImageFont.truetype(f, tamaño)
-                except Exception:
-                    continue
-            return ImageFont.load_default()
-
-    URL_BOLD = "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Bold.ttf"
-    URL_REG  = "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Medium.ttf"
-
-    fnt_score    = obtener_fuente(URL_BOLD, 180 * scale, "Mont-Bold.ttf")   # Puntuación central
-    fnt_rank     = obtener_fuente(URL_BOLD, 54 * scale,  "Mont-Bold.ttf")   # Rango en el Badge
-    fnt_title    = obtener_fuente(URL_BOLD, 26 * scale,  "Mont-Bold.ttf")   # Título superior
-    fnt_label    = obtener_fuente(URL_REG,  12 * scale,  "Mont-Reg.ttf")    # Etiquetas
-    fnt_data     = obtener_fuente(URL_BOLD, 15 * scale,  "Mont-Bold.ttf")   # Datos del operador
-    fnt_footer   = obtener_fuente(URL_REG,  11 * scale,  "Mont-Reg.ttf")    # Link y pie
-
-    # ── 3. COLORES Y PALETA ─────────────────────────────────────────────
     def hex_to_rgb(h):
         h = h.lstrip('#')
         return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
-    
-    c_accent = hex_to_rgb(color_hex)
-    c_bg     = (8, 10, 16)        # Fondo oscuro profundo
-    c_card   = (15, 20, 32)       # Fondo de tarjetas
-    c_text_h = (240, 245, 255)    # Texto de alto contraste
-    c_text_l = (100, 115, 140)    # Texto secundario/etiquetas
 
-    img = Image.new('RGB', (W, H), c_bg)
-    d = ImageDraw.Draw(img)
+    accent_rgb = hex_to_rgb(accent_hex)
 
-    # ── 4. RETÍCULA TÁCTICA Y MARCO EXTERIOR ────────────────────────────
-    # Cuadrícula sutil de fondo
-    grid_size = 60 * scale
-    for i in range(0, W, grid_size):
-        d.line([(i, 0), (i, H)], fill=(14, 18, 28), width=1)
-        d.line([(0, i), (W, i)], fill=(14, 18, 28), width=1)
-    
-    # Marco exterior principal
-    margin = 40 * scale
-    d.rectangle([margin, margin, W - margin, H - margin], outline=(25, 35, 55), width=1*scale)
-    
-    # Esquinas decorativas angulares (Tactical Corners)
-    cs = 25 * scale
-    # Sup Izq
-    d.line([(margin, margin), (margin + cs, margin)], fill=c_accent, width=3*scale)
-    d.line([(margin, margin), (margin, margin + cs)], fill=c_accent, width=3*scale)
-    # Sup Der
-    d.line([(W - margin, margin), (W - margin - cs, margin)], fill=c_accent, width=3*scale)
-    d.line([(W - margin, margin), (W - margin, margin + cs)], fill=c_accent, width=3*scale)
-    # Inf Izq
-    d.line([(margin, H - margin), (margin + cs, H - margin)], fill=c_accent, width=3*scale)
-    d.line([(margin, H - margin), (margin, H - margin - cs)], fill=c_accent, width=3*scale)
-    # Inf Der
-    d.line([(W - margin, H - margin), (W - margin - cs, H - margin)], fill=c_accent, width=3*scale)
-    d.line([(W - margin, H - margin), (W - margin, H - margin - cs)], fill=c_accent, width=3*scale)
+    # ─── 2. CONFIGURACIÓN DEL LIENZO ────────────────────────────────
+    W, H = 1080, 1080
+    bg_color = (8, 10, 18)        # Fondo profundo
+    card_color = (18, 22, 35)     # Fondo de tarjeta
+    text_primary = (235, 240, 255)
+    text_secondary = (120, 135, 170)
 
-    # ── 5. CABECERA (BRANDING) ──────────────────────────────────────────
-    d.text((margin + 20*scale, margin + 25*scale), "CRYSIS", font=fnt_title, fill=c_text_h)
-    d.text((margin + 20*scale, margin + 65*scale), "INTELLIGENCE UNIT // CERTIFICADO OFICIAL", font=fnt_label, fill=c_accent)
-    
-    # Sello de verificación táctico (Esquina Superior Derecha)
-    cx_seal, cy_seal = W - margin - 60*scale, margin + 45*scale
-    r_seal = 40 * scale
-    # Círculo base
-    d.ellipse([cx_seal - r_seal, cy_seal - r_seal, cx_seal + r_seal, cy_seal + r_seal], outline=c_accent, width=2*scale)
-    # Segmentos decorativos externos
-    d.arc([cx_seal - r_seal - 4*scale, cy_seal - r_seal - 4*scale, cx_seal + r_seal + 4*scale, cy_seal + r_seal + 4*scale], start=0, end=90, fill=c_text_l, width=1*scale)
-    d.arc([cx_seal - r_seal - 4*scale, cy_seal - r_seal - 4*scale, cx_seal + r_seal + 4*scale, cy_seal + r_seal + 4*scale], start=180, end=270, fill=c_text_l, width=1*scale)
-    # Texto interno
-    d.text((cx_seal, cy_seal), "VERIFIED", font=fnt_label, fill=c_text_h, anchor="mm")
+    img = Image.new('RGB', (W, H), bg_color)
+    draw = ImageDraw.Draw(img)
 
-    # ── 6. PUNTUACIÓN Y ANILLOS DE PROGRESO ──────────────────────────────
-    cx, cy = W // 2, H // 2 - 50 * scale
-    r_ring = 280 * scale
-    
-    # Anillo exterior sutil
-    d.ellipse([cx - r_ring - 15*scale, cy - r_ring - 15*scale, cx + r_ring + 15*scale, cy + r_ring + 15*scale], outline=(18, 25, 40), width=1*scale)
-    # Anillo de fondo (track del progreso)
-    d.arc([cx - r_ring, cy - r_ring, cx + r_ring, cy + r_ring], start=0, end=360, fill=(24, 30, 46), width=14*scale)
-    # Anillo activo (progreso según la nota)
-    progreso_ang = (nota / 100.0) * 360
-    d.arc([cx - r_ring, cy - r_ring, cx + r_ring, cy + r_ring], start=-90, end=-90 + progreso_ang, fill=c_accent, width=14*scale)
-    # Anillo interior punteado decorativo
-    d.arc([cx - r_ring + 15*scale, cy - r_ring + 15*scale, cx + r_ring - 15*scale, cy + r_ring - 15*scale], start=0, end=360, fill=(40, 52, 75), width=1*scale)
+    # ─── 3. FUENTES (sin descargas, solo sistema o fallback) ──────
+    def get_font(size, bold=False):
+        # Intentar fuentes comunes en Linux (Streamlit Cloud) / Windows / Mac
+        font_paths = []
+        if bold:
+            font_paths = [
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                "C:/Windows/Fonts/ArialBD.ttf",
+                "/System/Library/Fonts/Helvetica.ttc",
+                "arialbd.ttf"
+            ]
+        else:
+            font_paths = [
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                "C:/Windows/Fonts/Arial.ttf",
+                "/System/Library/Fonts/Helvetica.ttc",
+                "arial.ttf"
+            ]
+        for path in font_paths:
+            try:
+                return ImageFont.truetype(path, size)
+            except:
+                continue
+        # Fallback absoluto
+        return ImageFont.load_default()
 
-    # Texto de Puntuación (Central)
-    d.text((cx, cy - 20*scale), str(nota), font=fnt_score, fill=c_text_h, anchor="mm")
-    
-    # Detalle estético debajo de la nota
-    d.text((cx, cy + 110*scale), "PUNTUACIÓN TÁCTICA", font=fnt_label, fill=c_accent, anchor="mm")
+    font_big = get_font(180, bold=True)      # Número central
+    font_rank = get_font(70, bold=True)      # Letra del rango
+    font_title = get_font(28, bold=True)     # Títulos
+    font_label = get_font(18)                # Etiquetas
+    font_data = get_font(24, bold=True)      # Datos operador
+    font_footer = get_font(16)               # Pie
 
-    # Badge del Rango (Letra flotante a la derecha)
-    badge_x, badge_y = cx + 180 * scale, cy - 180 * scale
-    badge_dim = 85 * scale
-    # Caja contenedora del Rango
-    d.rounded_rectangle([badge_x, badge_y, badge_x + badge_dim, badge_y + badge_dim], radius=12*scale, fill=c_accent)
-    # Contorno interno para realzar el diseño
-    d.rounded_rectangle([badge_x + 3*scale, badge_y + 3*scale, badge_x + badge_dim - 3*scale, badge_y + badge_dim - 3*scale], radius=9*scale, outline=c_bg, width=2*scale)
-    # Letra de rango
-    d.text((badge_x + badge_dim//2, badge_y + badge_dim//2), rango, font=fnt_rank, fill=c_bg, anchor="mm")
+    # ─── 4. RETÍCULA Y BORDES TÁCTICOS ─────────────────────────────
+    margin = 50
+    # Cuadrícula
+    grid = 80
+    for x in range(0, W, grid):
+        draw.line([(x, 0), (x, H)], fill=(20, 24, 38), width=1)
+        draw.line([(0, x), (W, x)], fill=(20, 24, 38), width=1)
 
-    # ── 7. BLOQUE DE DATOS TÉCNICOS (INFERIOR) ───────────────────────────
-    card_x1 = margin + 20 * scale
-    card_y1 = H - 290 * scale
-    card_x2 = W - margin - 20 * scale
-    card_y2 = H - 110 * scale
-    
-    # Contenedor de datos
-    d.rounded_rectangle([card_x1, card_y1, card_x2, card_y2], radius=10*scale, fill=c_card, outline=(30, 42, 65), width=1*scale)
-    
-    # Barra indicadora lateral izquierda del contenedor
-    d.rounded_rectangle([card_x1, card_y1, card_x1 + 6*scale, card_y2], radius=3*scale, fill=c_accent)
+    # Marco exterior
+    draw.rectangle([margin, margin, W-margin, H-margin], outline=(35, 45, 75), width=2)
 
-    # Línea divisoria central
-    div_x = (card_x1 + card_x2) // 2
-    d.line([(div_x, card_y1 + 20*scale), (div_x, card_y2 - 20*scale)], fill=(28, 38, 58), width=1*scale)
+    # Esquinas angulares
+    def corner(x, y, dx, dy):
+        draw.line([(x, y), (x+dx, y)], fill=accent_rgb, width=4)
+        draw.line([(x, y), (x, y+dy)], fill=accent_rgb, width=4)
 
-    datos = [
-        ("OPERADOR", agente.upper()),
-        ("MISIÓN", escenario.replace("OPERACION: ", "")[:22]),
-        ("ESTADO", "COMPLETADO"),
+    corner(margin, margin, 50, 50)
+    corner(W-margin, margin, -50, 50)
+    corner(margin, H-margin, 50, -50)
+    corner(W-margin, H-margin, -50, -50)
+
+    # ─── 5. CABECERA ───────────────────────────────────────────────
+    draw.text((margin+20, margin+30), "CRYSIS", font=font_title, fill=text_primary)
+    draw.text((margin+20, margin+70), "INTELLIGENCE UNIT // CERTIFICATION DOSSIER", 
+              font=font_label, fill=accent_rgb)
+
+    # Sello VERIFICADO (arriba derecha)
+    seal_x, seal_y = W-margin-90, margin+60
+    draw.ellipse([seal_x-35, seal_y-35, seal_x+35, seal_y+35], outline=accent_rgb, width=3)
+    draw.text((seal_x, seal_y), "VERIFIED", font=font_label, fill=text_primary, anchor="mm")
+
+    # ─── 6. PUNTUACIÓN CENTRAL + ANILLO DE PROGRESO ───────────────
+    cx, cy = W//2, H//2 - 40
+    ring_r = 270
+
+    # Anillo base (track)
+    draw.arc([cx-ring_r, cy-ring_r, cx+ring_r, cy+ring_r], 
+             start=0, end=360, fill=(40, 46, 70), width=18)
+
+    # Anillo de progreso (desde -90°)
+    progress_angle = (nota / 100) * 360
+    draw.arc([cx-ring_r, cy-ring_r, cx+ring_r, cy+ring_r], 
+             start=-90, end=-90+progress_angle, fill=accent_rgb, width=18)
+
+    # Decoración interior punteada
+    draw.arc([cx-ring_r+30, cy-ring_r+30, cx+ring_r-30, cy+ring_r-30], 
+             start=0, end=360, fill=(60, 70, 100), width=2)
+
+    # Número central
+    score_text = str(nota)
+    draw.text((cx, cy-25), score_text, font=font_big, fill=text_primary, anchor="mm")
+    draw.text((cx, cy+95), "PUNTUACIÓN TÁCTICA", font=font_label, fill=accent_rgb, anchor="mm")
+
+    # Badge del rango (flotante derecha)
+    badge_x, badge_y = cx+220, cy-220
+    badge_w = 100
+    draw.rounded_rectangle([badge_x, badge_y, badge_x+badge_w, badge_y+badge_w], 
+                           radius=15, fill=accent_rgb)
+    draw.rounded_rectangle([badge_x+5, badge_y+5, badge_x+badge_w-5, badge_y+badge_w-5],
+                           radius=10, outline=bg_color, width=3)
+    # Tomar primera letra del rango o el texto completo si es corto
+    rank_display = rango[0].upper() if len(rango) == 1 else rango[:2].upper()
+    draw.text((badge_x+badge_w//2, badge_y+badge_w//2), rank_display, 
+              font=font_rank, fill=bg_color, anchor="mm")
+
+    # ─── 7. TARJETA DE DATOS (inferior) ───────────────────────────
+    card_y = H - 320
+    card_h = 200
+    draw.rounded_rectangle([margin+20, card_y, W-margin-20, card_y+card_h], 
+                           radius=12, fill=card_color, outline=(45, 55, 85), width=2)
+
+    # Barra lateral izquierda
+    draw.rounded_rectangle([margin+20, card_y, margin+35, card_y+card_h], 
+                           radius=6, fill=accent_rgb)
+
+    # Divisor central
+    mid_x = (W - 2*margin) // 2 + margin
+    draw.line([(mid_x, card_y+30), (mid_x, card_y+card_h-30)], fill=(35, 45, 70), width=2)
+
+    # Campos
+    fields = [
+        ("AGENTE", agente.upper()),
+        ("OPERACIÓN", escenario[:30]),
+        ("DIFICULTAD", rango.upper()),
         ("VERIFICACIÓN", hashlib.md5(agente.encode()).hexdigest()[:8].upper())
     ]
-    
-    for i, (label, value) in enumerate(datos):
+    for i, (label, value) in enumerate(fields):
         col = i % 2
         row = i // 2
-        x_pos = card_x1 + 40*scale if col == 0 else div_x + 40*scale
-        y_pos = card_y1 + 35*scale + row * 85*scale
-        
-        # Pequeño marcador táctico (punto cuadrado)
-        d.rectangle([x_pos, y_pos + 4*scale, x_pos + 6*scale, y_pos + 10*scale], fill=c_accent)
-        
-        # Etiqueta
-        d.text((x_pos + 16*scale, y_pos), label, font=fnt_label, fill=c_text_l)
-        # Valor
-        d.text((x_pos, y_pos + 26*scale), value, font=fnt_data, fill=c_text_h)
+        x_base = margin + 80 if col == 0 else mid_x + 60
+        y_base = card_y + 50 + row * 70
 
-    # ── 8. PIE DE PÁGINA Y DETALLES TECH ────────────────────────────────
-    footer_y = H - 70 * scale
-    
-    # Código decorativo tipo "Data Matrix" simulado
-    grid_dots = 6
-    dot_w = 5 * scale
-    start_x = W - margin - 20*scale - (grid_dots * dot_w * 1.5)
-    start_y = footer_y - 12*scale
-    for row in range(grid_dots):
-        for col in range(grid_dots):
+        draw.rectangle([x_base-12, y_base+2, x_base-6, y_base+12], fill=accent_rgb)
+        draw.text((x_base, y_base), label, font=font_label, fill=text_secondary)
+        draw.text((x_base, y_base+32), value, font=font_data, fill=text_primary)
+
+    # ─── 8. PIE DE PÁGINA ─────────────────────────────────────────
+    footer_y = H - 60
+    link = "HTTPS://CRYSIS.STREAMLIT.APP"
+    draw.text((margin+20, footer_y), link, font=font_footer, fill=text_secondary)
+
+    # Dots decorativos (simulando Data Matrix)
+    dot_size = 6
+    start_x = W - margin - 120
+    start_y = footer_y - 12
+    for row in range(6):
+        for col in range(6):
             if (row + col) % 2 == 0:
-                dx = start_x + col * dot_w * 1.5
-                dy = start_y + row * dot_w * 1.5
-                d.rectangle([dx, dy, dx + dot_w, dy + dot_w], fill=c_accent)
+                x = start_x + col * 12
+                y = start_y + row * 12
+                draw.rectangle([x, y, x+dot_size, y+dot_size], fill=accent_rgb)
 
-    link_text = "PONTE A PRUEBA EN: HTTPS://CRYSIS.STREAMLIT.APP"
-    d.text((margin + 20*scale, footer_y), link_text, font=fnt_footer, fill=c_text_l)
-    
-    # Línea final de acento de diseño
-    d.line([(margin + 20*scale, H - 40*scale), (W - margin - 20*scale, H - 40*scale)], fill=c_accent, width=3*scale)
+    # Línea final de acento
+    draw.line([(margin+20, H-30), (W-margin-20, H-30)], fill=accent_rgb, width=3)
 
-    # ── 9. DOWN-SAMPLING (Filtro Lanczos de Reducción) ──────────────────
-    # Se reduce el lienzo de 2160x2160 de vuelta a 1080x1080 para suavizar los bordes
-    try:
-        resampling_filter = Image.Resampling.LANCZOS
-    except AttributeError:
-        resampling_filter = Image.ANTIALIAS  # Compatibilidad con versiones antiguas de Pillow
-        
-    img = img.resize((1080, 1080), resampling_filter)
-
-    # ── 10. EXPORTACIÓN ─────────────────────────────────────────────────
+    # ─── 9. EXPORTAR A BYTES ──────────────────────────────────────
     buf = io.BytesIO()
     img.save(buf, format='PNG')
     return buf.getvalue()
