@@ -18,6 +18,8 @@ import bcrypt
 import requests
 from urllib.parse import quote
 import hashlib
+from PIL import Image, ImageDraw, ImageFont
+import io
 
 @st.cache_data(ttl=86400)
 def buscar_wikipedia(nombre: str):
@@ -35,6 +37,37 @@ def buscar_wikipedia(nombre: str):
     except:
         pass
     return None
+
+def generar_imagen_dossier(agente, escenario, nota, rango, color_hex):
+    # 1. Crear un lienzo oscuro (500x600 px)
+    img = Image.new('RGB', (500, 600), color='#060810')
+    draw = ImageDraw.Draw(img)
+    
+    # 2. Dibujar borde según el rango
+    draw.rectangle([10, 10, 490, 590], outline=color_hex, width=3)
+    
+    # 3. Añadir textos (usaremos fuentes básicas que vienen en todos los servidores)
+    # Si no encuentra fuente específica, usará la de sistema
+    try:
+        font_tit = ImageFont.load_default()
+    except:
+        font_tit = None
+
+    draw.text((30, 40), "CRYSIS // INTELLIGENCE UNIT", fill="#3A4A6A")
+    draw.text((30, 80), f"OPERACION: {escenario}", fill="white")
+    
+    # Dibujar el Rango gigante
+    draw.text((180, 180), rango, fill=color_hex)
+    
+    draw.text((30, 400), f"PUNTUACION: {nota}/100", fill="white")
+    draw.text((30, 440), f"AGENTE: {agente.upper()}", fill="#4F8EF7")
+    draw.text((30, 540), "VERIFICADO POR CRYSIS TACTICAL ENGINE", fill="#18213A")
+
+    # Convertir a bytes para descargar
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    byte_im = buf.getvalue()
+    return byte_im
 
 # ─────────────────────────────────────────
 # CONFIGURACIÓN DE SUPERUSUARIO
@@ -1624,12 +1657,14 @@ elif st.session_state.pantalla_actual == "simulador":
             st.rerun()
 
     elif st.session_state.evaluacion_actual:
-        st.markdown("<div class='section-label'>INFORME DE EVALUACIÓN TÁCTICA</div>", unsafe_allow_html=True)
-        st.markdown(st.session_state.evaluacion_actual)
+        # --- 1. LÓGICA DE DATOS Y RANGO ---
+        ultima_sesion = st.session_state.historial_sesiones[-1]
+        nota_final = ultima_sesion["Nota"]
+        rango_letra, rango_color, rango_desc = obtener_rango_mision(nota_final)
 
-        # Banner de XP y logros (BLOQUE 8)
-        xp_ob  = st.session_state.get("xp_ganado_ultimo", 0)
-        log_n  = st.session_state.get("logros_nuevos_ultimo", [])
+        # --- 2. BANNER DE XP Y LOGROS ---
+        xp_ob = st.session_state.get("xp_ganado_ultimo", 0)
+        log_n = st.session_state.get("logros_nuevos_ultimo", [])
         if xp_ob > 0:
             logros_html = "".join([
                 f'<div style="margin-top:8px; font-family:var(--mono); font-size:0.6rem; color:#10B981;">'
@@ -1642,26 +1677,59 @@ elif st.session_state.pantalla_actual == "simulador":
                 {logros_html}
             </div>""", unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        col_end1, col_end2 = st.columns(2)
-        with col_end1:
-            if st.button("ARCHIVAR INFORME Y VOLVER AL MENÚ", use_container_width=True):
-                st.session_state.mision_iniciada   = False
-                st.session_state.evaluacion_actual = None
-                st.session_state.mensajes          = []
-                st.session_state.tarjeta_objetivo  = None
-                st.session_state.pantalla_actual   = "menu"
-                st.rerun()
-        with col_end2:
-            ultima_sesion = st.session_state.historial_sesiones[-1]
+        # --- 3. TARJETA VISUAL DE RANGO ---
+        st.markdown(f"""
+        <div class="share-card" style="border-color: {rango_color}">
+            <div class="share-meta">CRYSIS // INTELLIGENCE UNIT</div>
+            <div style="font-size: 1.2rem; color: #E2EAF8; margin-top:15px;">{st.session_state.escenario_activo}</div>
+            <div class="share-rank" style="color: {rango_color}">{rango_letra}</div>
+            <div style="font-size: 1.8rem; font-weight: bold; color: white;">{nota_final}/100</div>
+            <div style="color: {rango_color}; font-size: 0.8rem; margin-bottom: 20px;">{rango_desc}</div>
+            <div class="share-meta">AGENTE: {st.session_state.agente_activo.upper()}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # --- 4. BOTONES DE EXPORTACIÓN (3 COLUMNAS) ---
+        st.markdown("<div class='section-label'>GESTIÓN DE EXPEDIENTE</div>", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns(3)
+        
+        with c1:
+            pdf_data = generar_pdf_dossier(ultima_sesion)
             st.download_button(
-                label="DESCARGAR DOSSIER PDF",
-                data=generar_pdf_dossier(ultima_sesion),
-                file_name=f"CRYSIS_{ultima_sesion['Agente']}_Report.pdf",
+                label="📥 DOSSIER PDF",
+                data=pdf_data,
+                file_name=f"CRYSIS_{st.session_state.agente_activo}_Report.pdf",
                 mime="application/pdf",
                 use_container_width=True
             )
+            
+        with c2:
+            img_data = generar_imagen_dossier(
+                st.session_state.agente_activo,
+                st.session_state.escenario_activo,
+                nota_final,
+                rango_letra,
+                rango_color
+            )
+            st.download_button(
+                label="🖼️ GUARDAR IMAGEN",
+                data=img_data,
+                file_name=f"CRYSIS_Rango_{rango_letra}_{st.session_state.agente_activo}.png",
+                mime="image/png",
+                use_container_width=True
+            )
+            
+        with c3:
+            if st.button("⬅ VOLVER AL MENÚ", use_container_width=True):
+                st.session_state.mision_iniciada = False
+                st.session_state.evaluacion_actual = None
+                st.session_state.mensajes = []
+                st.session_state.tarjeta_objetivo = None
+                st.session_state.pantalla_actual = "menu"
+                st.rerun()
 
+        st.markdown("<br><div class='section-label'>ANÁLISIS DE CAMPO DETALLADO</div>", unsafe_allow_html=True)
+        st.markdown(st.session_state.evaluacion_actual)
     else:
         # CAMBIO 2 va aquí, al principio del else:
         escenario_activo_now = st.session_state.get("escenario_activo", "")
