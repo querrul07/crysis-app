@@ -844,59 +844,55 @@ if st.session_state.usuario_actual is None:
             st.markdown("<div style='margin-top:32px;'></div>", unsafe_allow_html=True)
 
             if st.session_state.login_modo == "acceso":
-                    if st.session_state.login_step == 1:
-                        with st.form("login_form"):
-                            st.markdown("<div class='section-label'>IDENTIFICACIÓN DE OPERADOR</div>", unsafe_allow_html=True)
-                            Du_id  = st.text_input("ID Operativo")
-                            u_pass = st.text_input("Clave de Seguridad", type="password")
-                            st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
-                            submitted = st.form_submit_button("INICIAR SESIÓN SEGURA", use_container_width=True)
-                            # BOTÓN TEMPORAL PARA RECUPERAR USUARIOS
-                            if st.form_submit_button("RECUPERAR CUENTAS ANTIGUAS"):
-                                migrar_usuarios_antiguos()
+                if st.session_state.login_step == 1:
+                    with st.form("login_form"):
+                        st.markdown("<div class='section-label'>IDENTIFICACIÓN DE OPERADOR</div>", unsafe_allow_html=True)
+                        Du_id  = st.text_input("ID Operativo")
+                        u_pass = st.text_input("Clave de Seguridad", type="password")
+                        st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
+                        submitted = st.form_submit_button("INICIAR SESIÓN SEGURA", use_container_width=True)
+                        if st.form_submit_button("RECUPERAR CUENTAS ANTIGUAS"):
+                            migrar_usuarios_antiguos()
 
-                        with st.expander("ASISTENCIA TÉCNICA"):
-                            u_res = st.text_input("Usuario a resetear")
-                            p_nue = st.text_input("Nueva Clave", type="password")
-                            if st.button("CAMBIAR CLAVE"):
-                                h = hash_password(p_nue)
-                                supabase.table("perfiles").update({"password_hash": h}).eq("id_usuario", u_res).execute()
-                                st.success("Clave cambiada.")
+                    with st.expander("ASISTENCIA TÉCNICA"):
+                        u_res = st.text_input("Usuario a resetear")
+                        p_nue = st.text_input("Nueva Clave", type="password")
+                        if st.button("CAMBIAR CLAVE"):
+                            h = hash_password(p_nue)
+                            supabase.table("perfiles").update({"password_hash": h}).eq("id_usuario", u_res).execute()
+                            st.success("Clave cambiada.")
 
-                        if submitted:
-                            # --- LOGIN SEGURO ---
-                            agente_db = cargar_perfil_usuario(Du_id)
-
-                            if agente_db:
-                                pass_db   = agente_db.get("password_hash", "")
-                                es_valida = check_password(u_pass, pass_db)
-
-                                if es_valida:
-                                    progreso = agente_db.get("datos_progresion", {})
-                                    agente = {
-                                        "Nombre":        agente_db["id_usuario"],
-                                        "Email":         agente_db["email"],
-                                        "Plan":          agente_db["plan"],
-                                        "Rol":           agente_db["rol"],
-                                        "Empresa":       agente_db["empresa"],
-                                        "xp":            progreso.get("xp", 0),
-                                        "logros":        progreso.get("logros", []),
-                                        "racha":         progreso.get("racha", 0),
-                                        "ultima_sesion": progreso.get("ultima_sesion", ""),
-                                        "2FA_Verificado": True
-                                    }
-                                    st.session_state.usuario_actual  = agente
-                                    st.session_state.pantalla_actual = "menu"
-                                    st.rerun()
-                                else:
-                                    st.error("CONTRASEÑA INCORRECTA")
+                    if submitted:
+                        agente_db = cargar_perfil_usuario(Du_id)
+                        if agente_db:
+                            pass_db   = agente_db.get("password_hash", "")
+                            es_valida = check_password(u_pass, pass_db)
+                            if es_valida:
+                                progreso = agente_db.get("datos_progresion", {})
+                                agente = {
+                                    "Nombre":         agente_db["id_usuario"],
+                                    "Email":          agente_db["email"],
+                                    "Plan":           agente_db["plan"],
+                                    "Rol":            agente_db["rol"],
+                                    "Empresa":        agente_db["empresa"],
+                                    "xp":             progreso.get("xp", 0),
+                                    "logros":         progreso.get("logros", []),
+                                    "racha":          progreso.get("racha", 0),
+                                    "ultima_sesion":  progreso.get("ultima_sesion", ""),
+                                    "2FA_Verificado": True
+                                }
+                                st.session_state.usuario_actual  = agente
+                                st.session_state.pantalla_actual = "menu"
+                                st.rerun()
                             else:
-                                st.error("EL ID DE OPERADOR NO EXISTE")
+                                st.error("CONTRASEÑA INCORRECTA")
+                        else:
+                            st.error("EL ID DE OPERADOR NO EXISTE")
 
-                        st.markdown("<div style='margin-top:12px; text-align:right;'>", unsafe_allow_html=True)
-                        if st.button("¿Olvidaste tu contraseña?", key="btn_forgot"):
-                            st.session_state.login_subpantalla = "forgot"; st.rerun()
-                        st.markdown("</div>", unsafe_allow_html=True)
+                    st.markdown("<div style='margin-top:12px; text-align:right;'>", unsafe_allow_html=True)
+                    if st.button("¿Olvidaste tu contraseña?", key="btn_forgot"):
+                        st.session_state.login_subpantalla = "forgot"; st.rerun()
+                    st.markdown("</div>", unsafe_allow_html=True)
 
                 elif st.session_state.login_step == 2:
                     correo_dest = st.session_state["2fa_agente"].get("Email", "Desconocido")
@@ -913,7 +909,7 @@ if st.session_state.usuario_actual is None:
                         if colA.form_submit_button("VERIFICAR", use_container_width=True):
                             if u_code == st.session_state["2fa_code"]:
                                 st.session_state["2fa_agente"]["2FA_Verificado"] = True; guardar_datos()
-                                st.session_state.usuario_actual = st.session_state["2fa_agente"]
+                                st.session_state.usuario_actual  = st.session_state["2fa_agente"]
                                 st.session_state.pantalla_actual = "menu"
                                 st.session_state.login_step = 1; del st.session_state["correo_enviado"]; st.rerun()
                             else: st.error("Código incorrecto.")
@@ -931,7 +927,7 @@ if st.session_state.usuario_actual is None:
                     </div>
                     """, unsafe_allow_html=True)
                     if st.button("ENTRAR CON NIVEL BASE", use_container_width=True):
-                        st.session_state.usuario_actual = info_pago["usuario"]
+                        st.session_state.usuario_actual  = info_pago["usuario"]
                         st.session_state.pantalla_actual = "menu"
                         del st.session_state.mostrar_pago; st.rerun()
                 else:
@@ -940,11 +936,11 @@ if st.session_state.usuario_actual is None:
                     if "plan_sel_reg" not in st.session_state: st.session_state.plan_sel_reg = "BASE"
 
                     planes_registro = [
-                        ("BASE",        "0€",     "1 op/mes · sin IA",           False),
-                        ("OPERADOR",    "19€/mes", "10 ops/mes · 3 escenarios",   False),
-                        ("ELITE",       "49€/mes", "Ilimitado · IA sin límite",   True),
-                        ("ESCUADRON",   "89€/mes", "Equipo · 15 agentes",         True),
-                        ("COMANDANCIA", "199€/mes","Enterprise · agentes ∞",      True),
+                        ("BASE",        "0€",      "1 op/mes · sin IA",          False),
+                        ("OPERADOR",    "19€/mes",  "10 ops/mes · 3 escenarios",  False),
+                        ("ELITE",       "49€/mes",  "Ilimitado · IA sin límite",  True),
+                        ("ESCUADRON",   "89€/mes",  "Equipo · 15 agentes",        True),
+                        ("COMANDANCIA", "199€/mes", "Enterprise · agentes ∞",     True),
                     ]
 
                     col1, col2 = st.columns(2)
@@ -983,51 +979,36 @@ if st.session_state.usuario_actual is None:
                             "📄 [Términos y Condiciones](https://github.com/querrul07/crysis-app/blob/main/terminos_condiciones_crysis.md) · [Política de Privacidad](https://github.com/querrul07/crysis-app/blob/main/politica_privacidad_crysis.md)",
                             unsafe_allow_html=True
                         )
-                        acepta_tyc = st.checkbox(
-                            "He leído y acepto los Términos y Condiciones y la Política de Privacidad",
-                            key="check_tyc"
-                        )
-                        acepta_rgpd = st.checkbox(
-                            "Consiento el tratamiento de mis datos personales conforme al RGPD (UE) 2016/679",
-                            key="check_rgpd"
-                        )
-                        acepta_comms = st.checkbox(
-                            "Acepto recibir comunicaciones comerciales (opcional)",
-                            key="check_comms"
-                        )
+                        acepta_tyc = st.checkbox("He leído y acepto los Términos y Condiciones y la Política de Privacidad", key="check_tyc")
+                        acepta_rgpd = st.checkbox("Consiento el tratamiento de mis datos personales conforme al RGPD (UE) 2016/679", key="check_rgpd")
+                        acepta_comms = st.checkbox("Acepto recibir comunicaciones comerciales (opcional)", key="check_comms")
                         lbl_btn = "CREAR CUENTA E IR AL PAGO" if es_pago else "CREAR CUENTA Y ENTRAR"
                         if st.form_submit_button(lbl_btn, use_container_width=True):
                             if not acepta_tyc or not acepta_rgpd:
                                 st.error("Debes aceptar los Términos y la Política de Privacidad para continuar.")
                             elif n and p and email:
-                                empresa_destino = n if es_corporativo else "Independiente"
-                                # --- NUEVO SISTEMA DE REGISTRO ---
                                 usuario_existente = cargar_perfil_usuario(n)
                                 if usuario_existente:
                                     st.warning("Este ID ya está registrado. Elige otro.")
                                 else:
-                                    # Creamos el diccionario del nuevo usuario
                                     nuevo_usuario = {
-                                        "Nombre": n,
-                                        "Email": email,
-                                        "Rol": "Individual" if not es_corporativo else "Empresa",
-                                        "Plan": "BASE",
+                                        "Nombre":  n,
+                                        "Email":   email,
+                                        "Rol":     "Individual" if not es_corporativo else "Empresa",
+                                        "Plan":    "BASE",
                                         "Empresa": n if es_corporativo else "Independiente",
                                         "xp": 0, "logros": [], "racha": 0
                                     }
-                                    # Guardamos en la Base de Datos con la contraseña segura
                                     guardar_perfil_en_db(nuevo_usuario, password_nueva=p)
-                                    
                                     st.success("Cuenta creada con éxito. Ya puedes iniciar sesión.")
                                     st.session_state.login_modo = "acceso"
                                     st.rerun()
-                                    
                             else:
                                 st.warning("Rellena todos los campos para continuar.")
+
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.stop()
-
 # ─────────────────────────────────────────
 # MANEJADOR DE NAVEGACIÓN POR TARJETAS
 # ─────────────────────────────────────────
