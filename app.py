@@ -268,10 +268,6 @@ def generar_dossier_svg(agente, escenario, nota, rango):
 
 # Ejemplo de uso en Streamlit:
 # st.markdown(generar_dossier_svg("NOMAD-7", "OPERACIÓN: TORMENTA ROJA", 94, "ALFA"), unsafe_allow_html=True)
-✅ Ventajas de esta opción
-# ─────────────────────────────────────────
-# CONFIGURACIÓN DE SUPERUSUARIO
-# ─────────────────────────────────────────
 COMANDANTE_SUPREMO = "CRYSIS"
 LINKS_PAGO = {
     "OPERADOR":    "https://buy.stripe.com/4gM28r2NU7b15Jf6wGc7u03",
