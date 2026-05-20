@@ -1347,7 +1347,7 @@ elif st.session_state.pantalla_actual == "expedientes":
                                     )
                                 # Descarga de imagen eliminada - solo PDF disponible
                                 with col_del:
-                                if puede_borrar:
+                                    if puede_borrar:
                                     confirm_key = f"confirm_del_{s['Agente']}_{s['Fecha']}"
                                     input_key   = f"input_del_{s['Agente']}_{s['Fecha']}"
                                     if not st.session_state.get(confirm_key, False):
